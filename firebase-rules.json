@@ -1,0 +1,109 @@
+{
+  "rules": {
+    "cities": {
+      "$cityId": {
+        "general": {
+          ".read": true,
+          ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2"
+        },
+        "locations": {
+          ".read": true,
+          ".write": "auth != null && auth.token.firebase.sign_in_provider != 'anonymous'"
+        },
+        "routes": {
+          ".read": true,
+          ".write": "auth != null && auth.token.firebase.sign_in_provider != 'anonymous'"
+        },
+        "reviews": {
+          ".read": true,
+          "$placeKey": {
+            ".read": true,
+            "$userId": {
+              ".write": "auth != null && auth.token.firebase.sign_in_provider != 'anonymous' && (auth.uid === $userId || root.child('users').child(auth.uid).child('role').val() >= 2)",
+              ".validate": "newData.hasChildren(['rating', 'timestamp']) || !newData.exists()"
+            }
+          }
+        },
+        "reviewRatings": {
+          ".read": true,
+          "$placeKey": {
+            ".read": true,
+            "$userId": {
+              ".write": "auth != null && auth.token.firebase.sign_in_provider != 'anonymous' && (auth.uid === $userId || root.child('users').child(auth.uid).child('role').val() >= 2)",
+              ".validate": "newData.isNumber() || !newData.exists()"
+            }
+          }
+        }
+      }
+    },
+    "settings": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2",
+      "aboutContent": {
+        ".read": true
+      },
+      "interestGroups": {
+        ".read": true
+      },
+      "interestConfig": {
+        ".read": true
+      },
+      "interestStatus": {
+        ".read": true
+      },
+      "cityHiddenInterests": {
+        ".read": true
+      },
+      "cacheVersion": {
+        ".read": true
+      }
+    },
+    "aboutContent": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2"
+    },
+    "customInterests": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 1"
+    },
+    "helpContent": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2"
+    },
+    "helpAudio": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2"
+    },
+    "helpAudioDuration": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2"
+    },
+    "users": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2",
+      "$uid": {
+        ".read": true,
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() >= 2)"
+      }
+    },
+    "accessStats": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2",
+      ".write": "auth != null"
+    },
+    "feedback": {
+      ".read": "auth != null",
+      "$feedbackId": {
+        ".write": "!data.exists() || (auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() >= 2))",
+        ".validate": "newData.hasChildren(['text', 'timestamp'])"
+      },
+      ".indexOn": ["timestamp"]
+    },
+    "cityStates": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2"
+    },
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}
