@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.22.3
+// FouFou app-data.js v3.22.4
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -3472,7 +3472,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.22.3';
+window.BKK.VERSION = '3.22.4';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -3979,10 +3979,18 @@ window.BKK.normalizeLocationAreas = (loc) => {
  * @param {number} total — total number of interests
  * @returns {string} hex color
  */
+// Hash ID to hue — stable color regardless of language or sort order
+window.BKK.idToHue = (str) => {
+  let h = 5381;
+  for (let i = 0; i < (str || '').length; i++) {
+    h = Math.imul(h, 31) + (str || '').charCodeAt(i) | 0;
+  }
+  return Math.abs(h) % 360;
+};
 window.BKK.generateInterestColor = (index, total) => {
   const hue = (index * 137.508) % 360;
-  const saturation = 65 + (index % 3) * 10; // 65-85%
-  const lightness = 45 + (index % 2) * 8;   // 45-53%
+  const saturation = 65 + (index % 3) * 10;
+  const lightness = 45 + (index % 2) * 8;
   return window.BKK.hslToHex(hue, saturation, lightness);
 };
 
@@ -4033,12 +4041,14 @@ window.BKK.INTEREST_COLORS = {
 };
 
 window.BKK.getInterestColor = (interestId, allInterests) => {
-  const interest = allInterests.find(i => i.id === interestId);
+  const interest = (allInterests || []).find(i => i.id === interestId);
+  // Firebase color override takes priority
   if (interest?.color) return interest.color;
-  // Stable color by ID first — avoids same-color collisions across languages
-  if (window.BKK.INTEREST_COLORS[interestId]) return window.BKK.INTEREST_COLORS[interestId];
-  const idx = allInterests.findIndex(i => i.id === interestId);
-  return window.BKK.generateInterestColor(idx >= 0 ? idx : 0, allInterests.length);
+  // Stable fallback: hash of ID — same color regardless of language or sort order
+  const hue = window.BKK.idToHue(interestId);
+  const saturation = 68;
+  const lightness = 46;
+  return window.BKK.hslToHex(hue, saturation, lightness);
 };
 
 // ============================================================================

@@ -7,7 +7,7 @@ https://eitanfisher2026.github.io/FouFou/
 React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Places API, PWA
 
 ## Version
-**v3.22.3**
+**v3.22.4**
 
 ---
 
@@ -201,6 +201,21 @@ Must be defined here (outside FouFouApp) when they use hooks:
 - Button shown in login dialog below "התנתק", hidden for anonymous users
 - i18n keys: `auth.deleteAccount`, `auth.deleteAccountConfirm`, `auth.accountDeleted`, `auth.deleteAccountError`, `auth.recentLoginRequired`
 
+
+
+## Color Architecture Fix (v3.22.4) — Root cause resolved
+
+### The two root causes
+1. **Step-3 list used group color, not stop color**: A stop in the "cafes" group showed the cafes color, but the same stop on the map showed its `interests[0]` color (e.g. architecture = red). Fix: circles in step-3 list now use `stop.interests[0]` — exactly like the map.
+2. **Auto-generated colors were index-based**: `generateInterestColor(index)` used the array position, which changes when sorted by Hebrew vs English label. Fix: replaced with `idToHue(interestId)` — a hash of the ID string, deterministic and language-independent.
+
+### Files changed
+- `app-data.js`: Added `window.BKK.idToHue()` (djb2 hash → hue). Updated `getInterestColor` fallback to use `idToHue(interestId)` instead of array index.
+- `app-code.js`: Step-3 list circles now use `stop.interests[0] || interest` (stop's primary interest = same as map marker color).
+
+### Color priority (in getInterestColor)
+1. Firebase `interest.color` override (admin-set) — highest priority
+2. `idToHue(id)` hash — stable fallback, same in all languages
 
 ## Color & Legend Fix (v3.22.3)
 Changes in `app-code.js` and `app-data.js`:
