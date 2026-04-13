@@ -835,6 +835,7 @@
                     } else if (id === 'point') {
                       setFormData(prev => ({...prev, searchMode: 'radius', radiusSource: 'point', radiusMeters: prev.radiusMeters || 500, currentLat: null, currentLng: null, radiusPlaceName: ''}));
                       window.BKK.logEvent?.('radius_mode_selected', { source: 'point' });
+                      setTimeout(() => { document.getElementById('point-search-input')?.focus(); }, 50);
                     } else {
                       setFormData(prev => ({...prev, searchMode: 'radius', radiusSource: 'gps', radiusMeters: prev.radiusMeters || 500, currentLat: null, currentLng: null, radiusPlaceName: ''}));
                       window.BKK.logEvent?.('radius_mode_selected', { source: 'gps' });
@@ -844,7 +845,7 @@
                   return (
                     <>
                       {/* Tab row */}
-                      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
                         {tabs.map(tab => {
                           const isActive = activeTab === tab.id;
                           return (
@@ -895,6 +896,7 @@
 
                       {activeTab === 'point' && (
                         <div style={{ marginBottom: '8px' }}>
+                          <div style={{ height: '6px' }} />
                           {formData.currentLat ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '10px', border: '2px solid #22c55e', marginBottom: '8px' }}>
                               <span style={{ fontSize: '14px' }}>📍</span>
@@ -942,7 +944,7 @@
                                     <div style={{ textAlign: 'center', padding: '12px', color: '#9ca3af', fontSize: '12px' }}>⏳ {t('general.searching')}...</div>
                                   ) : pointSearchResults.map((result, idx) => (
                                     <button key={idx}
-                                      onClick={() => { setFormData(prev => ({...prev, currentLat: result.lat, currentLng: result.lng, radiusPlaceName: result.name, radiusSource: 'point', radiusPlaceId: result.googlePlaceId || null})); setPointSearchResults(null); showToast(`✅ ${result.name}`, 'success'); }}
+                                      onClick={() => { setFormData(prev => ({...prev, currentLat: result.lat, currentLng: result.lng, radiusPlaceName: result.name, radiusSource: 'point', radiusPlaceId: result.googlePlaceId || null})); setPointSearchResults(null); }}
                                       style={{ width: '100%', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left', padding: '8px 12px', cursor: 'pointer', background: 'none', border: 'none', borderBottom: idx < pointSearchResults.length - 1 ? '1px solid #f3e8ff' : 'none', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', display: 'block' }}
                                       onMouseEnter={e => e.currentTarget.style.background = '#faf5ff'}
                                       onMouseLeave={e => e.currentTarget.style.background = 'none'}>
@@ -969,6 +971,7 @@
 
                       {activeTab === 'gps' && (
                         <div style={{ marginBottom: '8px' }}>
+                          <div style={{ height: '6px' }} />
                           <div style={{ textAlign: 'center', padding: '10px 0 14px', color: '#0369a1', fontSize: '12px', fontWeight: '500' }}>
                             📍 {currentLang === 'he' ? 'המיקום שלך יאותר בעת חיפוש' : 'Your location will be detected at search time'}
                           </div>
