@@ -7,7 +7,7 @@ https://eitanfisher2026.github.io/FouFou/
 React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Places API, PWA
 
 ## Version
-**v3.22.0**
+**v3.22.1**
 
 ---
 
@@ -179,6 +179,13 @@ Must be defined here (outside FouFouApp) when they use hooks:
 ## applyUpdate Fix (v3.21.0)
 - **Bug fixed:** `applyUpdate` cleared caches but did NOT unregister Service Worker → SW re-activated after reload and served stale JS → infinite update loop
 - **Fix:** Added `navigator.serviceWorker.getRegistrations()` → `r.unregister()` before clearing caches and reloading
+
+
+## Color Consistency Fix (v3.22.1)
+- **Bug fixed:** Stop circles in step-3 trail list used `stopColorPalette[originalIndex]` (position-based) — did not match map markers which use `getInterestColor` (interest-based)
+- **Bug fixed:** Active trail stop circles used `stopColorPalette[idx]` — same mismatch with map
+- **Fix (views.js):** Both now use `window.BKK.getInterestColor(interest, allInterestOptions)` → circles match map marker colors. Fallback to `stopColorPalette` for manual/unknown stops
+- **Added (views.js):** Legend (מקרא) row in active trail stops card — shows each trail interest with its color dot + icon + label. Hidden when no interests
 
 ## Pending / Known Issues
 - `hint_text_opened` analytics event not yet implemented

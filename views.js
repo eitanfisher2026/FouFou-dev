@@ -515,6 +515,32 @@
                 <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6b7280', marginBottom: '4px' }}>
                   {`📍 ${t('trail.stops')} (${activeTrail.stops.length - skippedTrailStops.size}/${activeTrail.stops.length})`}
                 </div>
+                {/* Legend — active trail interests with their colors */}
+                {(() => {
+                  const legendInterests = (activeTrail.interests || [])
+                    .map(id => allInterestOptions.find(o => o.id === id))
+                    .filter(Boolean);
+                  if (legendInterests.length === 0) return null;
+                  return (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px', padding: '2px 0' }}>
+                      {legendInterests.map(int => {
+                        const color = window.BKK.getInterestColor(int.id, allInterestOptions);
+                        const iconRaw = int.icon || '';
+                        const isImg = iconRaw.startsWith('data:');
+                        return (
+                          <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: '#4b5563' }}>
+                            <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }}></span>
+                            {isImg
+                              ? <img src={iconRaw} alt="" style={{ width: '12px', height: '12px', objectFit: 'contain' }} />
+                              : <span style={{ fontSize: '11px', lineHeight: 1 }}>{iconRaw}</span>
+                            }
+                            <span>{tLabel(int)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                   {(() => {
                     // Build sequential letter map: only active stops get letters
@@ -532,6 +558,9 @@
                     const isFavorite = customLocations.find(cl => cl.name === stop.name || (cl.lat && stop.lat && Math.abs(cl.lat - stop.lat) < 0.0001 && Math.abs(cl.lng - stop.lng) < 0.0001));
                     const pk = (stop.name || '').replace(/[.#$/\\[\]]/g, '_');
                     const ra = isFavorite ? reviewAverages[pk] : null;
+                    // Color by interest — matches map markers
+                    const stopInterestId = stop.interest || (isFavorite && isFavorite.interests?.[0]) || null;
+                    const stopColor = isSkipped ? '#d1d5db' : (stopInterestId ? window.BKK.getInterestColor(stopInterestId, allInterestOptions) : window.BKK.stopColorPalette[idx % window.BKK.stopColorPalette.length]);
                     return (
                     <div key={idx} style={{
                       display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 8px',
@@ -540,7 +569,7 @@
                     }}>
                       <span style={{
                         width: '18px', height: '18px', borderRadius: '50%',
-                        background: isSkipped ? '#d1d5db' : (window.BKK.stopColorPalette[idx % window.BKK.stopColorPalette.length]),
+                        background: stopColor,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: '9px', fontWeight: 'bold', color: 'white', flexShrink: 0,
                       }}>{letter}</span>
@@ -1489,8 +1518,10 @@
                                       flexWrap: 'wrap'
                                     }}>
                                       {route?.optimized && !isDisabled && hasValidCoords && activeLetterMap[stop.originalIndex] && (() => {
-                                        const palette = window.BKK.stopColorPalette;
-                                        const stopColor = palette[stop.originalIndex % palette.length];
+                                        // Color by interest — consistent with map markers and active trail
+                                        const stopColor = isManualGroup
+                                          ? window.BKK.stopColorPalette[stop.originalIndex % window.BKK.stopColorPalette.length]
+                                          : window.BKK.getInterestColor(interest, allInterestOptions);
                                         return (
                                           <span style={{ background: stopColor, color: 'white', borderRadius: '50%', width: '22px', height: '22px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold', flexShrink: 0, border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
                                             {activeLetterMap[stop.originalIndex]}
