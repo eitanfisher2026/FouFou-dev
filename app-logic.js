@@ -465,7 +465,9 @@
     }
     
     // Step 3: Optimize route order
-    const optimized = optimizeStopOrder(selected, autoStart, isCircular);
+    // If there's an isRadiusCenter stop, pin it at position 0 — it's an actual start stop, not a virtual reference
+    const pinnedFirstStop = selected.find(s => s.isRadiusCenter) || null;
+    const optimized = optimizeStopOrder(selected, autoStart, isCircular, pinnedFirstStop);
     
     // For linear without explicit start: use first optimized stop
     if (!autoStart && optimized.length > 0) {
@@ -6441,14 +6443,22 @@
   };
 
   // ========== ROUTE OPTIMIZATION (Nearest Neighbor + 2-opt) ==========
-  const optimizeStopOrder = (stops, startCoords, isCircular) => {
-    if (stops.length <= 2) return stops;
+  const optimizeStopOrder = (stops, startCoords, isCircular, pinnedFirstStop = null) => {
+    // pinnedFirstStop: a stop that must be at position 0 (radius center / GPS point).
+    // It is excluded from the TSP optimization and prepended to the result.
+    const stopsToOptimize = pinnedFirstStop
+      ? stops.filter(s => s !== pinnedFirstStop && !(s.isRadiusCenter && pinnedFirstStop.isRadiusCenter))
+      : stops;
+    if (stopsToOptimize.length <= 1) return pinnedFirstStop ? [pinnedFirstStop, ...stopsToOptimize] : stops;
     
-    // Filter stops with valid coordinates
-    const withCoords = stops.filter(s => s.lat && s.lng);
-    const noCoords = stops.filter(s => !s.lat || !s.lng);
+    // Filter stops with valid coordinates (operates on stopsToOptimize, not stops)
+    const withCoords = stopsToOptimize.filter(s => s.lat && s.lng);
+    const noCoords = stopsToOptimize.filter(s => !s.lat || !s.lng);
     
-    if (withCoords.length <= 1) return [...withCoords, ...noCoords];
+    if (withCoords.length <= 1) {
+      const result = [...withCoords, ...noCoords];
+      return pinnedFirstStop ? [pinnedFirstStop, ...result] : result;
+    }
     
     // Distance matrix (using calcDistance which is Haversine)
     const dist = (a, b) => calcDistance(a.lat, a.lng, b.lat, b.lng);
@@ -6675,7 +6685,9 @@
         while (contentImproved && contentPasses < maxContentPasses) {
           contentImproved = false;
           contentPasses++;
-          for (let i = 0; i < ordered.length; i++) {
+          // When pinnedFirstStop is set, start from i=1 — position 0 is locked
+          const startIdx = pinnedFirstStop ? 1 : 0;
+          for (let i = startIdx; i < ordered.length; i++) {
             for (let j = i + 1; j < ordered.length; j++) {
               const curPenalty = contentPenalty(ordered);
               // Try swap
@@ -6703,7 +6715,10 @@
     }
     
     // Append stops without coordinates at the end
-    return [...ordered, ...noCoords];
+    // If pinnedFirstStop exists, prepend it — it is always position 0 (letter A), untouched by TSP
+    return pinnedFirstStop
+      ? [pinnedFirstStop, ...ordered, ...noCoords]
+      : [...ordered, ...noCoords];
   };
 
   const generateRoute = async (extraManualStop = null) => {

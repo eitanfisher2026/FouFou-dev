@@ -7,7 +7,7 @@ https://eitanfisher2026.github.io/FouFou/
 React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Places API, PWA
 
 ## Version
-**v3.22.4**
+**v3.22.17**
 
 ---
 
@@ -18,7 +18,7 @@ React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Pla
 | `app-logic.js` | All state, hooks, Firebase, business logic |
 | `views.js` | Wizard + trail views JSX |
 | `dialogs.js` | All dialogs/modals JSX |
-| `quick-add-component.js` | QuickAdd + standalone components (FeedbackItemImages, FloatingAudioPlayer, FeedbackItemImages) |
+| `quick-add-component.js` | QuickAdd + standalone components (FeedbackItemImages, FloatingAudioPlayer) |
 | `config.js` | VERSION, systemParams defaults — **SOURCE ONLY, not loaded directly** |
 | `utils.js` | compressImage, uploadImage, i18n helpers — **SOURCE ONLY** |
 | `i18n.js` | All Hebrew + English strings — **SOURCE ONLY** |
@@ -86,6 +86,107 @@ Both steps use `position: sticky; bottom: 0` — no fixed px calculations:
 - One `<div>` per group with header **outside** the grid (avoids iOS Safari `gridColumn: 1/-1` bug)
 - Header style: right border accent + subtle background
 - `border-radius: 999px` on pill buttons for consistent cross-device rendering
+
+---
+
+## Step 2 — Area / Radius UX (v3.22.8–v3.22.17)
+
+### Top toggle
+- Side-by-side pill toggle: **בחר אזור** | **קרוב למיקום**
+- Active tab gets `flex: 2` (2/3 width), inactive gets `flex: 1` (1/3 width)
+- Switching to "בחר אזור" closes the point-search dropdown (`setPointSearchResults(null)`)
+- Switching modes does NOT trigger GPS — GPS fires lazily on "מצא מקומות"
+
+### Area mode
+- 2-column grid of area buttons, white background, green border when selected
+- No toggles — just the grid
+
+### Radius mode (visible when "קרוב למיקום" selected)
+- No outer card background — transparent, matches area screen
+- Two sub-buttons side by side: **חפש מקום** (left) | **קרוב אליי** (right)
+  - Both white background, green border when active (`#22c55e`), same style as area grid
+  - Sub-buttons wrapped in `div` with `minHeight: 116px` so the radius stepper never jumps position
+- **GPS sub-mode**: empty (no spinner) — GPS acquired lazily at search time
+- **Point search sub-mode** (matches "הוסף ידנית" dialog exactly):
+  - Small label: "שם מקום"
+  - `input` with purple border (`#c4b5fd`), `fontSize: 16px`
+  - 🎤 mic button (shown only if `window.BKK.speechSupported`)
+    - Language: `en-US` (same as add-manually dialog)
+    - Interim preview row on yellow background while recording
+    - Speech callback calls `setPointSearchQuery(newVal)` — enables search button without physical input touch
+  - "🔍 חפש בגוגל" button below — gray (`#e5e7eb`) until `pointSearchQuery` has value, purple when active
+  - Dropdown results below button (purple border, up to 5 results from `searchPointForRadius`)
+  - Selecting a result sets `formData.currentLat/lng/radiusPlaceName`
+
+### Radius stepper
+- Always visible below the sub-mode content area
+- `+` / `−` round buttons + range slider
+- 12 steps: 100, 150, 200, 250, 300, 400, 500, 600, 750, 1000, 1250, 1500 metres
+- Uses `accentColor: '#0369a1'` on the range input
+
+### canSearch logic
+- Area mode: requires `formData.area`
+- Radius / GPS: **always enabled** — coords not required upfront (lazy GPS)
+- Radius / point: requires `formData.currentLat`
+
+### "מצא מקומות" click — radius mode
+- If GPS mode + no coords: calls `getValidatedGps` first, then generates route. Only shows error toast on failure, no success toast.
+- Builds a `radiusStop` object (`isRadiusCenter: true`, `interests: ['_manual']`) and passes it directly to `generateRoute(radiusStop)` — avoids async state timing issues.
+- The radius center stop is **prepended** to the route stops array → gets letter **A**
+- `setStartPointCoords` set to the radius center → route optimization starts from it
+- `newRoute.optimized = true` set immediately so letter circles render without waiting for map optimization
+
+---
+
+## Radius Center Stop (v3.22.16+)
+
+### Object shape
+```js
+{
+  name: radiusPlaceName,
+  lat, lng,
+  address: radiusPlaceName,
+  duration: 0,
+  interests: ['_manual'],
+  manuallyAdded: true,
+  isRadiusCenter: true,   // ← key flag
+  googlePlace: false,
+  rating: 0, ratingCount: 0
+}
+```
+
+### Visual style in route list
+- Letter circle: **white background**, **green border** (`#22c55e`), green text (`#15803d`)
+- Appears under "הוספו ידנית" group header
+- Always gets letter **A** (prepended to stops array + `optimized: true`)
+- Re-searched on next "מצא מקומות" — old `isRadiusCenter` stop is replaced
+
+### generateRoute signature
+```js
+const generateRoute = async (extraManualStop = null) => { ... }
+```
+- `extraManualStop` bypasses async state — passed directly, not via `setManualStops`
+- When `extraManualStop.isRadiusCenter`: prepended to stops, `optimized: true`, `startPointCoords` set
+
+---
+
+## New State (app-logic.js, v3.22.10+)
+- `pointSearchResults` — `null` = hidden, `[]` = loading, `[{name,lat,lng,...}]` = results. Used for step-2 point search dropdown. Separate from `locationSearchResults` (add-manually dialog).
+- `pointSearchQuery` — tracks the point search input value (string). Enables "חפש בגוגל" button. Updated both by `onChange` and by speech callback.
+
+### searchPointForRadius()
+- Calls Google Places Text Search, max 5 results
+- Sets `pointSearchResults`
+- City-aware query (appends city name if not present)
+- Defined in `app-logic.js` alongside `searchPlacesByName`
+
+---
+
+## Legend (מקרא) in מפה ותכנון (v3.22.8+)
+- The bottom panel of the stops map (`mapMode === 'stops'`) now shows a legend row above the route-type toggle
+- Each interest shown as a pill: colored dot + icon + label
+- Derived from `[...new Set(mapStops.flatMap(s => s.interests))]`
+- Same pill style as active trail legend
 
 ---
 
@@ -178,11 +279,15 @@ Must be defined here (outside FouFouApp) when they use hooks:
 - `dedupConfirm` — dedup popup state
 - `roleOverride` — null/0/1 (admin simulation)
 - `isSpeaking`, `isPaused`, `playingHintLabel` — audio state
+- `pointSearchResults` — step-2 point search dropdown state
+- `pointSearchQuery` — step-2 point search input value (for button enable/disable)
 
-## i18n Keys (added in 3.17-3.18)
+## i18n Keys
 - `dedup.googleMatchMulti`, `dedup.selectOrSkip`, `dedup.noneOfThese`
 - `settings.feedbackSubject`, `settings.feedbackSenderName`, `settings.feedbackSenderEmail`
 - `auth.signInRequired` — used for all auth-blocked toasts
+- `general.nearLocation` — top toggle label (NOT `wizard.nearLocation`)
+- `general.nearMeGps`, `general.nearMe`, `general.nearMePoint` — radius sub-mode labels
 
 ---
 
@@ -201,35 +306,23 @@ Must be defined here (outside FouFouApp) when they use hooks:
 - Button shown in login dialog below "התנתק", hidden for anonymous users
 - i18n keys: `auth.deleteAccount`, `auth.deleteAccountConfirm`, `auth.accountDeleted`, `auth.deleteAccountError`, `auth.recentLoginRequired`
 
+---
 
-
-## Color Architecture Fix (v3.22.4) — Root cause resolved
-
-### The two root causes
-1. **Step-3 list used group color, not stop color**: A stop in the "cafes" group showed the cafes color, but the same stop on the map showed its `interests[0]` color (e.g. architecture = red). Fix: circles in step-3 list now use `stop.interests[0]` — exactly like the map.
-2. **Auto-generated colors were index-based**: `generateInterestColor(index)` used the array position, which changes when sorted by Hebrew vs English label. Fix: replaced with `idToHue(interestId)` — a hash of the ID string, deterministic and language-independent.
-
-### Files changed
-- `app-data.js`: Added `window.BKK.idToHue()` (djb2 hash → hue). Updated `getInterestColor` fallback to use `idToHue(interestId)` instead of array index.
-- `app-code.js`: Step-3 list circles now use `stop.interests[0] || interest` (stop's primary interest = same as map marker color).
+## Color Architecture (v3.22.4+)
 
 ### Color priority (in getInterestColor)
 1. Firebase `interest.color` override (admin-set) — highest priority
-2. `idToHue(id)` hash — stable fallback, same in all languages
+2. `idToHue(id)` hash (djb2 → hue) — stable fallback, same in all languages
 
-## Color & Legend Fix (v3.22.3)
-Changes in `app-code.js` and `app-data.js`:
-1. **Stable interest colors** (`app-data.js`): Added `window.BKK.INTEREST_COLORS` map — fixed English same-color bug where cafes/architecture got identical auto-generated colors
-2. **Step-3 trail list** (`app-code.js`): Letter circles now use `getInterestColor(interest)` per group — matches map markers
-3. **Active trail stop circles** (`app-code.js`): Color now from `stop.interest` via `getInterestColor` — matches map
-4. **Active trail legend** (`app-code.js`): Added מקרא row showing all trail interests with color dot + icon + label
-5. **Map legend** (`app-code.js`): Now shows ALL `formData.interests` (selected), not just interests that happen to have stops. Interests with 0 stops shown at 45% opacity with dashed border
+### isRadiusCenter stop color
+- Letter circle: white background + green border (`#22c55e`) + green text
+- No interest color — it's a neutral start marker
 
-**IMPORTANT**: These fixes are in `app-code.js` (compiled). `views.js` source was also updated for reference but `app-code.js` is what the browser loads.
+### Legend (מקרא)
+- Active trail stops card: pill badges (dot + icon + label), `gap: 8px`
+- מפה ותכנון bottom panel: same pill style above the route-type toggle
 
-## Color Consistency Fix (v3.22.1)
-- Stop circles in step-3 list and active trail now use `window.BKK.getInterestColor()` — matches map markers
-- Legend (מקרא) added to active trail stops card
+---
 
 ## Pending / Known Issues
 - `hint_text_opened` analytics event not yet implemented

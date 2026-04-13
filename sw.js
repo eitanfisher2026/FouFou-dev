@@ -1,8 +1,8 @@
-// FouFou Service Worker v3.22.17
+// FouFou Service Worker v3.22.18
 // Strategy: Network First — תמיד מנסה רשת, cache רק אם אין חיבור
 // זה בטוח: המשתמש תמיד מקבל את הגרסה העדכנית כשיש חיבור
 
-const CACHE_NAME = 'foufou-dev-v3.22.17';
+const CACHE_NAME = 'foufou-dev-v3.22.18';
 
 // קבצים לcache לoffline fallback בלבד
 const OFFLINE_ASSETS = [
