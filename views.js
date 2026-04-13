@@ -823,7 +823,7 @@
 
                   const tabs = [
                     { id: 'area',  icon: '🗺️', he: 'בחר אזור',       en: 'Area' },
-                    { id: 'point', icon: '🔍', he: 'מסביב למקום',    en: 'Around a place' },
+                    { id: 'point', icon: '🎯', he: 'מסביב למקום',    en: 'Around a place' },
                     { id: 'gps',   icon: '📍', he: 'קרוב אליי',      en: 'Near me' },
                   ];
 
@@ -916,8 +916,8 @@
                                 <input
                                   type="text"
                                   id="point-search-input"
-                                  placeholder={isRecording && recordingField === 'point_search' ? '' : (currentLang === 'he' ? 'הקלד כתובת, שם מקום, מלון...' : 'Address, place name, hotel...')}
-                                  className="flex-1 p-2.5 border-2 border-purple-300 rounded-lg focus:border-purple-500"
+                                  placeholder={isRecording && recordingField === 'point_search' ? '' : (currentLang === 'he' ? 'הקלד/הקלט שם מקום בגוגל...' : 'Type/speak a place name...')}
+                                  className="flex-1 p-2.5 border-2 border-blue-300 rounded-lg focus:border-blue-500"
                                   style={{ fontSize: '14px', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', outline: 'none', borderColor: isRecording && recordingField === 'point_search' ? '#ef4444' : undefined }}
                                   onChange={e => { setPointSearchQuery(e.target.value); if (!e.target.value.trim()) setPointSearchResults(null); }}
                                   onKeyDown={e => { if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) searchPointForRadius(q); } }}
@@ -980,7 +980,7 @@
                         <div style={{ marginBottom: '8px' }}>
                           <div style={{ height: '6px' }} />
                           <div style={{ textAlign: 'center', padding: '10px 0 14px', color: '#0369a1', fontSize: '12px', fontWeight: '500' }}>
-                            📍 {currentLang === 'he' ? 'המיקום שלך יאותר בעת חיפוש' : 'Your location will be detected at search time'}
+                            {currentLang === 'he' ? 'המיקום שלך יאותר בעת חיפוש' : 'Your location will be detected at search time'}
                           </div>
                           {/* Radius stepper — same spacer as point tab so label position never jumps */}
                           <div style={{ height: '8px' }} />

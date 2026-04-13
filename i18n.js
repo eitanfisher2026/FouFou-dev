@@ -404,7 +404,7 @@ wizard: {
 // --- Form / Search ---
 form: {
   whatInterests: '⭐ מה מעניין?',
-  searchRadius: '📍 רדיוס חיפוש',
+  searchRadius: '⭕ רדיוס חיפוש',
   radiusLabel: 'רדיוס:',
   gpsSearch: 'חיפוש לפי GPS',
   gps: 'GPS',
@@ -1509,7 +1509,7 @@ wizard: {
 
 form: {
   whatInterests: '⭐ What interests you?',
-  searchRadius: '📍 Search radius',
+  searchRadius: '⭕ Search radius',
   radiusLabel: 'Radius:',
   gpsSearch: 'Search by GPS',
   gps: 'GPS',
