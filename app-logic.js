@@ -1318,7 +1318,7 @@
           });
           
           stops.forEach((stop, i) => {
-            const color = colorPalette[i % colorPalette.length];
+            const color = (stop.interests && stop.interests[0] ? window.BKK.getInterestColor(stop.interests[0], allInterestOptions || []) : null) || colorPalette[i % colorPalette.length];
             const nameKey = (stop.name || '').toLowerCase().trim();
             const isDisabled = disabledStops.includes(nameKey) || mapSkippedStops.has(i);
             const stopLetter = mapLetterMap[i] || '';

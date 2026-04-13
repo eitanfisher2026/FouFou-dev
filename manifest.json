@@ -3,7 +3,7 @@
   "short_name": "FouFou",
   "description": "Smart city trails in Bangkok & Singapore — local picks + hidden gems",
   "id": "com.foufou.citytrails",
-  "scope": "/FouFou/",
+  "scope": "/FouFou-dev/",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f8fafc",

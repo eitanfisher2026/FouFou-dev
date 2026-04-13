@@ -2,14 +2,14 @@
 // Strategy: Network First — תמיד מנסה רשת, cache רק אם אין חיבור
 // זה בטוח: המשתמש תמיד מקבל את הגרסה העדכנית כשיש חיבור
 
-const CACHE_NAME = 'foufou-v3.22.0';
+const CACHE_NAME = 'foufou-dev-v3.22.0';
 
 // קבצים לcache לoffline fallback בלבד
 const OFFLINE_ASSETS = [
-  '/FouFou/',
-  '/FouFou/index.html',
-  '/FouFou/app-data.js?v=3.22.0',
-  '/FouFou/app-code.js?v=3.22.0'
+  '/FouFou-dev/',
+  '/FouFou-dev/index.html',
+  '/FouFou-dev/app-data.js?v=3.22.0',
+  '/FouFou-dev/app-code.js?v=3.22.0'
 ];
 
 // ──── Install: שמור assets בסיסיים ────
@@ -72,7 +72,7 @@ self.addEventListener('fetch', function(event) {
     }).catch(function() {
       // אין רשת — החזר מcache
       return caches.match(event.request).then(function(cached) {
-        return cached || caches.match('/FouFou/index.html');
+        return cached || caches.match('/FouFou-dev/index.html');
       });
     })
   );
