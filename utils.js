@@ -163,9 +163,36 @@ window.BKK.hslToHex = (h, s, l) => {
  * @param {Array} allInterests — full ordered list for index calculation
  * @returns {string} hex color
  */
+// Stable colors by interest ID — consistent across languages and sort orders
+window.BKK.INTEREST_COLORS = {
+  cafes:         '#e07b39', // orange-brown
+  coffee:        '#e07b39', // orange-brown (alias)
+  food:          '#e05c5c', // red-orange
+  restaurants:   '#e05c5c', // red-orange
+  architecture:  '#5b8dd9', // blue
+  galleries:     '#9b59b6', // purple
+  museums:       '#27ae60', // green
+  culture:       '#16a085', // teal
+  history:       '#8e6c3e', // brown
+  temples:       '#c0392b', // dark red
+  parks:         '#2ecc71', // light green
+  markets:       '#f1c40f', // yellow
+  shopping:      '#e67e22', // amber
+  nightlife:     '#6c3483', // dark purple
+  bars:          '#884ea0', // purple
+  rooftop:       '#2980b9', // sky blue
+  entertainment: '#d35400', // deep orange
+  beaches:       '#1abc9c', // turquoise
+  canals:        '#3498db', // blue
+  artisans:      '#e91e8c', // pink
+  graffiti:      '#ff5722', // deep orange-red
+};
+
 window.BKK.getInterestColor = (interestId, allInterests) => {
   const interest = allInterests.find(i => i.id === interestId);
   if (interest?.color) return interest.color;
+  // Stable color by ID first — avoids same-color collisions across languages
+  if (window.BKK.INTEREST_COLORS[interestId]) return window.BKK.INTEREST_COLORS[interestId];
   const idx = allInterests.findIndex(i => i.id === interestId);
   return window.BKK.generateInterestColor(idx >= 0 ? idx : 0, allInterests.length);
 };

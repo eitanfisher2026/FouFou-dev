@@ -7,7 +7,7 @@ https://eitanfisher2026.github.io/FouFou/
 React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Places API, PWA
 
 ## Version
-**v3.22.2**
+**v3.22.3**
 
 ---
 
@@ -19,10 +19,17 @@ React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Pla
 | `views.js` | Wizard + trail views JSX |
 | `dialogs.js` | All dialogs/modals JSX |
 | `quick-add-component.js` | QuickAdd + standalone components (FeedbackItemImages, FloatingAudioPlayer, FeedbackItemImages) |
-| `config.js` | VERSION, systemParams defaults |
-| `utils.js` | compressImage, uploadImage, i18n helpers |
-| `i18n.js` | All Hebrew + English strings |
+| `config.js` | VERSION, systemParams defaults — **SOURCE ONLY, not loaded directly** |
+| `utils.js` | compressImage, uploadImage, i18n helpers — **SOURCE ONLY** |
+| `i18n.js` | All Hebrew + English strings — **SOURCE ONLY** |
 | `city-*.js` | Per-city data |
+
+## Built Files (deployed, not source)
+| File | Contents |
+|------|----------|
+| `app-data.js` | **Built** — contains config.js + utils.js + i18n.js + city files inlined. This is what the browser loads. `window.BKK.VERSION` lives here. |
+| `app-code.js` | **Built** — compiled/minified JSX (app-logic + views + dialogs + quick-add) |
+| `index.html` | **Built** — assembled from `_source-template.html` with CSS inlined |
 
 ## Build
 ```bash
@@ -37,6 +44,31 @@ node compile.js app-code.js  # JSX → minified JS
 - Balance check: `() +0  {} -3  [] -2`
 - Standalone components (with hooks) → `quick-add-component.js` (before FouFouApp)
 - **Never use `React.useState`/`React.useRef` inside `.map()`, IIFEs, or callbacks**
+
+---
+
+## ⚠️ VERSION BUMP — MANDATORY CHECKLIST (every release)
+**Missing even one file causes an infinite update loop in production.**
+`app-data.js` is the built file the browser actually executes — it defines `window.BKK.VERSION`.
+`config.js` is source only and does NOT affect the running app.
+
+| # | File | What to change |
+|---|------|----------------|
+| 1 | `app-data.js` | Line 1 comment + `window.BKK.VERSION = 'X.X.X'` |
+| 2 | `version.json` | `{"version": "X.X.X"}` |
+| 3 | `sw.js` | Comment line 1 + `CACHE_NAME` + all URLs in `OFFLINE_ASSETS` |
+| 4 | `index.html` | All `?v=X.X.X` query strings (preload + script + fetch + sw register) |
+| 5 | `config.js` | `window.BKK.VERSION` (source reference, for consistency) |
+| 6 | `.last_built_version` | Version string |
+
+### Version numbering
+- **Patch** (bug fix, no new feature): `3.22.x` → 📦 GitHub only
+- **Minor** (new feature or Play Store release): `3.x.0` → may need 🏪 Play Store + twa-manifest
+
+### Packaging rule
+Every response that produces a modified zip must state:
+- 📦 **GitHub only — no Play Store needed**, OR
+- 🏪 **GitHub + Play Store** → include separate `twa-manifest` file
 
 ---
 
@@ -169,45 +201,20 @@ Must be defined here (outside FouFouApp) when they use hooks:
 - Button shown in login dialog below "התנתק", hidden for anonymous users
 - i18n keys: `auth.deleteAccount`, `auth.deleteAccountConfirm`, `auth.accountDeleted`, `auth.deleteAccountError`, `auth.recentLoginRequired`
 
-## Dedup Fix (v3.21.0)
-- **Bug fixed:** `googleMulti` dialog "אף אחד מאלה" button called `handleDedupConfirm('reject')` — no handler → dialog closed silently without saving
-- **Fix:** changed `'reject'` → `'addNew'` in `dialogs.js` line 36
 
-## i18n Keys (added in 3.19-3.20)
-- `auth.deleteAccount`, `auth.deleteAccountConfirm`, `auth.accountDeleted`, `auth.deleteAccountError`, `auth.recentLoginRequired`
+## Color & Legend Fix (v3.22.3)
+Changes in `app-code.js` and `app-data.js`:
+1. **Stable interest colors** (`app-data.js`): Added `window.BKK.INTEREST_COLORS` map — fixed English same-color bug where cafes/architecture got identical auto-generated colors
+2. **Step-3 trail list** (`app-code.js`): Letter circles now use `getInterestColor(interest)` per group — matches map markers
+3. **Active trail stop circles** (`app-code.js`): Color now from `stop.interest` via `getInterestColor` — matches map
+4. **Active trail legend** (`app-code.js`): Added מקרא row showing all trail interests with color dot + icon + label
+5. **Map legend** (`app-code.js`): Now shows ALL `formData.interests` (selected), not just interests that happen to have stops. Interests with 0 stops shown at 45% opacity with dashed border
 
-## applyUpdate Fix (v3.21.0)
-- **Bug fixed:** `applyUpdate` cleared caches but did NOT unregister Service Worker → SW re-activated after reload and served stale JS → infinite update loop
-- **Fix:** Added `navigator.serviceWorker.getRegistrations()` → `r.unregister()` before clearing caches and reloading
-
+**IMPORTANT**: These fixes are in `app-code.js` (compiled). `views.js` source was also updated for reference but `app-code.js` is what the browser loads.
 
 ## Color Consistency Fix (v3.22.1)
-- **Bug fixed:** Stop circles in step-3 trail list used `stopColorPalette[originalIndex]` (position-based) — did not match map markers which use `getInterestColor` (interest-based)
-- **Bug fixed:** Active trail stop circles used `stopColorPalette[idx]` — same mismatch with map
-- **Fix (views.js):** Both now use `window.BKK.getInterestColor(interest, allInterestOptions)` → circles match map marker colors. Fallback to `stopColorPalette` for manual/unknown stops
-- **Added (views.js):** Legend (מקרא) row in active trail stops card — shows each trail interest with its color dot + icon + label. Hidden when no interests
-
-
-## Root Cause of Update Loop — FINAL (v3.22.2)
-- **`app-data.js` is the BUILT file** containing config.js + utils.js + i18n.js inlined
-- It has `window.BKK.VERSION` hardcoded — this is what the app actually reads at runtime
-- `config.js` is a SOURCE file only — it does NOT affect the deployed app directly
-- Every version bump MUST update `app-data.js` line 1 (comment) and `window.BKK.VERSION`
-
-## Update Loop Fix (v3.22.2)
-- **Bug fixed:** `sw.js` OFFLINE_ASSETS had hardcoded `v=3.22.0` — new SW (CACHE_NAME v3.22.1) was caching old file versions on install
-- **Bug fixed:** `applyUpdate` in `app-logic.js` called `doReload()` before `caches.delete()` resolved — old SW cache survived the reload → version mismatch → loop
-- **Fix:** `Promise.all(names.map(caches.delete)).then(doReload)` — reload only after all caches fully cleared
-- **Rule added to checklist:** `sw.js` OFFLINE_ASSETS URLs must match the current version
-
-## Version Bump Checklist (every release)
-All 5 files must be updated together — missing any one causes the update loop:
-1. `version.json`
-2. `config.js` — `window.BKK.VERSION`
-3. `sw.js` — comment + `CACHE_NAME` + `OFFLINE_ASSETS` URLs
-4. `app-data.js` — comment line 1 + `window.BKK.VERSION` (built file — contains config.js content)
-5. `index.html` — all `?v=X.X.X` query strings
-6. `.last_built_version`
+- Stop circles in step-3 list and active trail now use `window.BKK.getInterestColor()` — matches map markers
+- Legend (מקרא) added to active trail stops card
 
 ## Pending / Known Issues
 - `hint_text_opened` analytics event not yet implemented
