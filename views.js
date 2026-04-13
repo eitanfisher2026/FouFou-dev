@@ -815,7 +815,7 @@
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', padding: '4px', background: '#f1f5f9', borderRadius: '14px' }}>
                   {[
                     { mode: 'area', icon: '🗺️', label: t('wizard.chooseArea'), onClick: () => setFormData(prev => ({...prev, searchMode: prev.searchMode === 'radius' ? 'area' : prev.searchMode})) },
-                    { mode: 'radius', icon: '📍', label: t('general.nearMe'), onClick: () => {
+                    { mode: 'radius', icon: '📍', label: t('wizard.nearLocation'), onClick: () => {
                       if (formData.searchMode !== 'radius') {
                         setFormData(prev => ({...prev, searchMode: 'radius', radiusMeters: prev.radiusMeters || 500}));
                         window.BKK.logEvent?.('radius_mode_selected', {});
@@ -883,18 +883,96 @@
 
                 {/* RADIUS MODE content */}
                 {formData.searchMode === 'radius' && (
-                  <div style={{ textAlign: 'center', padding: '8px 0' }}>
-                    {formData.currentLat ? (
+                  <div style={{ padding: '4px 0' }}>
+
+                    {/* Sub-toggle: GPS vs Custom Point */}
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', padding: '3px', background: '#e0f2fe', borderRadius: '10px' }}>
+                      {[
+                        { src: 'gps', icon: '📍', label: t('wizard.nearMeGps') },
+                        { src: 'point', icon: '🔍', label: t('wizard.nearMePoint') },
+                      ].map(({ src, icon, label }) => {
+                        const isActive = (formData.radiusSource || 'gps') === src;
+                        return (
+                          <button key={src} onClick={() => {
+                            if (src === 'gps' && formData.radiusSource !== 'gps') {
+                              setFormData(prev => ({ ...prev, radiusSource: 'gps', currentLat: null, currentLng: null, radiusPlaceName: '' }));
+                              if (navigator.geolocation) {
+                                window.BKK.getValidatedGps(
+                                  (pos) => { setFormData(prev => ({ ...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, radiusPlaceName: t('wizard.myLocation'), radiusSource: 'gps' })); showToast(t('wizard.locationFound'), 'success'); },
+                                  (reason) => { showToast(reason === 'outside_city' ? t('toast.outsideCity') : reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'), 'warning', 'sticky'); }
+                                );
+                              }
+                            } else if (src === 'point') {
+                              setFormData(prev => ({ ...prev, radiusSource: 'point', currentLat: null, currentLng: null, radiusPlaceName: '' }));
+                            }
+                          }} style={{
+                            flex: 1, padding: '7px 8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px',
+                            border: 'none', borderRadius: '8px', transition: 'all 0.2s',
+                            background: isActive ? 'white' : 'transparent',
+                            color: isActive ? '#0369a1' : '#64748b',
+                            boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                          }}>
+                            <span>{icon}</span><span>{label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* GPS sub-mode */}
+                    {(formData.radiusSource || 'gps') === 'gps' && (
+                      <div style={{ textAlign: 'center' }}>
+                        {formData.currentLat ? (
+                          <>
+                            <div style={{ fontSize: '12px', color: '#059669', fontWeight: 'bold', marginBottom: '8px' }}>✅ {t('wizard.locationFound')}</div>
+                          </>
+                        ) : (
+                          <div style={{ padding: '20px 0' }}>
+                            <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #e5e7eb', borderTopColor: '#2563eb', borderRadius: '50%', margin: '0 auto 8px' }}></div>
+                            <div style={{ fontSize: '13px', color: '#374151', fontWeight: 'bold' }}>📍 {t('form.waitingForGps')}</div>
+                            <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px' }}>{t('form.allowLocationAccess')}</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Custom Point sub-mode */}
+                    {formData.radiusSource === 'point' && (
+                      <div>
+                        {formData.currentLat ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '10px', border: '1px solid #86efac', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '14px' }}>📍</span>
+                            <span style={{ flex: 1, fontSize: '13px', fontWeight: 'bold', color: '#15803d' }}>{formData.radiusPlaceName}</span>
+                            <button onClick={() => setFormData(prev => ({ ...prev, currentLat: null, currentLng: null, radiusPlaceName: '' }))}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#6b7280' }}>✕</button>
+                          </div>
+                        ) : (
+                          <div style={{ marginBottom: '8px' }}>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <input
+                                type="text"
+                                id="point-search-input"
+                                placeholder={t('wizard.searchPointPlaceholder')}
+                                style={{ flex: 1, padding: '9px 12px', borderRadius: '10px', border: '1.5px solid #bae6fd', fontSize: '14px', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}
+                                onKeyDown={e => { if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) geocodeAddress(q); } }}
+                              />
+                              <button onClick={() => { const inp = document.getElementById('point-search-input'); if (inp?.value?.trim()) geocodeAddress(inp.value.trim()); }}
+                                style={{ padding: '9px 14px', borderRadius: '10px', border: 'none', background: '#0ea5e9', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>
+                                🔍
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Radius slider — shown when location is set (both modes) */}
+                    {formData.currentLat && (
                       <>
-                        <div style={{ fontSize: '12px', color: '#059669', fontWeight: 'bold', marginBottom: '8px' }}>
-                          ✅ {t('wizard.locationFound')}
-                        </div>
-                        {/* Radius preset buttons */}
-                        <div style={{ fontSize: '11px', color: '#374151', fontWeight: 'bold', marginBottom: '6px' }}>{t('form.searchRadius')}:</div>
+                        <div style={{ fontSize: '11px', color: '#374151', fontWeight: 'bold', marginBottom: '6px', textAlign: 'center' }}>{t('form.searchRadius')}:</div>
                         <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
                           {[100, 250, 500, 750, 1000].map(r => (
-                            <button
-                              key={r}
+                            <button key={r}
                               onClick={() => { setFormData(prev => ({...prev, radiusMeters: r})); window.BKK.logEvent?.('radius_changed', { radius_meters: r }); }}
                               style={{
                                 padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer',
@@ -907,16 +985,6 @@
                           ))}
                         </div>
                       </>
-                    ) : (
-                      <div style={{ padding: '20px 0' }}>
-                        <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #e5e7eb', borderTopColor: '#2563eb', borderRadius: '50%', margin: '0 auto 8px' }}></div>
-                        <div style={{ fontSize: '13px', color: '#374151', fontWeight: 'bold' }}>
-                          📍 {t('form.waitingForGps')}
-                        </div>
-                        <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px' }}>
-                          {t('form.allowLocationAccess')}
-                        </div>
-                      </div>
                     )}
                   </div>
                 )}
@@ -1304,7 +1372,7 @@
               style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: '#d1d5db' }}
             >📍 {(() => {
               if (formData.searchMode === 'all') return t('wizard.allCity');
-              if (formData.searchMode === 'radius') return `${t('general.nearMe')} (${formData.radiusMeters >= 1000 ? `${formData.radiusMeters/1000}km` : `${formData.radiusMeters}m`})`;
+              if (formData.searchMode === 'radius') { const locName = formData.radiusSource === 'point' ? (formData.radiusPlaceName || t('wizard.nearMePoint')) : t('wizard.myLocation'); return `${locName} (${formData.radiusMeters >= 1000 ? `${formData.radiusMeters/1000}km` : `${formData.radiusMeters}m`})`; }
               const area = (window.BKK.areaOptions || []).find(a => a.id === formData.area);
               return area ? tLabel(area) : '';
             })()}</span>

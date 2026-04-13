@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.22.4
+// FouFou app-data.js v3.22.7
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -242,6 +242,12 @@ general: {
   later: 'אח״כ',
   howItWorks: 'איך זה עובד?',
   nearMe: 'קרוב אליי',
+  nearLocation: 'קרוב למיקום',
+  nearMeGps: 'קרוב אליי',
+  nearMePoint: 'נקודה מוגדרת',
+  searchPointPlaceholder: 'חפש מלון, כתובת, מקום...',
+  pointSelected: '📍 נקודה נבחרה',
+  changePoint: 'שנה נקודה',
   next: 'המשך',
   back: 'חזרה',
   backToRoute: 'חזרה למסלול',
@@ -1345,6 +1351,12 @@ general: {
   later: 'Later',
   howItWorks: 'How it works',
   nearMe: 'Near me',
+  nearLocation: 'Near location',
+  nearMeGps: 'Near me',
+  nearMePoint: 'Custom point',
+  searchPointPlaceholder: 'Search hotel, address, place...',
+  pointSelected: '📍 Point selected',
+  changePoint: 'Change point',
   next: 'Next',
   back: 'Back',
   backToRoute: 'Back to route',
@@ -3472,7 +3484,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.22.6';
+window.BKK.VERSION = '3.22.7';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -3979,18 +3991,10 @@ window.BKK.normalizeLocationAreas = (loc) => {
  * @param {number} total — total number of interests
  * @returns {string} hex color
  */
-// Hash ID to hue — stable color regardless of language or sort order
-window.BKK.idToHue = (str) => {
-  let h = 5381;
-  for (let i = 0; i < (str || '').length; i++) {
-    h = Math.imul(h, 31) + (str || '').charCodeAt(i) | 0;
-  }
-  return Math.abs(h) % 360;
-};
 window.BKK.generateInterestColor = (index, total) => {
   const hue = (index * 137.508) % 360;
-  const saturation = 65 + (index % 3) * 10;
-  const lightness = 45 + (index % 2) * 8;
+  const saturation = 65 + (index % 3) * 10; // 65-85%
+  const lightness = 45 + (index % 2) * 8;   // 45-53%
   return window.BKK.hslToHex(hue, saturation, lightness);
 };
 
@@ -4015,7 +4019,6 @@ window.BKK.hslToHex = (h, s, l) => {
  * @param {Array} allInterests — full ordered list for index calculation
  * @returns {string} hex color
  */
-// Stable colors by interest ID — consistent across languages and sort orders
 window.BKK.INTEREST_COLORS = {
   cafes:         '#e07b39', // orange-brown
   coffee:        '#e07b39', // orange-brown (alias)
@@ -4041,19 +4044,11 @@ window.BKK.INTEREST_COLORS = {
 };
 
 window.BKK.getInterestColor = (interestId, allInterests) => {
-  const interest = (allInterests || []).find(i => i.id === interestId);
-  // Priority 1: color set explicitly on the interest object (by admin/editor in Firebase)
+  const interest = allInterests.find(i => i.id === interestId);
   if (interest?.color) return interest.color;
-  // Priority 2: known semantic colors — check both raw ID and without i_ prefix
-  const IC = window.BKK.INTEREST_COLORS;
-  if (IC && IC[interestId]) return IC[interestId];
-  const baseId = (interestId || '').replace(/^i_/, '');
-  if (IC && baseId !== interestId && IC[baseId]) return IC[baseId];
-  // Priority 3: stable hash fallback for unknown/new interest types
-  const hue = window.BKK.idToHue(interestId);
-  const saturation = 68;
-  const lightness = 46;
-  return window.BKK.hslToHex(hue, saturation, lightness);
+  if (window.BKK.INTEREST_COLORS[interestId]) return window.BKK.INTEREST_COLORS[interestId];
+  const idx = allInterests.findIndex(i => i.id === interestId);
+  return window.BKK.generateInterestColor(idx >= 0 ? idx : 0, allInterests.length);
 };
 
 // ============================================================================
@@ -4493,13 +4488,8 @@ window.BKK.buildGoogleMapsUrls = (stops, origin, isCircular, maxPoints) => {
   
   const buildPointsList = (stopsSlice, originCoord, circular) => {
     const points = [];
-    // If origin provided, start directly from it — never use empty string ("Your location")
-    // which causes Google Maps to route from the user's GPS even when far from the city
-    if (originCoord) {
-      points.push(originCoord);
-    } else {
-      points.push('');
-    }
+    points.push('');
+    if (originCoord) points.push(originCoord);
     stopsSlice.forEach(s => points.push(`${s.lat},${s.lng}`));
     if (circular && originCoord) points.push(originCoord);
     return points;
@@ -4529,12 +4519,8 @@ window.BKK.buildGoogleMapsUrls = (stops, origin, isCircular, maxPoints) => {
     const points = [];
     
     if (isFirst) {
-      // Start directly from origin — never use empty string ("Your location")
-      if (currentOrigin) {
-        points.push(currentOrigin);
-      } else {
-        points.push('');
-      }
+      points.push(''); // "Your location"
+      if (currentOrigin) points.push(currentOrigin);
     } else {
       points.push(currentOrigin);
     }
