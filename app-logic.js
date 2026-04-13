@@ -1322,7 +1322,14 @@
           });
           
           stops.forEach((stop, i) => {
-            const color = (stop.interests && stop.interests[0] ? window.BKK.getInterestColor(stop.interests[0], allInterestOptions || []) : null) || colorPalette[i % colorPalette.length];
+            const isManualStop = stop.manuallyAdded || stop.isRadiusCenter;
+            // Manual stops: white fill + green border. Regular stops: interest color.
+            const interestColor = (stop.interests && stop.interests[0] && stop.interests[0] !== '_manual'
+              ? window.BKK.getInterestColor(stop.interests[0], allInterestOptions || [])
+              : null) || colorPalette[i % colorPalette.length];
+            const color = isManualStop ? '#22c55e' : interestColor; // border/outline color
+            const fillColor = isManualStop ? 'white' : interestColor;
+            const labelTextColor = isManualStop ? '#15803d' : 'white';
             const nameKey = (stop.name || '').toLowerCase().trim();
             const isDisabled = disabledStops.includes(nameKey) || mapSkippedStops.has(i);
             const stopLetter = mapLetterMap[i] || '';
@@ -1340,15 +1347,15 @@
             }
             
             const circle = L.circleMarker([stop.lat, stop.lng], {
-              radius: mc.radius, color: color, fillColor: color,
-              fillOpacity: isDisabled ? mc.disabledFillOpacity : mc.fillOpacity, weight: mc.weight,
+              radius: mc.radius, color: color, fillColor: fillColor,
+              fillOpacity: isDisabled ? mc.disabledFillOpacity : mc.fillOpacity, weight: isManualStop ? 2.5 : mc.weight,
               opacity: isDisabled ? mc.disabledOpacity : 1
             }).addTo(map);
             
             const label = L.marker([stop.lat, stop.lng], {
               icon: L.divIcon({
                 className: '',
-                html: '<div style="font-size:' + mc.labelFontSize + ';font-weight:bold;text-align:center;color:white;width:' + mc.labelSize + 'px;height:' + mc.labelSize + 'px;line-height:' + mc.labelSize + 'px;border-radius:50%;background:' + color + ';border:2px solid ' + (isStart ? mc.startRingColor : 'white') + ';box-shadow:0 1px 4px rgba(0,0,0,0.3);opacity:' + (isDisabled ? mc.disabledOpacity : '1') + ';">' + (isStart ? '▶' : stopLetter) + '</div>',
+                html: '<div style="font-size:' + mc.labelFontSize + ';font-weight:bold;text-align:center;color:' + labelTextColor + ';width:' + mc.labelSize + 'px;height:' + mc.labelSize + 'px;line-height:' + mc.labelSize + 'px;border-radius:50%;background:' + fillColor + ';border:2px solid ' + (isManualStop ? '#22c55e' : (isStart ? mc.startRingColor : 'white')) + ';box-shadow:0 1px 4px rgba(0,0,0,0.3);opacity:' + (isDisabled ? mc.disabledOpacity : '1') + ';">' + (isStart && !isManualStop ? '▶' : stopLetter) + '</div>',
                 iconSize: [mc.labelSize, mc.labelSize], iconAnchor: [mc.labelSize/2, mc.labelSize/2]
               }),
               opacity: isDisabled ? mc.disabledOpacity : 1

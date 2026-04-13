@@ -5248,11 +5248,13 @@
             <div className="border-t" style={{ background: mapMode === 'stops' ? '#f8fafc' : 'white' }}>
               {mapMode === 'stops' ? (
                 <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {/* Legend — interest colors */}
+                  {/* Legend — interests selected by user in Step 1, plus manual stops if any */}
                   {(() => {
-                    const routeInterests = [...new Set((mapStops || []).flatMap(s => s.interests || []))].filter(Boolean);
-                    const legendItems = routeInterests.map(id => allInterestOptions.find(o => o.id === id)).filter(Boolean);
-                    if (legendItems.length === 0) return null;
+                    // Use route.preferences.interests = what user selected, NOT what stops happen to contain
+                    const selectedIds = (route?.preferences?.interests || formData.interests || []).filter(id => id !== '_manual');
+                    const legendItems = selectedIds.map(id => allInterestOptions.find(o => o.id === id)).filter(Boolean);
+                    const hasManual = (mapStops || []).some(s => s.manuallyAdded || s.isRadiusCenter);
+                    if (legendItems.length === 0 && !hasManual) return null;
                     return (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '6px 0', borderBottom: '1px solid #e5e7eb', marginBottom: '4px' }}>
                         {legendItems.map(int => {
@@ -5270,6 +5272,13 @@
                             </div>
                           );
                         })}
+                        {/* Manual stops legend entry — white circle + green border */}
+                        {hasManual && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#374151', padding: '2px 7px', background: '#f0fdf4', borderRadius: '20px', border: '1px solid #bbf7d0' }}>
+                            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'white', border: '2px solid #22c55e', display: 'inline-block', flexShrink: 0 }}></span>
+                            <span style={{ fontWeight: '500' }}>{currentLang === 'he' ? 'הוספו ידנית' : 'Added manually'}</span>
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
