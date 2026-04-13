@@ -188,6 +188,12 @@ Must be defined here (outside FouFouApp) when they use hooks:
 - **Added (views.js):** Legend (מקרא) row in active trail stops card — shows each trail interest with its color dot + icon + label. Hidden when no interests
 
 
+## Root Cause of Update Loop — FINAL (v3.22.2)
+- **`app-data.js` is the BUILT file** containing config.js + utils.js + i18n.js inlined
+- It has `window.BKK.VERSION` hardcoded — this is what the app actually reads at runtime
+- `config.js` is a SOURCE file only — it does NOT affect the deployed app directly
+- Every version bump MUST update `app-data.js` line 1 (comment) and `window.BKK.VERSION`
+
 ## Update Loop Fix (v3.22.2)
 - **Bug fixed:** `sw.js` OFFLINE_ASSETS had hardcoded `v=3.22.0` — new SW (CACHE_NAME v3.22.1) was caching old file versions on install
 - **Bug fixed:** `applyUpdate` in `app-logic.js` called `doReload()` before `caches.delete()` resolved — old SW cache survived the reload → version mismatch → loop
@@ -199,8 +205,9 @@ All 5 files must be updated together — missing any one causes the update loop:
 1. `version.json`
 2. `config.js` — `window.BKK.VERSION`
 3. `sw.js` — comment + `CACHE_NAME` + `OFFLINE_ASSETS` URLs
-4. `index.html` — all `?v=X.X.X` query strings
-5. `.last_built_version`
+4. `app-data.js` — comment line 1 + `window.BKK.VERSION` (built file — contains config.js content)
+5. `index.html` — all `?v=X.X.X` query strings
+6. `.last_built_version`
 
 ## Pending / Known Issues
 - `hint_text_opened` analytics event not yet implemented
