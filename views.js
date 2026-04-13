@@ -810,14 +810,14 @@
                 </div>
                 {renderStepHeader('📍', t('wizard.step1Title'), t('wizard.step1Subtitle'), 'hint_area')}
                 {renderContextHint('hint_area')}
-                
-                {/* Mode selector — radio pill toggle */}
+
+                {/* Mode selector — radio pill toggle (top level: area vs near me) */}
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', padding: '4px', background: '#f1f5f9', borderRadius: '14px' }}>
                   {[
-                    { mode: 'area', icon: '🗺️', label: t('wizard.chooseArea'), onClick: () => setFormData(prev => ({...prev, searchMode: prev.searchMode === 'radius' ? 'area' : prev.searchMode})) },
+                    { mode: 'area', icon: '🗺️', label: t('wizard.chooseArea'), onClick: () => setFormData(prev => ({...prev, searchMode: 'area'})) },
                     { mode: 'radius', icon: '📍', label: t('wizard.nearLocation'), onClick: () => {
                       if (formData.searchMode !== 'radius') {
-                        setFormData(prev => ({...prev, searchMode: 'radius', radiusMeters: prev.radiusMeters || 500}));
+                        setFormData(prev => ({...prev, searchMode: 'radius', radiusMeters: prev.radiusMeters || 500, radiusSource: prev.radiusSource || 'gps'}));
                         window.BKK.logEvent?.('radius_mode_selected', {});
                         if (navigator.geolocation) {
                           window.BKK.getValidatedGps(
@@ -852,44 +852,41 @@
 
                 {/* AREA MODE content */}
                 {formData.searchMode !== 'radius' && (
-                  <>
-                    {/* Area Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px', marginBottom: '6px' }}>
-                      {(window.BKK.areaOptions || []).map(area => {
-                        const safety = (window.BKK.areaCoordinates?.[area.id]?.safety) || 'safe';
-                        return (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px', marginBottom: '6px' }}>
+                    {(window.BKK.areaOptions || []).map(area => {
+                      const safety = (window.BKK.areaCoordinates?.[area.id]?.safety) || 'safe';
+                      return (
                         <button
                           key={area.id}
                           onClick={() => { setFormData(prev => ({...prev, area: area.id, searchMode: 'area'})); window.BKK.logEvent?.('area_selected', { area_id: area.id, area_name: area.labelEn || area.label }); }}
                           style={{
                             padding: '6px 6px', borderRadius: '8px',
-                            border: formData.area === area.id && formData.searchMode === 'area' ? '2px solid #22c55e' : '1.5px solid #e5e7eb',
-                            background: formData.area === area.id && formData.searchMode === 'area' ? '#f0fdf4' : 'white',
+                            border: formData.area === area.id ? '2px solid #22c55e' : '1.5px solid #e5e7eb',
+                            background: formData.area === area.id ? '#f0fdf4' : 'white',
                             cursor: 'pointer', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', transition: 'all 0.2s'
                           }}
                         >
-                          <div style={{ fontWeight: 'bold', fontSize: '12px', color: formData.area === area.id && formData.searchMode === 'area' ? '#15803d' : '#1f2937' }}>
-                            {formData.area === area.id && formData.searchMode === 'area' && '✓ '}{tLabel(area)}
+                          <div style={{ fontWeight: 'bold', fontSize: '12px', color: formData.area === area.id ? '#15803d' : '#1f2937' }}>
+                            {formData.area === area.id && '✓ '}{tLabel(area)}
                             {safety === 'caution' && <span style={{ color: '#f59e0b', marginRight: '3px' }} title={t("general.cautionArea")}>⚠️</span>}
                             {safety === 'danger' && <span style={{ color: '#ef4444', marginRight: '3px' }} title={t("general.dangerArea")}>🔴</span>}
                           </div>
                           <div style={{ fontSize: '9px', color: '#6b7280', marginTop: '1px' }}>{tDesc(area) || tLabel(area)}</div>
                         </button>
-                        );
-                      })}
-                    </div>
-                  </>
+                      );
+                    })}
+                  </div>
                 )}
 
-                {/* RADIUS MODE content */}
+                {/* RADIUS MODE content — visually contained card, clearly child of "near me" */}
                 {formData.searchMode === 'radius' && (
-                  <div style={{ padding: '4px 0' }}>
+                  <div style={{ background: '#f0f9ff', borderRadius: '12px', border: '1.5px solid #bae6fd', padding: '10px', marginBottom: '6px' }}>
 
-                    {/* Sub-toggle: GPS vs Custom Point */}
-                    <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', padding: '3px', background: '#e0f2fe', borderRadius: '10px' }}>
+                    {/* Sub-toggle: GPS vs Search a point — inside the card */}
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', padding: '3px', background: '#e0f2fe', borderRadius: '8px' }}>
                       {[
                         { src: 'gps', icon: '📍', label: t('wizard.nearMeGps') },
-                        { src: 'point', icon: '🔍', label: t('wizard.nearMePoint') },
+                        { src: 'point', icon: '🔍', label: currentLang === 'he' ? 'חפש מיקום' : 'Search location' },
                       ].map(({ src, icon, label }) => {
                         const isActive = (formData.radiusSource || 'gps') === src;
                         return (
@@ -907,10 +904,10 @@
                             }
                           }} style={{
                             flex: 1, padding: '7px 8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px',
-                            border: 'none', borderRadius: '8px', transition: 'all 0.2s',
+                            border: 'none', borderRadius: '6px', transition: 'all 0.2s',
                             background: isActive ? 'white' : 'transparent',
                             color: isActive ? '#0369a1' : '#64748b',
-                            boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+                            boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.10)' : 'none',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
                           }}>
                             <span>{icon}</span><span>{label}</span>
@@ -919,24 +916,22 @@
                       })}
                     </div>
 
-                    {/* GPS sub-mode */}
+                    {/* GPS sub-mode content */}
                     {(formData.radiusSource || 'gps') === 'gps' && (
                       <div style={{ textAlign: 'center' }}>
                         {formData.currentLat ? (
-                          <>
-                            <div style={{ fontSize: '12px', color: '#059669', fontWeight: 'bold', marginBottom: '8px' }}>✅ {t('wizard.locationFound')}</div>
-                          </>
+                          <div style={{ fontSize: '12px', color: '#059669', fontWeight: 'bold', marginBottom: '8px' }}>✅ {t('wizard.locationFound')}</div>
                         ) : (
-                          <div style={{ padding: '20px 0' }}>
-                            <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #e5e7eb', borderTopColor: '#2563eb', borderRadius: '50%', margin: '0 auto 8px' }}></div>
-                            <div style={{ fontSize: '13px', color: '#374151', fontWeight: 'bold' }}>📍 {t('form.waitingForGps')}</div>
-                            <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '4px' }}>{t('form.allowLocationAccess')}</div>
+                          <div style={{ padding: '16px 0' }}>
+                            <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #bae6fd', borderTopColor: '#0ea5e9', borderRadius: '50%', margin: '0 auto 8px' }}></div>
+                            <div style={{ fontSize: '13px', color: '#0369a1', fontWeight: 'bold' }}>📍 {t('form.waitingForGps')}</div>
+                            <div style={{ fontSize: '10px', color: '#7dd3fc', marginTop: '4px' }}>{t('form.allowLocationAccess')}</div>
                           </div>
                         )}
                       </div>
                     )}
 
-                    {/* Custom Point sub-mode */}
+                    {/* Custom Point sub-mode content */}
                     {formData.radiusSource === 'point' && (
                       <div>
                         {formData.currentLat ? (
@@ -947,17 +942,17 @@
                               style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#6b7280' }}>✕</button>
                           </div>
                         ) : (
-                          <div style={{ marginBottom: '8px' }}>
+                          <div style={{ marginBottom: '6px' }}>
                             <div style={{ display: 'flex', gap: '6px' }}>
                               <input
                                 type="text"
                                 id="point-search-input"
                                 placeholder={t('wizard.searchPointPlaceholder')}
-                                style={{ flex: 1, padding: '9px 12px', borderRadius: '10px', border: '1.5px solid #bae6fd', fontSize: '14px', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}
+                                style={{ flex: 1, padding: '9px 12px', borderRadius: '8px', border: '1.5px solid #bae6fd', fontSize: '14px', background: 'white', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}
                                 onKeyDown={e => { if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) geocodeAddress(q); } }}
                               />
                               <button onClick={() => { const inp = document.getElementById('point-search-input'); if (inp?.value?.trim()) geocodeAddress(inp.value.trim()); }}
-                                style={{ padding: '9px 14px', borderRadius: '10px', border: 'none', background: '#0ea5e9', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>
+                                style={{ padding: '9px 14px', borderRadius: '8px', border: 'none', background: '#0ea5e9', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>
                                 🔍
                               </button>
                             </div>
@@ -966,18 +961,18 @@
                       </div>
                     )}
 
-                    {/* Radius slider — shown when location is set (both modes) */}
+                    {/* Radius selector — shown when location is set */}
                     {formData.currentLat && (
                       <>
-                        <div style={{ fontSize: '11px', color: '#374151', fontWeight: 'bold', marginBottom: '6px', textAlign: 'center' }}>{t('form.searchRadius')}:</div>
+                        <div style={{ fontSize: '11px', color: '#0369a1', fontWeight: 'bold', marginBottom: '6px', textAlign: 'center' }}>{t('form.searchRadius')}:</div>
                         <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
                           {[100, 250, 500, 750, 1000].map(r => (
                             <button key={r}
                               onClick={() => { setFormData(prev => ({...prev, radiusMeters: r})); window.BKK.logEvent?.('radius_changed', { radius_meters: r }); }}
                               style={{
                                 padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer',
-                                border: formData.radiusMeters === r ? '2px solid #2563eb' : '1.5px solid #d1d5db',
-                                background: formData.radiusMeters === r ? '#2563eb' : 'white',
+                                border: formData.radiusMeters === r ? '2px solid #0369a1' : '1.5px solid #bae6fd',
+                                background: formData.radiusMeters === r ? '#0369a1' : 'white',
                                 color: formData.radiusMeters === r ? 'white' : '#374151',
                                 transition: 'all 0.15s', minWidth: '52px'
                               }}
@@ -5133,6 +5128,31 @@
             <div className="border-t" style={{ background: mapMode === 'stops' ? '#f8fafc' : 'white' }}>
               {mapMode === 'stops' ? (
                 <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {/* Legend — interest colors */}
+                  {(() => {
+                    const routeInterests = [...new Set((mapStops || []).flatMap(s => s.interests || []))].filter(Boolean);
+                    const legendItems = routeInterests.map(id => allInterestOptions.find(o => o.id === id)).filter(Boolean);
+                    if (legendItems.length === 0) return null;
+                    return (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '4px 0', borderBottom: '1px solid #e5e7eb', marginBottom: '2px' }}>
+                        {legendItems.map(int => {
+                          const color = window.BKK.getInterestColor(int.id, allInterestOptions);
+                          const iconRaw = int.icon || '';
+                          const isImg = iconRaw.startsWith('data:');
+                          return (
+                            <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: '#4b5563' }}>
+                              <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }}></span>
+                              {isImg
+                                ? <img src={iconRaw} alt="" style={{ width: '12px', height: '12px', objectFit: 'contain' }} />
+                                : <span style={{ fontSize: '11px', lineHeight: 1 }}>{iconRaw}</span>
+                              }
+                              <span>{tLabel(int)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                   {/* Row 1: Route type toggle — auto-recomputes */}
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ display: 'flex', borderRadius: '8px', overflow: 'hidden', border: '1px solid #d1d5db' }}>
