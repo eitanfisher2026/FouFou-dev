@@ -822,9 +822,9 @@
                   const rLabel = curR >= 1000 ? `${curR/1000}km` : `${curR}m`;
 
                   const tabs = [
-                    { id: 'area',  icon: '🗺️', he: 'בחר אזור',   en: 'Area' },
-                    { id: 'point', icon: '🔍', he: 'בחר מקום',   en: 'A place' },
-                    { id: 'gps',   icon: '📍', he: 'קרוב אליי',  en: 'Near me' },
+                    { id: 'area',  icon: '🗺️', he: 'בחר אזור',       en: 'Area' },
+                    { id: 'point', icon: '🔍', he: 'מסביב למקום',    en: 'Around a place' },
+                    { id: 'gps',   icon: '📍', he: 'קרוב אליי',      en: 'Near me' },
                   ];
 
                   const onTab = (id) => {
@@ -838,6 +838,13 @@
                     } else {
                       setFormData(prev => ({...prev, searchMode: 'radius', radiusSource: 'gps', radiusMeters: prev.radiusMeters || 500, currentLat: null, currentLng: null, radiusPlaceName: ''}));
                       window.BKK.logEvent?.('radius_mode_selected', { source: 'gps' });
+                      // Start GPS silently in background — ready by the time user hits "Find Places"
+                      if (navigator.geolocation) {
+                        window.BKK.getValidatedGps(
+                          (pos) => { setFormData(prev => ({...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, radiusPlaceName: t('wizard.myLocation')})); },
+                          () => {} // silent — error handled at search time
+                        );
+                      }
                     }
                   };
 
@@ -851,12 +858,12 @@
                             <button key={tab.id} onClick={() => onTab(tab.id)} style={{
                               flex: 1, padding: '10px 4px', cursor: 'pointer', border: 'none', borderRadius: '12px',
                               background: isActive ? 'white' : '#f1f5f9',
-                              boxShadow: isActive ? '0 0 0 2px #22c55e, 0 2px 6px rgba(34,197,94,0.15)' : 'none',
+                              boxShadow: isActive ? '0 0 0 2px #2563eb, 0 2px 6px rgba(37,99,235,0.15)' : 'none',
                               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
                               transition: 'all 0.2s',
                             }}>
                               <span style={{ fontSize: '18px', lineHeight: 1 }}>{tab.icon}</span>
-                              <span style={{ fontSize: '11px', fontWeight: isActive ? '700' : '500', color: isActive ? '#15803d' : '#64748b', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontSize: '11px', fontWeight: isActive ? '700' : '500', color: isActive ? '#2563eb' : '#64748b', whiteSpace: 'nowrap' }}>
                                 {currentLang === 'he' ? tab.he : tab.en}
                               </span>
                             </button>
@@ -875,13 +882,13 @@
                                 onClick={() => { setFormData(prev => ({...prev, area: area.id, searchMode: 'area'})); window.BKK.logEvent?.('area_selected', { area_id: area.id, area_name: area.labelEn || area.label }); }}
                                 style={{
                                   padding: '6px', borderRadius: '8px',
-                                  border: formData.area === area.id ? '2px solid #7c3aed' : '1.5px solid #e5e7eb',
-                                  background: formData.area === area.id ? '#faf5ff' : 'white',
+                                  border: formData.area === area.id ? '2px solid #2563eb' : '1.5px solid #e5e7eb',
+                                  background: formData.area === area.id ? '#eff6ff' : 'white',
                                   cursor: 'pointer', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left',
                                   direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', transition: 'all 0.2s'
                                 }}
                               >
-                                <div style={{ fontWeight: 'bold', fontSize: '12px', color: formData.area === area.id ? '#6d28d9' : '#1f2937' }}>
+                                <div style={{ fontWeight: 'bold', fontSize: '12px', color: formData.area === area.id ? '#1d4ed8' : '#1f2937' }}>
                                   {formData.area === area.id && '✓ '}{tLabel(area)}
                                   {safety === 'caution' && <span style={{ color: '#f59e0b', marginRight: '3px' }} title={t("general.cautionArea")}>⚠️</span>}
                                   {safety === 'danger' && <span style={{ color: '#ef4444', marginRight: '3px' }} title={t("general.dangerArea")}>🔴</span>}
@@ -897,9 +904,9 @@
                         <div style={{ marginBottom: '8px' }}>
                           <div style={{ height: '6px' }} />
                           {formData.currentLat ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '10px', border: '2px solid #22c55e', marginBottom: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#eff6ff', borderRadius: '10px', border: '2px solid #2563eb', marginBottom: '8px' }}>
                               <span style={{ fontSize: '14px' }}>📍</span>
-                              <span style={{ flex: 1, fontSize: '13px', fontWeight: 'bold', color: '#15803d' }}>{formData.radiusPlaceName}</span>
+                              <span style={{ flex: 1, fontSize: '13px', fontWeight: 'bold', color: '#1d4ed8' }}>{formData.radiusPlaceName}</span>
                               <button onClick={() => { setFormData(prev => ({...prev, currentLat: null, currentLng: null, radiusPlaceName: ''})); setPointSearchResults(null); }}
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#6b7280' }}>✕</button>
                             </div>
@@ -1035,7 +1042,7 @@
                           googlePlace: false,
                           rating: 0, ratingCount: 0
                         });
-                        // Lazy GPS: acquire now if radius mode + GPS source + no coords yet
+                        // GPS mode: check if coords are ready; if not, try one more time then error
                         if (formData.searchMode === 'radius' && formData.radiusSource === 'gps' && !formData.currentLat && navigator.geolocation) {
                           window.BKK.getValidatedGps(
                             (pos) => {
