@@ -7,7 +7,7 @@ https://eitanfisher2026.github.io/FouFou/
 React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Places API, PWA
 
 ## Version
-**v3.22.1**
+**v3.22.2**
 
 ---
 
@@ -187,11 +187,18 @@ Must be defined here (outside FouFouApp) when they use hooks:
 - **Fix (views.js):** Both now use `window.BKK.getInterestColor(interest, allInterestOptions)` → circles match map marker colors. Fallback to `stopColorPalette` for manual/unknown stops
 - **Added (views.js):** Legend (מקרא) row in active trail stops card — shows each trail interest with its color dot + icon + label. Hidden when no interests
 
+
+## Update Loop Fix (v3.22.2)
+- **Bug fixed:** `sw.js` OFFLINE_ASSETS had hardcoded `v=3.22.0` — new SW (CACHE_NAME v3.22.1) was caching old file versions on install
+- **Bug fixed:** `applyUpdate` in `app-logic.js` called `doReload()` before `caches.delete()` resolved — old SW cache survived the reload → version mismatch → loop
+- **Fix:** `Promise.all(names.map(caches.delete)).then(doReload)` — reload only after all caches fully cleared
+- **Rule added to checklist:** `sw.js` OFFLINE_ASSETS URLs must match the current version
+
 ## Version Bump Checklist (every release)
 All 5 files must be updated together — missing any one causes the update loop:
 1. `version.json`
 2. `config.js` — `window.BKK.VERSION`
-3. `sw.js` — comment + `CACHE_NAME`
+3. `sw.js` — comment + `CACHE_NAME` + `OFFLINE_ASSETS` URLs
 4. `index.html` — all `?v=X.X.X` query strings
 5. `.last_built_version`
 

@@ -5869,10 +5869,10 @@
     const doReload = () => { window.location.reload(); };
     const clearAndReload = () => {
       if ('caches' in window) {
-        caches.keys().then(names => {
-          names.forEach(name => caches.delete(name));
-          doReload();
-        }).catch(doReload);
+        caches.keys()
+          .then(names => Promise.all(names.map(name => caches.delete(name))))
+          .then(doReload)
+          .catch(doReload);
       } else {
         doReload();
       }
