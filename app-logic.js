@@ -969,6 +969,8 @@
   const [googlePlaceInfo, setGooglePlaceInfo] = useState(null);
   const [loadingGoogleInfo, setLoadingGoogleInfo] = useState(false);
   const [locationSearchResults, setLocationSearchResults] = useState(null); // null=hidden, []=no results, [...]= results
+  const [pointSearchResults, setPointSearchResults] = useState(null); // null=hidden, []=loading, [...]= results for step-2 point mode
+  const [pointSearchQuery, setPointSearchQuery] = useState(''); // tracks input value for button enable/disable
   const [editingCustomInterest, setEditingCustomInterest] = useState(null);
   const [showAddInterestDialog, setShowAddInterestDialog] = useState(false);
   const [interestDialogReadOnly, setInterestDialogReadOnly] = useState(false);
@@ -6704,7 +6706,7 @@
     return [...ordered, ...noCoords];
   };
 
-  const generateRoute = async () => {
+  const generateRoute = async (extraManualStop = null) => {
     searchRunIdRef.current = Date.now().toString();
     const isRadiusMode = formData.searchMode === 'radius' || formData.searchMode === 'all';
     
@@ -7251,14 +7253,28 @@
       };
 
       // Include manually added stops (if any)
-      if (manualStops.length > 0) {
+      const allManualStops = extraManualStop
+        ? [extraManualStop, ...manualStops.filter(s => !s.isRadiusCenter)]
+        : manualStops;
+      if (allManualStops.length > 0) {
         const existingNames = new Set(uniqueStops.map(s => (s.name || '').toLowerCase().trim()));
-        const nonDuplicateManual = manualStops.filter(ms => !existingNames.has((ms.name || '').toLowerCase().trim()));
+        const nonDuplicateManual = allManualStops.filter(ms => !existingNames.has((ms.name || '').toLowerCase().trim()));
         if (nonDuplicateManual.length > 0) {
-          newRoute.stops = [...newRoute.stops, ...nonDuplicateManual];
+          // Radius center goes first (gets letter A), other manual stops go at the end
+          const radiusCenterStops = nonDuplicateManual.filter(s => s.isRadiusCenter);
+          const otherManual = nonDuplicateManual.filter(s => !s.isRadiusCenter);
+          newRoute.stops = [...radiusCenterStops, ...newRoute.stops, ...otherManual];
           newRoute.stats.manual = nonDuplicateManual.length;
           newRoute.stats.total = newRoute.stops.length;
+          // Mark as optimized so letter circles render immediately (radius center = letter A)
+          if (radiusCenterStops.length > 0) newRoute.optimized = true;
         }
+      }
+      // Set radius center as start point AFTER route is built
+      if (extraManualStop?.isRadiusCenter) {
+        const sp = { lat: extraManualStop.lat, lng: extraManualStop.lng, address: extraManualStop.name };
+        setStartPointCoords(sp);
+        startPointCoordsRef.current = sp;
       }
 
       console.log('[ROUTE] Route created successfully:', {
@@ -9873,6 +9889,44 @@
       console.error('[SEARCH] Error:', err);
       showToast(t('toast.searchError'), 'error');
       setLocationSearchResults(null);
+    }
+  };
+
+  // Search places for radius-mode point selection in step 2
+  const searchPointForRadius = async (query) => {
+    if (!query || !query.trim()) return;
+    try {
+      setPointSearchResults([]); // empty = loading
+      const cityForSearch = window.BKK.cityNameForSearch || 'Bangkok';
+      const countryForSearch = window.BKK.selectedCity?.country || '';
+      const searchQuery = query.toLowerCase().includes(cityForSearch.toLowerCase()) ? query : `${query}, ${cityForSearch}${countryForSearch ? ', ' + countryForSearch : ''}`;
+      const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount'
+        },
+        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: 5 })
+      });
+      const data = await response.json();
+      if (data.places && data.places.length > 0) {
+        setPointSearchResults(data.places.map(p => ({
+          name: p.displayName?.text || '',
+          lat: p.location?.latitude,
+          lng: p.location?.longitude,
+          address: p.formattedAddress || '',
+          rating: p.rating,
+          ratingCount: p.userRatingCount,
+          googlePlaceId: p.id
+        })));
+      } else {
+        setPointSearchResults([]);
+        showToast(t('places.noPlacesFound'), 'warning');
+      }
+    } catch (err) {
+      console.error('[POINT SEARCH] Error:', err);
+      setPointSearchResults(null);
     }
   };
 
