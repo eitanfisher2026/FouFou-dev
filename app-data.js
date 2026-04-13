@@ -3472,7 +3472,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.22.4';
+window.BKK.VERSION = '3.22.5';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -4042,9 +4042,14 @@ window.BKK.INTEREST_COLORS = {
 
 window.BKK.getInterestColor = (interestId, allInterests) => {
   const interest = (allInterests || []).find(i => i.id === interestId);
-  // Firebase color override takes priority
+  // Priority 1: color set explicitly on the interest object (by admin/editor in Firebase)
   if (interest?.color) return interest.color;
-  // Stable fallback: hash of ID — same color regardless of language or sort order
+  // Priority 2: known semantic colors — check both raw ID and without i_ prefix
+  const IC = window.BKK.INTEREST_COLORS;
+  if (IC && IC[interestId]) return IC[interestId];
+  const baseId = (interestId || '').replace(/^i_/, '');
+  if (IC && baseId !== interestId && IC[baseId]) return IC[baseId];
+  // Priority 3: stable hash fallback for unknown/new interest types
   const hue = window.BKK.idToHue(interestId);
   const saturation = 68;
   const lightness = 46;
