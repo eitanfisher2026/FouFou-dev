@@ -187,6 +187,14 @@ Must be defined here (outside FouFouApp) when they use hooks:
 - **Fix (views.js):** Both now use `window.BKK.getInterestColor(interest, allInterestOptions)` → circles match map marker colors. Fallback to `stopColorPalette` for manual/unknown stops
 - **Added (views.js):** Legend (מקרא) row in active trail stops card — shows each trail interest with its color dot + icon + label. Hidden when no interests
 
+## Version Bump Checklist (every release)
+All 5 files must be updated together — missing any one causes the update loop:
+1. `version.json`
+2. `config.js` — `window.BKK.VERSION`
+3. `sw.js` — comment + `CACHE_NAME`
+4. `index.html` — all `?v=X.X.X` query strings
+5. `.last_built_version`
+
 ## Pending / Known Issues
 - `hint_text_opened` analytics event not yet implemented
 - Promote to Production track when ready
