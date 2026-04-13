@@ -8,8 +8,8 @@ const CACHE_NAME = 'foufou-dev-v3.22.18';
 const OFFLINE_ASSETS = [
   '/FouFou-dev/',
   '/FouFou-dev/index.html',
-  '/FouFou-dev/app-data.js?v=3.22.17',
-  '/FouFou-dev/app-code.js?v=3.22.17'
+  '/FouFou-dev/app-data.js?v=3.22.18',
+  '/FouFou-dev/app-code.js?v=3.22.18'
 ];
 
 // ──── Install: שמור assets בסיסיים ────
