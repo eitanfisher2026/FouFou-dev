@@ -937,29 +937,67 @@
 
                     {/* Custom Point sub-mode content */}
                     {formData.radiusSource === 'point' && (
-                      <div>
+                      <div style={{ position: 'relative' }}>
                         {formData.currentLat ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '10px', border: '1px solid #86efac', marginBottom: '8px' }}>
                             <span style={{ fontSize: '14px' }}>📍</span>
                             <span style={{ flex: 1, fontSize: '13px', fontWeight: 'bold', color: '#15803d' }}>{formData.radiusPlaceName}</span>
-                            <button onClick={() => setFormData(prev => ({ ...prev, currentLat: null, currentLng: null, radiusPlaceName: '' }))}
+                            <button onClick={() => { setFormData(prev => ({ ...prev, currentLat: null, currentLng: null, radiusPlaceName: '' })); setPointSearchResults(null); }}
                               style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#6b7280' }}>✕</button>
                           </div>
                         ) : (
                           <div style={{ marginBottom: '6px' }}>
+                            {/* Search bar — purple style like add-manually dialog */}
                             <div style={{ display: 'flex', gap: '6px' }}>
                               <input
                                 type="text"
                                 id="point-search-input"
                                 placeholder={t('wizard.searchPointPlaceholder')}
-                                style={{ flex: 1, padding: '9px 12px', borderRadius: '8px', border: '1.5px solid #bae6fd', fontSize: '14px', background: 'white', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}
-                                onKeyDown={e => { if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) geocodeAddress(q); } }}
+                                style={{ flex: 1, padding: '9px 12px', borderRadius: '8px', border: '1.5px solid #c4b5fd', fontSize: '14px', background: 'white', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', outline: 'none' }}
+                                onChange={e => { if (!e.target.value.trim()) setPointSearchResults(null); }}
+                                onKeyDown={e => { if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) searchPointForRadius(q); } }}
                               />
-                              <button onClick={() => { const inp = document.getElementById('point-search-input'); if (inp?.value?.trim()) geocodeAddress(inp.value.trim()); }}
-                                style={{ padding: '9px 14px', borderRadius: '8px', border: 'none', background: '#0ea5e9', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>
+                              <button
+                                onClick={() => { const inp = document.getElementById('point-search-input'); if (inp?.value?.trim()) searchPointForRadius(inp.value.trim()); }}
+                                style={{ padding: '9px 14px', borderRadius: '8px', border: 'none', background: '#7c3aed', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', flexShrink: 0 }}>
                                 🔍
                               </button>
                             </div>
+                            {/* Dropdown results */}
+                            {pointSearchResults !== null && (
+                              <div style={{ marginTop: '4px', border: '1.5px solid #c4b5fd', borderRadius: '10px', overflow: 'hidden', background: 'white', boxShadow: '0 4px 12px rgba(124,58,237,0.12)' }}>
+                                {pointSearchResults.length === 0 ? (
+                                  <div style={{ textAlign: 'center', padding: '12px', color: '#9ca3af', fontSize: '12px' }}>⏳ {t('general.searching')}...</div>
+                                ) : pointSearchResults.map((result, idx) => (
+                                  <button
+                                    key={idx}
+                                    onClick={() => {
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        currentLat: result.lat,
+                                        currentLng: result.lng,
+                                        radiusPlaceName: result.name,
+                                        radiusSource: 'point',
+                                        radiusPlaceId: result.googlePlaceId || null
+                                      }));
+                                      setPointSearchResults(null);
+                                      showToast(`✅ ${result.name}`, 'success');
+                                    }}
+                                    style={{
+                                      width: '100%', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left',
+                                      padding: '8px 12px', cursor: 'pointer', background: 'none', border: 'none',
+                                      borderBottom: idx < pointSearchResults.length - 1 ? '1px solid #f3e8ff' : 'none',
+                                      direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', display: 'block'
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.background = '#faf5ff'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                                  >
+                                    <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#6d28d9' }}>{result.name}</div>
+                                    <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '1px' }}>{result.address}{result.rating ? ` ⭐ ${result.rating}` : ''}</div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
