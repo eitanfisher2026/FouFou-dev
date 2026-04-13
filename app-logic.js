@@ -465,8 +465,17 @@
     }
     
     // Step 3: Optimize route order
-    // If there's an isRadiusCenter stop, pin it at position 0 — it's an actual start stop, not a virtual reference
-    const pinnedFirstStop = selected.find(s => s.isRadiusCenter) || null;
+    // If there's an isRadiusCenter stop, pin it at position 0 — UNLESS the user manually chose a different start point
+    const radiusCenterStop = selected.find(s => s.isRadiusCenter) || null;
+    // User overrode start = overrideStart provided AND it doesn't match the radius center's coordinates
+    const userOverrodeStart = overrideStart && radiusCenterStop &&
+      (Math.abs(overrideStart.lat - radiusCenterStop.lat) > 0.0001 ||
+       Math.abs(overrideStart.lng - radiusCenterStop.lng) > 0.0001);
+    if (userOverrodeStart) {
+      // User took manual control — release the pin so radius center becomes a regular stop
+      radiusCenterStop.isRadiusCenter = false;
+    }
+    const pinnedFirstStop = (radiusCenterStop && !userOverrodeStart) ? radiusCenterStop : null;
     const optimized = optimizeStopOrder(selected, autoStart, isCircular, pinnedFirstStop);
     
     // For linear without explicit start: use first optimized stop

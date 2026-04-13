@@ -2036,25 +2036,43 @@
                 </button>
               </div>
               
-              {/* Search input */}
+              {/* Search input — same layout as Step 2 point search */}
               <div className="p-4 space-y-3">
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <input
                     id="manual-stop-input"
                     type="text"
                     onKeyDown={(e) => { if (e.key === 'Enter') searchManualPlace(); }}
-                    placeholder={t("form.typeAddressAlt")}
-                    className="flex-1 p-2.5 border border-gray-300 rounded-lg text-sm"
-                    style={{ direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}
+                    placeholder={isRecording && recordingField === 'manual_stop' ? '' : t("form.typeAddressAlt")}
+                    className="flex-1 p-2.5 border-2 border-purple-300 rounded-lg text-sm focus:border-purple-500"
+                    style={{ direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', borderColor: isRecording && recordingField === 'manual_stop' ? '#ef4444' : undefined }}
                     autoFocus
                   />
+                  {window.BKK?.speechSupported && (
+                    <button type="button"
+                      onClick={() => toggleRecording('manual_stop',
+                        (text) => {
+                          const inp = document.getElementById('manual-stop-input');
+                          if (inp) inp.value = (inp.value ? inp.value + ' ' : '') + text;
+                        },
+                        () => { const inp = document.getElementById('manual-stop-input'); if (inp) inp.value = ''; },
+                        'en-US'
+                      )}
+                      style={{ width: '34px', height: '34px', borderRadius: '50%', border: 'none', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', background: isRecording && recordingField === 'manual_stop' ? '#ef4444' : '#f3f4f6', color: isRecording && recordingField === 'manual_stop' ? 'white' : '#6b7280', boxShadow: isRecording && recordingField === 'manual_stop' ? '0 0 0 3px rgba(239,68,68,0.3)' : 'none', animation: isRecording && recordingField === 'manual_stop' ? 'pulse 1s ease-in-out infinite' : 'none' }}
+                      title={isRecording && recordingField === 'manual_stop' ? t('speech.stopRecording') : t('speech.startRecording')}>
+                      {isRecording && recordingField === 'manual_stop' ? '⏹️' : '🎤'}
+                    </button>
+                  )}
                   <button
                     onClick={searchManualPlace}
-                    className="px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap bg-purple-500 text-white hover:bg-purple-600"
+                    className="px-3 py-2 rounded-lg text-sm font-bold whitespace-nowrap bg-purple-500 text-white hover:bg-purple-600"
                   >
                     {`🔍 ${t('general.search')}`}
                   </button>
                 </div>
+                {isRecording && recordingField === 'manual_stop' && interimText && (
+                  <div style={{ padding: '4px 8px', background: '#fef3c7', borderRadius: '6px', fontSize: '12px', color: '#92400e', fontStyle: 'italic', direction: 'ltr' }}>🎤 {interimText}</div>
+                )}
                 
                 <p className="text-[11px] text-gray-500">
                   {t('general.searchAndAddHint')}

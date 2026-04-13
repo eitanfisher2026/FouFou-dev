@@ -827,13 +827,13 @@
                     return (
                       <button key={mode} onClick={onClick} style={{
                         flex: isActive ? 2 : 1,
-                        padding: '8px 10px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
+                        padding: '8px 6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
                         border: 'none', borderRadius: '10px', transition: 'all 0.25s',
                         background: isActive ? 'white' : 'transparent',
                         color: isActive ? '#2563eb' : '#94a3b8',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
                         boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
-                        whiteSpace: 'nowrap', overflow: 'hidden',
+                        minWidth: 0,
                       }}>
                         <span style={{
                           width: '14px', height: '14px', borderRadius: '50%', flexShrink: 0,
@@ -841,7 +841,7 @@
                           background: 'white', display: 'inline-block', transition: 'all 0.2s'
                         }} />
                         <span>{icon}</span>
-                        <span>{label}</span>
+                        {isActive && <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>}
                       </button>
                     );
                   })}
@@ -937,34 +937,17 @@
                             <label style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', marginBottom: '4px', color: '#374151' }}>
                               {currentLang === 'he' ? 'שם מקום' : 'Place name'}
                             </label>
-                            {/* Input + mic — exactly like add-manually dialog */}
-                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                              <div style={{ position: 'relative', flex: 1 }}>
-                                <input
-                                  type="text"
-                                  id="point-search-input"
-                                  placeholder={isRecording && recordingField === 'point_search' ? '' : (currentLang === 'he' ? 'הקלט/הקלד שם מקום תחילת המסלול...' : 'Type/speak starting place name...')}
-                                  style={{
-                                    width: '100%', boxSizing: 'border-box',
-                                    padding: '8px', fontSize: '16px',
-                                    border: `2px solid ${isRecording && recordingField === 'point_search' ? '#ef4444' : '#c4b5fd'}`,
-                                    borderRadius: '8px', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr',
-                                    outline: 'none', background: 'white',
-                                    paddingRight: window.BKK.i18n.isRTL() ? '24px' : '8px',
-                                    paddingLeft: window.BKK.i18n.isRTL() ? '8px' : '24px'
-                                  }}
-                                  onChange={e => { setPointSearchQuery(e.target.value); if (!e.target.value.trim()) setPointSearchResults(null); }}
-                                  onKeyDown={e => { if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) searchPointForRadius(q); } }}
-                                />
-                                {(() => {
-                                  const inp = typeof document !== 'undefined' ? document.getElementById('point-search-input') : null;
-                                  return inp?.value ? (
-                                    <button type="button"
-                                      onClick={() => { inp.value = ''; setPointSearchResults(null); }}
-                                      style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', [window.BKK.i18n.isRTL() ? 'right' : 'left']: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '13px', lineHeight: 1, padding: '2px' }}>✕</button>
-                                  ) : null;
-                                })()}
-                              </div>
+                            {/* Input row: same layout as הוסף ידנית dialog — input + mic + search button side by side */}
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                              <input
+                                type="text"
+                                id="point-search-input"
+                                placeholder={isRecording && recordingField === 'point_search' ? '' : (currentLang === 'he' ? 'הקלד כתובת, שם מקום, מלון...' : 'Address, place name, hotel...')}
+                                className="flex-1 p-2.5 border-2 border-purple-300 rounded-lg focus:border-purple-500"
+                                style={{ fontSize: '14px', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', outline: 'none', borderColor: isRecording && recordingField === 'point_search' ? '#ef4444' : undefined }}
+                                onChange={e => { setPointSearchQuery(e.target.value); if (!e.target.value.trim()) setPointSearchResults(null); }}
+                                onKeyDown={e => { if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) searchPointForRadius(q); } }}
+                              />
                               {window.BKK?.speechSupported && (
                                 <button type="button"
                                   onClick={() => toggleRecording('point_search',
@@ -980,24 +963,17 @@
                                   {isRecording && recordingField === 'point_search' ? '⏹️' : '🎤'}
                                 </button>
                               )}
+                              <button
+                                onClick={() => { const inp = document.getElementById('point-search-input'); if (inp?.value?.trim()) searchPointForRadius(inp.value.trim()); }}
+                                className={`px-3 py-2 rounded-lg text-sm font-bold whitespace-nowrap ${(pointSearchQuery||'').trim() ? 'bg-purple-500 text-white hover:bg-purple-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                                style={{ transition: 'all 0.15s', fontSize: '13px' }}>
+                                {`🔍 ${currentLang === 'he' ? 'חפש' : 'Search'}`}
+                              </button>
                             </div>
-                            {/* Interim speech preview — same as dialog */}
+                            {/* Interim speech preview */}
                             {isRecording && recordingField === 'point_search' && interimText && (
                               <div style={{ marginTop: '4px', padding: '4px 8px', background: '#fef3c7', borderRadius: '6px', fontSize: '12px', color: '#92400e', fontStyle: 'italic', direction: 'ltr' }}>🎤 {interimText}</div>
                             )}
-                            {/* Search button below — gray until input has value, same as add-manually */}
-                            {(() => {
-                              const hasVal = (typeof document !== 'undefined' && document.getElementById('point-search-input')?.value?.trim()) || pointSearchResults !== null;
-                              // Use a controlled approach via onChange tracking
-                              return (
-                                <button
-                                  id="point-search-btn"
-                                  onClick={() => { const inp = document.getElementById('point-search-input'); if (inp?.value?.trim()) searchPointForRadius(inp.value.trim()); }}
-                                  style={{ width: '100%', marginTop: '6px', padding: '5px 8px', borderRadius: '8px', border: 'none', fontWeight: 'bold', fontSize: '12px', cursor: (pointSearchQuery||'').trim() ? 'pointer' : 'default', background: (pointSearchQuery||'').trim() ? '#7c3aed' : '#e5e7eb', color: (pointSearchQuery||'').trim() ? 'white' : '#9ca3af', transition: 'all 0.15s' }}>
-                                  🔍 {currentLang === 'he' ? 'חפש בגוגל' : 'Search Google'}
-                                </button>
-                              );
-                            })()}
                             {/* Dropdown results */}
                             {pointSearchResults !== null && (
                               <div style={{ marginTop: '4px', border: '1.5px solid #c4b5fd', borderRadius: '10px', overflow: 'hidden', background: 'white', boxShadow: '0 4px 12px rgba(124,58,237,0.12)' }}>
