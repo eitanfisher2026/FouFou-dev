@@ -812,7 +812,8 @@
                 {renderContextHint('hint_area')}
 
                 {/* Mode selector — radio pill toggle (top level: area vs near me) */}
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', padding: '4px', background: '#f1f5f9', borderRadius: '14px' }}>
+                {/* Mode selector — active tab gets 2/3, inactive gets 1/3 */}
+                <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', padding: '4px', background: '#f1f5f9', borderRadius: '14px' }}>
                   {[
                     { mode: 'area', icon: '🗺️', label: t('wizard.chooseArea'), onClick: () => setFormData(prev => ({...prev, searchMode: 'area'})) },
                     { mode: 'radius', icon: '📍', label: t('general.nearLocation'), onClick: () => {
@@ -831,16 +832,18 @@
                     const isActive = mode === 'radius' ? formData.searchMode === 'radius' : formData.searchMode !== 'radius';
                     return (
                       <button key={mode} onClick={onClick} style={{
-                        flex: 1, padding: '8px 12px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
-                        border: 'none', borderRadius: '10px', transition: 'all 0.2s',
+                        flex: isActive ? 2 : 1,
+                        padding: '8px 10px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
+                        border: 'none', borderRadius: '10px', transition: 'all 0.25s',
                         background: isActive ? 'white' : 'transparent',
                         color: isActive ? '#2563eb' : '#94a3b8',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                         boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
+                        whiteSpace: 'nowrap', overflow: 'hidden',
                       }}>
                         <span style={{
-                          width: '16px', height: '16px', borderRadius: '50%', flexShrink: 0,
-                          border: isActive ? '5px solid #2563eb' : '2px solid #cbd5e1',
+                          width: '14px', height: '14px', borderRadius: '50%', flexShrink: 0,
+                          border: isActive ? '4px solid #2563eb' : '2px solid #cbd5e1',
                           background: 'white', display: 'inline-block', transition: 'all 0.2s'
                         }} />
                         <span>{icon}</span>
@@ -878,15 +881,15 @@
                   </div>
                 )}
 
-                {/* RADIUS MODE content — visually contained card, clearly child of "near me" */}
+                {/* RADIUS MODE content */}
                 {formData.searchMode === 'radius' && (
                   <div style={{ background: '#f0f9ff', borderRadius: '12px', border: '1.5px solid #bae6fd', padding: '10px', marginBottom: '6px' }}>
 
-                    {/* Sub-toggle: GPS vs Search a point — inside the card */}
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                    {/* Sub-toggle: GPS vs Search a point — white/green like area cards */}
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                       {[
-                        { src: 'gps', icon: '📍', labelHe: 'קרוב אליי', labelEn: 'Near me', desc: t('general.nearMeGps') },
-                        { src: 'point', icon: '🔍', labelHe: 'חפש מקום', labelEn: 'Search place', desc: currentLang === 'he' ? 'כתובת / מלון / אטרקציה' : 'Address / hotel / place' },
+                        { src: 'gps', icon: '📍', labelHe: 'קרוב אליי', labelEn: 'Near me', desc: currentLang === 'he' ? 'לפי GPS' : 'By GPS' },
+                        { src: 'point', icon: '🔍', labelHe: 'חפש מקום', labelEn: 'Search place', desc: currentLang === 'he' ? 'מלון / כתובת / אטרקציה' : 'Hotel / address / attraction' },
                       ].map(({ src, icon, labelHe, labelEn, desc }) => {
                         const isActive = (formData.radiusSource || 'gps') === src;
                         return (
@@ -904,17 +907,17 @@
                             }
                           }} style={{
                             flex: 1, padding: '10px 8px', cursor: 'pointer',
-                            border: isActive ? '2px solid #0ea5e9' : '1.5px solid #bae6fd',
+                            border: isActive ? '2px solid #22c55e' : '1.5px solid #e5e7eb',
                             borderRadius: '10px', transition: 'all 0.2s',
-                            background: isActive ? 'white' : '#f0f9ff',
-                            boxShadow: isActive ? '0 2px 6px rgba(14,165,233,0.15)' : 'none',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
+                            background: 'white',
+                            boxShadow: isActive ? '0 2px 6px rgba(34,197,94,0.15)' : 'none',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
                           }}>
-                            <span style={{ fontSize: '18px', lineHeight: 1 }}>{icon}</span>
-                            <span style={{ fontWeight: '700', fontSize: '12px', color: isActive ? '#0369a1' : '#64748b' }}>
+                            <span style={{ fontSize: '20px', lineHeight: 1 }}>{icon}</span>
+                            <span style={{ fontWeight: '700', fontSize: '12px', color: isActive ? '#15803d' : '#374151' }}>
                               {currentLang === 'he' ? labelHe : labelEn}
                             </span>
-                            <span style={{ fontSize: '9px', color: isActive ? '#7dd3fc' : '#94a3b8', lineHeight: 1.2, textAlign: 'center' }}>{desc}</span>
+                            <span style={{ fontSize: '10px', fontWeight: '500', color: isActive ? '#16a34a' : '#6b7280', lineHeight: 1.3, textAlign: 'center' }}>{desc}</span>
                           </button>
                         );
                       })}
@@ -952,7 +955,7 @@
                               <input
                                 type="text"
                                 id="point-search-input"
-                                placeholder={t('wizard.searchPointPlaceholder')}
+                                placeholder={currentLang === 'he' ? 'שם מלון, רחוב, אטרקציה...' : 'Hotel, street, attraction...'}
                                 style={{ flex: 1, padding: '9px 12px', borderRadius: '8px', border: '1.5px solid #c4b5fd', fontSize: '14px', background: 'white', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', outline: 'none' }}
                                 onChange={e => { if (!e.target.value.trim()) setPointSearchResults(null); }}
                                 onKeyDown={e => { if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) searchPointForRadius(q); } }}
