@@ -815,7 +815,7 @@
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', padding: '4px', background: '#f1f5f9', borderRadius: '14px' }}>
                   {[
                     { mode: 'area', icon: '🗺️', label: t('wizard.chooseArea'), onClick: () => setFormData(prev => ({...prev, searchMode: 'area'})) },
-                    { mode: 'radius', icon: '📍', label: t('wizard.nearLocation'), onClick: () => {
+                    { mode: 'radius', icon: '📍', label: t('general.nearLocation'), onClick: () => {
                       if (formData.searchMode !== 'radius') {
                         setFormData(prev => ({...prev, searchMode: 'radius', radiusMeters: prev.radiusMeters || 500, radiusSource: prev.radiusSource || 'gps'}));
                         window.BKK.logEvent?.('radius_mode_selected', {});
@@ -883,11 +883,11 @@
                   <div style={{ background: '#f0f9ff', borderRadius: '12px', border: '1.5px solid #bae6fd', padding: '10px', marginBottom: '6px' }}>
 
                     {/* Sub-toggle: GPS vs Search a point — inside the card */}
-                    <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', padding: '3px', background: '#e0f2fe', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
                       {[
-                        { src: 'gps', icon: '📍', label: t('wizard.nearMeGps') },
-                        { src: 'point', icon: '🔍', label: currentLang === 'he' ? 'חפש מיקום' : 'Search location' },
-                      ].map(({ src, icon, label }) => {
+                        { src: 'gps', icon: '📍', labelHe: 'קרוב אליי', labelEn: 'Near me', desc: t('general.nearMeGps') },
+                        { src: 'point', icon: '🔍', labelHe: 'חפש מקום', labelEn: 'Search place', desc: currentLang === 'he' ? 'כתובת / מלון / אטרקציה' : 'Address / hotel / place' },
+                      ].map(({ src, icon, labelHe, labelEn, desc }) => {
                         const isActive = (formData.radiusSource || 'gps') === src;
                         return (
                           <button key={src} onClick={() => {
@@ -903,14 +903,18 @@
                               setFormData(prev => ({ ...prev, radiusSource: 'point', currentLat: null, currentLng: null, radiusPlaceName: '' }));
                             }
                           }} style={{
-                            flex: 1, padding: '7px 8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px',
-                            border: 'none', borderRadius: '6px', transition: 'all 0.2s',
-                            background: isActive ? 'white' : 'transparent',
-                            color: isActive ? '#0369a1' : '#64748b',
-                            boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.10)' : 'none',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                            flex: 1, padding: '10px 8px', cursor: 'pointer',
+                            border: isActive ? '2px solid #0ea5e9' : '1.5px solid #bae6fd',
+                            borderRadius: '10px', transition: 'all 0.2s',
+                            background: isActive ? 'white' : '#f0f9ff',
+                            boxShadow: isActive ? '0 2px 6px rgba(14,165,233,0.15)' : 'none',
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
                           }}>
-                            <span>{icon}</span><span>{label}</span>
+                            <span style={{ fontSize: '18px', lineHeight: 1 }}>{icon}</span>
+                            <span style={{ fontWeight: '700', fontSize: '12px', color: isActive ? '#0369a1' : '#64748b' }}>
+                              {currentLang === 'he' ? labelHe : labelEn}
+                            </span>
+                            <span style={{ fontSize: '9px', color: isActive ? '#7dd3fc' : '#94a3b8', lineHeight: 1.2, textAlign: 'center' }}>{desc}</span>
                           </button>
                         );
                       })}
@@ -5134,19 +5138,19 @@
                     const legendItems = routeInterests.map(id => allInterestOptions.find(o => o.id === id)).filter(Boolean);
                     if (legendItems.length === 0) return null;
                     return (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '4px 0', borderBottom: '1px solid #e5e7eb', marginBottom: '2px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '6px 0', borderBottom: '1px solid #e5e7eb', marginBottom: '4px' }}>
                         {legendItems.map(int => {
                           const color = window.BKK.getInterestColor(int.id, allInterestOptions);
                           const iconRaw = int.icon || '';
                           const isImg = iconRaw.startsWith('data:');
                           return (
-                            <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: '#4b5563' }}>
-                              <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }}></span>
+                            <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#374151', padding: '2px 7px', background: '#f8fafc', borderRadius: '20px', border: '1px solid #e5e7eb' }}>
+                              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }}></span>
                               {isImg
-                                ? <img src={iconRaw} alt="" style={{ width: '12px', height: '12px', objectFit: 'contain' }} />
-                                : <span style={{ fontSize: '11px', lineHeight: 1 }}>{iconRaw}</span>
+                                ? <img src={iconRaw} alt="" style={{ width: '13px', height: '13px', objectFit: 'contain' }} />
+                                : <span style={{ fontSize: '12px', lineHeight: 1 }}>{iconRaw}</span>
                               }
-                              <span>{tLabel(int)}</span>
+                              <span style={{ fontWeight: '500' }}>{tLabel(int)}</span>
                             </div>
                           );
                         })}
