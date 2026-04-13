@@ -913,9 +913,12 @@
                       })}
                     </div>
 
-                    {/* GPS sub-mode content — spacer only, GPS fires on "Find Places" */}
+                    {/* Sub-mode content — fixed min-height so radius stepper never jumps */}
+                    <div style={{ minHeight: '116px' }}>
+
+                    {/* GPS sub-mode content — empty, GPS fires on "Find Places" */}
                     {(formData.radiusSource || 'gps') === 'gps' && (
-                      <div style={{ height: '8px' }} />
+                      <div />
                     )}
 
                     {/* Custom Point sub-mode content — matches add-manually dialog style */}
@@ -940,7 +943,7 @@
                                 <input
                                   type="text"
                                   id="point-search-input"
-                                  placeholder={isRecording && recordingField === 'point_search' ? '' : (currentLang === 'he' ? 'שם מלון, רחוב, אטרקציה...' : 'Hotel, street, attraction...')}
+                                  placeholder={isRecording && recordingField === 'point_search' ? '' : (currentLang === 'he' ? 'הקלט/הקלד שם מקום תחילת המסלול...' : 'Type/speak starting place name...')}
                                   style={{
                                     width: '100%', boxSizing: 'border-box',
                                     padding: '8px', fontSize: '16px',
@@ -970,18 +973,22 @@
                                       if (inp) { inp.value = (inp.value ? inp.value + ' ' : '') + text; }
                                     },
                                     () => { const inp = document.getElementById('point-search-input'); if (inp) inp.value = ''; setPointSearchResults(null); },
-                                    window.BKK.i18n.isRTL() ? 'he-IL' : 'en-US'
+                                    'en-US'
                                   )}
-                                  style={{ width: '34px', height: '34px', borderRadius: '50%', border: 'none', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', background: isRecording && recordingField === 'point_search' ? '#ef4444' : '#f3f4f6', color: isRecording && recordingField === 'point_search' ? 'white' : '#6b7280', boxShadow: isRecording && recordingField === 'point_search' ? '0 0 0 3px rgba(239,68,68,0.3)' : 'none' }}
+                                  style={{ width: '34px', height: '34px', borderRadius: '50%', border: 'none', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', background: isRecording && recordingField === 'point_search' ? '#ef4444' : '#f3f4f6', color: isRecording && recordingField === 'point_search' ? 'white' : '#6b7280', boxShadow: isRecording && recordingField === 'point_search' ? '0 0 0 3px rgba(239,68,68,0.3)' : 'none', animation: isRecording && recordingField === 'point_search' ? 'pulse 1s ease-in-out infinite' : 'none' }}
                                   title={isRecording && recordingField === 'point_search' ? t('speech.stopRecording') : t('speech.startRecording')}>
                                   {isRecording && recordingField === 'point_search' ? '⏹️' : '🎤'}
                                 </button>
                               )}
                             </div>
-                            {/* Search button below */}
+                            {/* Interim speech preview — same as dialog */}
+                            {isRecording && recordingField === 'point_search' && interimText && (
+                              <div style={{ marginTop: '4px', padding: '4px 8px', background: '#fef3c7', borderRadius: '6px', fontSize: '12px', color: '#92400e', fontStyle: 'italic', direction: 'ltr' }}>🎤 {interimText}</div>
+                            )}
+                            {/* Search button below — compact */}
                             <button
                               onClick={() => { const inp = document.getElementById('point-search-input'); if (inp?.value?.trim()) searchPointForRadius(inp.value.trim()); }}
-                              style={{ width: '100%', marginTop: '6px', padding: '8px', borderRadius: '8px', border: 'none', background: '#7c3aed', color: 'white', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                              style={{ width: '100%', marginTop: '6px', padding: '5px 8px', borderRadius: '8px', border: 'none', background: '#7c3aed', color: 'white', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>
                               🔍 {currentLang === 'he' ? 'חפש בגוגל' : 'Search Google'}
                             </button>
                             {/* Dropdown results */}
@@ -1011,6 +1018,8 @@
                         )}
                       </div>
                     )}
+
+                    </div>{/* end fixed-height sub-mode zone */}
 
                     {/* Radius selector — always visible, +/- stepper with slider */}
                     {(() => {
