@@ -877,13 +877,13 @@
 
                 {/* RADIUS MODE content */}
                 {formData.searchMode === 'radius' && (
-                  <div style={{ background: '#f0f9ff', borderRadius: '12px', border: '1.5px solid #bae6fd', padding: '10px', marginBottom: '6px' }}>
+                  <div style={{ marginBottom: '6px' }}>
 
                     {/* Sub-toggle: GPS vs Search a point — white/green like area cards */}
                     <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                       {[
-                        { src: 'gps', icon: '📍', labelHe: 'קרוב אליי', labelEn: 'Near me', desc: currentLang === 'he' ? 'לפי GPS' : 'By GPS' },
                         { src: 'point', icon: '🔍', labelHe: 'חפש מקום', labelEn: 'Search place', desc: currentLang === 'he' ? 'מלון / כתובת / אטרקציה' : 'Hotel / address / attraction' },
+                        { src: 'gps', icon: '📍', labelHe: 'קרוב אליי', labelEn: 'Near me', desc: currentLang === 'he' ? 'לפי GPS' : 'By GPS' },
                       ].map(({ src, icon, labelHe, labelEn, desc }) => {
                         const isActive = (formData.radiusSource || 'gps') === src;
                         return (
@@ -918,11 +918,11 @@
                       <div style={{ height: '8px' }} />
                     )}
 
-                    {/* Custom Point sub-mode content */}
+                    {/* Custom Point sub-mode content — matches add-manually dialog style */}
                     {formData.radiusSource === 'point' && (
-                      <div style={{ position: 'relative' }}>
+                      <div>
                         {formData.currentLat ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '10px', border: '1px solid #86efac', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '10px', border: '2px solid #22c55e', marginBottom: '8px' }}>
                             <span style={{ fontSize: '14px' }}>📍</span>
                             <span style={{ flex: 1, fontSize: '13px', fontWeight: 'bold', color: '#15803d' }}>{formData.radiusPlaceName}</span>
                             <button onClick={() => { setFormData(prev => ({ ...prev, currentLat: null, currentLng: null, radiusPlaceName: '' })); setPointSearchResults(null); }}
@@ -930,22 +930,60 @@
                           </div>
                         ) : (
                           <div style={{ marginBottom: '6px' }}>
-                            {/* Search bar — purple style like add-manually dialog */}
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                              <input
-                                type="text"
-                                id="point-search-input"
-                                placeholder={currentLang === 'he' ? 'שם מלון, רחוב, אטרקציה...' : 'Hotel, street, attraction...'}
-                                style={{ flex: 1, padding: '9px 12px', borderRadius: '8px', border: '1.5px solid #c4b5fd', fontSize: '14px', background: 'white', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', outline: 'none' }}
-                                onChange={e => { if (!e.target.value.trim()) setPointSearchResults(null); }}
-                                onKeyDown={e => { if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) searchPointForRadius(q); } }}
-                              />
-                              <button
-                                onClick={() => { const inp = document.getElementById('point-search-input'); if (inp?.value?.trim()) searchPointForRadius(inp.value.trim()); }}
-                                style={{ padding: '9px 14px', borderRadius: '8px', border: 'none', background: '#7c3aed', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', flexShrink: 0 }}>
-                                🔍
-                              </button>
+                            {/* Label */}
+                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', marginBottom: '4px', color: '#374151' }}>
+                              {currentLang === 'he' ? 'שם מקום' : 'Place name'}
+                            </label>
+                            {/* Input + mic — exactly like add-manually dialog */}
+                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                              <div style={{ position: 'relative', flex: 1 }}>
+                                <input
+                                  type="text"
+                                  id="point-search-input"
+                                  placeholder={isRecording && recordingField === 'point_search' ? '' : (currentLang === 'he' ? 'שם מלון, רחוב, אטרקציה...' : 'Hotel, street, attraction...')}
+                                  style={{
+                                    width: '100%', boxSizing: 'border-box',
+                                    padding: '8px', fontSize: '16px',
+                                    border: `2px solid ${isRecording && recordingField === 'point_search' ? '#ef4444' : '#c4b5fd'}`,
+                                    borderRadius: '8px', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr',
+                                    outline: 'none', background: 'white',
+                                    paddingRight: window.BKK.i18n.isRTL() ? '24px' : '8px',
+                                    paddingLeft: window.BKK.i18n.isRTL() ? '8px' : '24px'
+                                  }}
+                                  onChange={e => { if (!e.target.value.trim()) setPointSearchResults(null); }}
+                                  onKeyDown={e => { if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) searchPointForRadius(q); } }}
+                                />
+                                {(() => {
+                                  const inp = typeof document !== 'undefined' ? document.getElementById('point-search-input') : null;
+                                  return inp?.value ? (
+                                    <button type="button"
+                                      onClick={() => { inp.value = ''; setPointSearchResults(null); }}
+                                      style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', [window.BKK.i18n.isRTL() ? 'right' : 'left']: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '13px', lineHeight: 1, padding: '2px' }}>✕</button>
+                                  ) : null;
+                                })()}
+                              </div>
+                              {window.BKK?.speechSupported && (
+                                <button type="button"
+                                  onClick={() => toggleRecording('point_search',
+                                    (text) => {
+                                      const inp = document.getElementById('point-search-input');
+                                      if (inp) { inp.value = (inp.value ? inp.value + ' ' : '') + text; }
+                                    },
+                                    () => { const inp = document.getElementById('point-search-input'); if (inp) inp.value = ''; setPointSearchResults(null); },
+                                    window.BKK.i18n.isRTL() ? 'he-IL' : 'en-US'
+                                  )}
+                                  style={{ width: '34px', height: '34px', borderRadius: '50%', border: 'none', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', background: isRecording && recordingField === 'point_search' ? '#ef4444' : '#f3f4f6', color: isRecording && recordingField === 'point_search' ? 'white' : '#6b7280', boxShadow: isRecording && recordingField === 'point_search' ? '0 0 0 3px rgba(239,68,68,0.3)' : 'none' }}
+                                  title={isRecording && recordingField === 'point_search' ? t('speech.stopRecording') : t('speech.startRecording')}>
+                                  {isRecording && recordingField === 'point_search' ? '⏹️' : '🎤'}
+                                </button>
+                              )}
                             </div>
+                            {/* Search button below */}
+                            <button
+                              onClick={() => { const inp = document.getElementById('point-search-input'); if (inp?.value?.trim()) searchPointForRadius(inp.value.trim()); }}
+                              style={{ width: '100%', marginTop: '6px', padding: '8px', borderRadius: '8px', border: 'none', background: '#7c3aed', color: 'white', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
+                              🔍 {currentLang === 'he' ? 'חפש בגוגל' : 'Search Google'}
+                            </button>
                             {/* Dropdown results */}
                             {pointSearchResults !== null && (
                               <div style={{ marginTop: '4px', border: '1.5px solid #c4b5fd', borderRadius: '10px', overflow: 'hidden', background: 'white', boxShadow: '0 4px 12px rgba(124,58,237,0.12)' }}>
@@ -955,23 +993,11 @@
                                   <button
                                     key={idx}
                                     onClick={() => {
-                                      setFormData(prev => ({
-                                        ...prev,
-                                        currentLat: result.lat,
-                                        currentLng: result.lng,
-                                        radiusPlaceName: result.name,
-                                        radiusSource: 'point',
-                                        radiusPlaceId: result.googlePlaceId || null
-                                      }));
+                                      setFormData(prev => ({ ...prev, currentLat: result.lat, currentLng: result.lng, radiusPlaceName: result.name, radiusSource: 'point', radiusPlaceId: result.googlePlaceId || null }));
                                       setPointSearchResults(null);
                                       showToast(`✅ ${result.name}`, 'success');
                                     }}
-                                    style={{
-                                      width: '100%', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left',
-                                      padding: '8px 12px', cursor: 'pointer', background: 'none', border: 'none',
-                                      borderBottom: idx < pointSearchResults.length - 1 ? '1px solid #f3e8ff' : 'none',
-                                      direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', display: 'block'
-                                    }}
+                                    style={{ width: '100%', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left', padding: '8px 12px', cursor: 'pointer', background: 'none', border: 'none', borderBottom: idx < pointSearchResults.length - 1 ? '1px solid #f3e8ff' : 'none', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', display: 'block' }}
                                     onMouseEnter={e => e.currentTarget.style.background = '#faf5ff'}
                                     onMouseLeave={e => e.currentTarget.style.background = 'none'}
                                   >
