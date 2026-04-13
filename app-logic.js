@@ -5794,6 +5794,7 @@
         group: config.group || opt.group || '',
         noGoogleSearch: config.noGoogleSearch || opt.noGoogleSearch || false,
         privateOnly: config.privateOnly || opt.privateOnly || false,
+        color: config.color || opt.color || null,
       };
     });
     // Sort: group order then alphabetical within group — re-sorts on language change
@@ -6824,10 +6825,20 @@
           const key = (cs.name || '').toLowerCase().trim();
           if (!addedCustomNames.has(key)) {
             addedCustomNames.add(key);
-            allStops.push({ ...cs, _debug: {
+            // Pick best matching interest: prefer the most specific (whose dedupRelated includes another match)
+            const allMatches = searchInterests.filter(si => (cs.interests || []).includes(si));
+            let bestMatch = interest;
+            if (allMatches.length > 1) {
+              for (const m of allMatches) {
+                const rel = (interestConfig[m]?.dedupRelated || []);
+                if (allMatches.some(other => other !== m && rel.includes(other))) { bestMatch = m; break; }
+              }
+            }
+            const reorderedInterests = [bestMatch, ...(cs.interests || []).filter(i => i !== bestMatch)];
+            allStops.push({ ...cs, interests: reorderedInterests, _debug: {
               source: 'custom',
-              interestId: interest,
-              interestLabel: tLabel(allInterestOptions.find(o => o.id === interest)) || interest,
+              interestId: bestMatch,
+              interestLabel: tLabel(allInterestOptions.find(o => o.id === bestMatch)) || bestMatch,
               area: formData.area || 'radius',
               searchMode: formData.searchMode,
               timestamp: Date.now()

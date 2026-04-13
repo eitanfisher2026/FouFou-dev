@@ -157,7 +157,28 @@ def build():
             print(f"⚠️  compile.js failed — shipping JSX source (browser Babel fallback active)")
             print(result.stderr[:200])
     else:
-        print(f"⚠️  compile.js / node_modules not found — shipping JSX source (browser Babel fallback active)")
+        # Try fallback: use our installed Babel at /tmp/babel-test
+        import os as _os
+        if shutil.which('node') and _os.path.exists('/tmp/babel-test/node_modules/@babel/core'):
+            transform_js = (
+                "const babel=require('/tmp/babel-test/node_modules/@babel/core');"
+                "const fs=require('fs');"
+                "const code=fs.readFileSync('app-code.js','utf8');"
+                "const result=babel.transformSync(code,{"
+                "plugins:['/tmp/babel-test/node_modules/@babel/plugin-transform-react-jsx'],"
+                "filename:'app-code.js',compact:false});"
+                "fs.writeFileSync('app-code.js',result.code);"
+                "process.stdout.write('OK:'+result.code.split('\\n').length+'\\n');"
+            )
+            r = subprocess.run(['node', '-e', transform_js], capture_output=True, text=True, cwd='.')
+            if r.returncode == 0 and r.stdout.startswith('OK:'):
+                lines = r.stdout.strip().split(':')[1]
+                print(f"📄 app-code.js ({lines} lines, compiled JS via babel-test)")
+            else:
+                print(f"⚠️  Babel transform failed — shipping JSX source")
+                print(r.stderr[:200])
+        else:
+            print(f"⚠️  compile.js / node_modules not found — shipping JSX source (browser Babel fallback active)")
 
     # === BUILD FILE 2.5: sw.js — update CACHE_NAME version ===
     if os.path.exists('sw.js'):
