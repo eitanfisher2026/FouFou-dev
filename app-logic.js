@@ -970,6 +970,7 @@
   const [loadingGoogleInfo, setLoadingGoogleInfo] = useState(false);
   const [locationSearchResults, setLocationSearchResults] = useState(null); // null=hidden, []=no results, [...]= results
   const [pointSearchResults, setPointSearchResults] = useState(null); // null=hidden, []=loading, [...]= results for step-2 point mode
+  const [pointSearchQuery, setPointSearchQuery] = useState(''); // tracks input value for button enable/disable
   const [editingCustomInterest, setEditingCustomInterest] = useState(null);
   const [showAddInterestDialog, setShowAddInterestDialog] = useState(false);
   const [interestDialogReadOnly, setInterestDialogReadOnly] = useState(false);

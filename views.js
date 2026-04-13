@@ -953,7 +953,7 @@
                                     paddingRight: window.BKK.i18n.isRTL() ? '24px' : '8px',
                                     paddingLeft: window.BKK.i18n.isRTL() ? '8px' : '24px'
                                   }}
-                                  onChange={e => { if (!e.target.value.trim()) setPointSearchResults(null); }}
+                                  onChange={e => { setPointSearchQuery(e.target.value); if (!e.target.value.trim()) setPointSearchResults(null); }}
                                   onKeyDown={e => { if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) searchPointForRadius(q); } }}
                                 />
                                 {(() => {
@@ -985,12 +985,19 @@
                             {isRecording && recordingField === 'point_search' && interimText && (
                               <div style={{ marginTop: '4px', padding: '4px 8px', background: '#fef3c7', borderRadius: '6px', fontSize: '12px', color: '#92400e', fontStyle: 'italic', direction: 'ltr' }}>🎤 {interimText}</div>
                             )}
-                            {/* Search button below — compact */}
-                            <button
-                              onClick={() => { const inp = document.getElementById('point-search-input'); if (inp?.value?.trim()) searchPointForRadius(inp.value.trim()); }}
-                              style={{ width: '100%', marginTop: '6px', padding: '5px 8px', borderRadius: '8px', border: 'none', background: '#7c3aed', color: 'white', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>
-                              🔍 {currentLang === 'he' ? 'חפש בגוגל' : 'Search Google'}
-                            </button>
+                            {/* Search button below — gray until input has value, same as add-manually */}
+                            {(() => {
+                              const hasVal = (typeof document !== 'undefined' && document.getElementById('point-search-input')?.value?.trim()) || pointSearchResults !== null;
+                              // Use a controlled approach via onChange tracking
+                              return (
+                                <button
+                                  id="point-search-btn"
+                                  onClick={() => { const inp = document.getElementById('point-search-input'); if (inp?.value?.trim()) searchPointForRadius(inp.value.trim()); }}
+                                  style={{ width: '100%', marginTop: '6px', padding: '5px 8px', borderRadius: '8px', border: 'none', fontWeight: 'bold', fontSize: '12px', cursor: (pointSearchQuery||'').trim() ? 'pointer' : 'default', background: (pointSearchQuery||'').trim() ? '#7c3aed' : '#e5e7eb', color: (pointSearchQuery||'').trim() ? 'white' : '#9ca3af', transition: 'all 0.15s' }}>
+                                  🔍 {currentLang === 'he' ? 'חפש בגוגל' : 'Search Google'}
+                                </button>
+                              );
+                            })()}
                             {/* Dropdown results */}
                             {pointSearchResults !== null && (
                               <div style={{ marginTop: '4px', border: '1.5px solid #c4b5fd', borderRadius: '10px', overflow: 'hidden', background: 'white', boxShadow: '0 4px 12px rgba(124,58,237,0.12)' }}>
@@ -1092,16 +1099,41 @@
                     <button
                       onClick={() => { if (canSearch) {
                         window.BKK.logEvent?.('search_started', { city: selectedCityId, lang: currentLang, interests_count: formData.interests?.length || 0, interests: (formData.interests || []).slice(0, 5).join(','), time_filter: interestTimeFilter || 'all' });
+                        // Helper: inject radius place as manual stop + start point
+                        const injectRadiusPointAsStart = (lat, lng, name) => {
+                          const radiusStop = {
+                            name: name || t('wizard.myLocation'),
+                            lat, lng,
+                            address: name || '',
+                            description: '',
+                            duration: 0,
+                            interests: ['_manual'],
+                            manuallyAdded: true,
+                            isRadiusCenter: true,
+                            googlePlace: false,
+                            rating: 0, ratingCount: 0
+                          };
+                          setManualStops(prev => {
+                            const filtered = prev.filter(s => !s.isRadiusCenter);
+                            return [radiusStop, ...filtered];
+                          });
+                          setStartPointCoords({ lat, lng, address: name || t('wizard.myLocation') });
+                        };
                         // Lazy GPS: acquire now if radius mode + GPS source + no coords yet
                         if (formData.searchMode === 'radius' && formData.radiusSource === 'gps' && !formData.currentLat && navigator.geolocation) {
                           window.BKK.getValidatedGps(
                             (pos) => {
-                              setFormData(prev => ({...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, radiusPlaceName: t('wizard.myLocation')}));
+                              const lat = pos.coords.latitude, lng = pos.coords.longitude;
+                              setFormData(prev => ({...prev, currentLat: lat, currentLng: lng, radiusPlaceName: t('wizard.myLocation')}));
+                              injectRadiusPointAsStart(lat, lng, t('wizard.myLocation'));
                               generateRoute(); setRouteChoiceMade(null); setWizardStep(3); window.scrollTo(0, 0);
                             },
                             (reason) => { showToast(reason === 'outside_city' ? t('toast.outsideCity') : reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'), 'warning', 'sticky'); }
                           );
                         } else {
+                          if (formData.searchMode === 'radius' && formData.currentLat) {
+                            injectRadiusPointAsStart(formData.currentLat, formData.currentLng, formData.radiusPlaceName || t('wizard.myLocation'));
+                          }
                           generateRoute(); setRouteChoiceMade(null); setWizardStep(3); window.scrollTo(0, 0);
                         }
                       } }}
@@ -1671,10 +1703,16 @@
                                     }}>
                                       {route?.optimized && !isDisabled && hasValidCoords && activeLetterMap[stop.originalIndex] && (() => {
                                         // Color by interest — consistent with map markers and active trail
+                                        // Radius center stops: white fill + green border (no interest color)
+                                        const isRadiusCenter = stop.isRadiusCenter;
                                         const stopColor = isManualGroup
-                                          ? window.BKK.stopColorPalette[stop.originalIndex % window.BKK.stopColorPalette.length]
+                                          ? (isRadiusCenter ? null : window.BKK.stopColorPalette[stop.originalIndex % window.BKK.stopColorPalette.length])
                                           : window.BKK.getInterestColor(interest, allInterestOptions);
-                                        return (
+                                        return isRadiusCenter ? (
+                                          <span style={{ background: 'white', color: '#15803d', borderRadius: '50%', width: '22px', height: '22px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold', flexShrink: 0, border: '2px solid #22c55e', boxShadow: '0 1px 3px rgba(34,197,94,0.3)' }}>
+                                            {activeLetterMap[stop.originalIndex]}
+                                          </span>
+                                        ) : (
                                           <span style={{ background: stopColor, color: 'white', borderRadius: '50%', width: '22px', height: '22px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold', flexShrink: 0, border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
                                             {activeLetterMap[stop.originalIndex]}
                                           </span>
