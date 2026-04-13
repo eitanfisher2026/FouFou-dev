@@ -969,8 +969,6 @@
   const [googlePlaceInfo, setGooglePlaceInfo] = useState(null);
   const [loadingGoogleInfo, setLoadingGoogleInfo] = useState(false);
   const [locationSearchResults, setLocationSearchResults] = useState(null); // null=hidden, []=no results, [...]= results
-  const [pointSearchResults, setPointSearchResults] = useState(null); // null=hidden, []=loading, [...]= results for step-2 point mode
-  const [pointSearchQuery, setPointSearchQuery] = useState(''); // tracks input value for button enable/disable
   const [editingCustomInterest, setEditingCustomInterest] = useState(null);
   const [showAddInterestDialog, setShowAddInterestDialog] = useState(false);
   const [interestDialogReadOnly, setInterestDialogReadOnly] = useState(false);
@@ -9875,44 +9873,6 @@
       console.error('[SEARCH] Error:', err);
       showToast(t('toast.searchError'), 'error');
       setLocationSearchResults(null);
-    }
-  };
-
-  // Search places for radius-mode point selection in step 2
-  const searchPointForRadius = async (query) => {
-    if (!query || !query.trim()) return;
-    try {
-      setPointSearchResults([]); // empty = loading
-      const cityForSearch = window.BKK.cityNameForSearch || 'Bangkok';
-      const countryForSearch = window.BKK.selectedCity?.country || '';
-      const searchQuery = query.toLowerCase().includes(cityForSearch.toLowerCase()) ? query : `${query}, ${cityForSearch}${countryForSearch ? ', ' + countryForSearch : ''}`;
-      const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount'
-        },
-        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: 5 })
-      });
-      const data = await response.json();
-      if (data.places && data.places.length > 0) {
-        setPointSearchResults(data.places.map(p => ({
-          name: p.displayName?.text || '',
-          lat: p.location?.latitude,
-          lng: p.location?.longitude,
-          address: p.formattedAddress || '',
-          rating: p.rating,
-          ratingCount: p.userRatingCount,
-          googlePlaceId: p.id
-        })));
-      } else {
-        setPointSearchResults([]);
-        showToast(t('places.noPlacesFound'), 'warning');
-      }
-    } catch (err) {
-      console.error('[POINT SEARCH] Error:', err);
-      setPointSearchResults(null);
     }
   };
 

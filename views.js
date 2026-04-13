@@ -812,32 +812,35 @@
                 {renderContextHint('hint_area')}
 
                 {/* Mode selector — radio pill toggle (top level: area vs near me) */}
-                {/* Mode selector — active tab gets 2/3, inactive gets 1/3 */}
-                <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', padding: '4px', background: '#f1f5f9', borderRadius: '14px' }}>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', padding: '4px', background: '#f1f5f9', borderRadius: '14px' }}>
                   {[
-                    { mode: 'area', icon: '🗺️', label: t('wizard.chooseArea'), onClick: () => { setFormData(prev => ({...prev, searchMode: 'area'})); setPointSearchResults(null); } },
-                    { mode: 'radius', icon: '📍', label: t('general.nearLocation'), onClick: () => {
+                    { mode: 'area', icon: '🗺️', label: t('wizard.chooseArea'), onClick: () => setFormData(prev => ({...prev, searchMode: 'area'})) },
+                    { mode: 'radius', icon: '📍', label: t('wizard.nearLocation'), onClick: () => {
                       if (formData.searchMode !== 'radius') {
                         setFormData(prev => ({...prev, searchMode: 'radius', radiusMeters: prev.radiusMeters || 500, radiusSource: prev.radiusSource || 'gps'}));
                         window.BKK.logEvent?.('radius_mode_selected', {});
+                        if (navigator.geolocation) {
+                          window.BKK.getValidatedGps(
+                            (pos) => { setFormData(prev => ({...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, radiusPlaceName: t('wizard.myLocation'), radiusSource: 'gps'})); showToast(t('wizard.locationFound'), 'success'); },
+                            (reason) => { setFormData(prev => ({...prev, searchMode: 'area'})); showToast(reason === 'outside_city' ? t('toast.outsideCity') : reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'), 'warning', 'sticky'); }
+                          );
+                        }
                       }
                     }}
                   ].map(({ mode, icon, label, onClick }) => {
                     const isActive = mode === 'radius' ? formData.searchMode === 'radius' : formData.searchMode !== 'radius';
                     return (
                       <button key={mode} onClick={onClick} style={{
-                        flex: isActive ? 2 : 1,
-                        padding: '8px 10px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
-                        border: 'none', borderRadius: '10px', transition: 'all 0.25s',
+                        flex: 1, padding: '8px 12px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
+                        border: 'none', borderRadius: '10px', transition: 'all 0.2s',
                         background: isActive ? 'white' : 'transparent',
                         color: isActive ? '#2563eb' : '#94a3b8',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                         boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
-                        whiteSpace: 'nowrap', overflow: 'hidden',
                       }}>
                         <span style={{
-                          width: '14px', height: '14px', borderRadius: '50%', flexShrink: 0,
-                          border: isActive ? '4px solid #2563eb' : '2px solid #cbd5e1',
+                          width: '16px', height: '16px', borderRadius: '50%', flexShrink: 0,
+                          border: isActive ? '5px solid #2563eb' : '2px solid #cbd5e1',
                           background: 'white', display: 'inline-block', transition: 'all 0.2s'
                         }} />
                         <span>{icon}</span>
@@ -875,197 +878,109 @@
                   </div>
                 )}
 
-                {/* RADIUS MODE content */}
+                {/* RADIUS MODE content — visually contained card, clearly child of "near me" */}
                 {formData.searchMode === 'radius' && (
-                  <div style={{ marginBottom: '6px' }}>
+                  <div style={{ background: '#f0f9ff', borderRadius: '12px', border: '1.5px solid #bae6fd', padding: '10px', marginBottom: '6px' }}>
 
-                    {/* Sub-toggle: GPS vs Search a point — white/green like area cards */}
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                    {/* Sub-toggle: GPS vs Search a point — inside the card */}
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', padding: '3px', background: '#e0f2fe', borderRadius: '8px' }}>
                       {[
-                        { src: 'point', icon: '🔍', labelHe: 'חפש מקום', labelEn: 'Search place', desc: currentLang === 'he' ? 'מלון / כתובת / אטרקציה' : 'Hotel / address / attraction' },
-                        { src: 'gps', icon: '📍', labelHe: 'קרוב אליי', labelEn: 'Near me', desc: currentLang === 'he' ? 'לפי GPS' : 'By GPS' },
-                      ].map(({ src, icon, labelHe, labelEn, desc }) => {
+                        { src: 'gps', icon: '📍', label: t('wizard.nearMeGps') },
+                        { src: 'point', icon: '🔍', label: currentLang === 'he' ? 'חפש מיקום' : 'Search location' },
+                      ].map(({ src, icon, label }) => {
                         const isActive = (formData.radiusSource || 'gps') === src;
                         return (
                           <button key={src} onClick={() => {
                             if (src === 'gps' && formData.radiusSource !== 'gps') {
-                              // GPS acquired lazily on "Find Places" — just switch source here
                               setFormData(prev => ({ ...prev, radiusSource: 'gps', currentLat: null, currentLng: null, radiusPlaceName: '' }));
+                              if (navigator.geolocation) {
+                                window.BKK.getValidatedGps(
+                                  (pos) => { setFormData(prev => ({ ...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, radiusPlaceName: t('wizard.myLocation'), radiusSource: 'gps' })); showToast(t('wizard.locationFound'), 'success'); },
+                                  (reason) => { showToast(reason === 'outside_city' ? t('toast.outsideCity') : reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'), 'warning', 'sticky'); }
+                                );
+                              }
                             } else if (src === 'point') {
                               setFormData(prev => ({ ...prev, radiusSource: 'point', currentLat: null, currentLng: null, radiusPlaceName: '' }));
-                              setPointSearchResults(null);
                             }
                           }} style={{
-                            flex: 1, padding: '10px 8px', cursor: 'pointer',
-                            border: isActive ? '2px solid #22c55e' : '1.5px solid #e5e7eb',
-                            borderRadius: '10px', transition: 'all 0.2s',
-                            background: 'white',
-                            boxShadow: isActive ? '0 2px 6px rgba(34,197,94,0.15)' : 'none',
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                            flex: 1, padding: '7px 8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px',
+                            border: 'none', borderRadius: '6px', transition: 'all 0.2s',
+                            background: isActive ? 'white' : 'transparent',
+                            color: isActive ? '#0369a1' : '#64748b',
+                            boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.10)' : 'none',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
                           }}>
-                            <span style={{ fontSize: '20px', lineHeight: 1 }}>{icon}</span>
-                            <span style={{ fontWeight: '700', fontSize: '12px', color: isActive ? '#15803d' : '#374151' }}>
-                              {currentLang === 'he' ? labelHe : labelEn}
-                            </span>
-                            <span style={{ fontSize: '10px', fontWeight: '500', color: isActive ? '#16a34a' : '#6b7280', lineHeight: 1.3, textAlign: 'center' }}>{desc}</span>
+                            <span>{icon}</span><span>{label}</span>
                           </button>
                         );
                       })}
                     </div>
 
-                    {/* Sub-mode content — fixed min-height so radius stepper never jumps */}
-                    <div style={{ minHeight: '116px' }}>
-
-                    {/* GPS sub-mode content — empty, GPS fires on "Find Places" */}
+                    {/* GPS sub-mode content */}
                     {(formData.radiusSource || 'gps') === 'gps' && (
-                      <div />
-                    )}
-
-                    {/* Custom Point sub-mode content — matches add-manually dialog style */}
-                    {formData.radiusSource === 'point' && (
-                      <div>
+                      <div style={{ textAlign: 'center' }}>
                         {formData.currentLat ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '10px', border: '2px solid #22c55e', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '14px' }}>📍</span>
-                            <span style={{ flex: 1, fontSize: '13px', fontWeight: 'bold', color: '#15803d' }}>{formData.radiusPlaceName}</span>
-                            <button onClick={() => { setFormData(prev => ({ ...prev, currentLat: null, currentLng: null, radiusPlaceName: '' })); setPointSearchResults(null); }}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#6b7280' }}>✕</button>
-                          </div>
+                          <div style={{ fontSize: '12px', color: '#059669', fontWeight: 'bold', marginBottom: '8px' }}>✅ {t('wizard.locationFound')}</div>
                         ) : (
-                          <div style={{ marginBottom: '6px' }}>
-                            {/* Label */}
-                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', marginBottom: '4px', color: '#374151' }}>
-                              {currentLang === 'he' ? 'שם מקום' : 'Place name'}
-                            </label>
-                            {/* Input + mic — exactly like add-manually dialog */}
-                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                              <div style={{ position: 'relative', flex: 1 }}>
-                                <input
-                                  type="text"
-                                  id="point-search-input"
-                                  placeholder={isRecording && recordingField === 'point_search' ? '' : (currentLang === 'he' ? 'הקלט/הקלד שם מקום תחילת המסלול...' : 'Type/speak starting place name...')}
-                                  style={{
-                                    width: '100%', boxSizing: 'border-box',
-                                    padding: '8px', fontSize: '16px',
-                                    border: `2px solid ${isRecording && recordingField === 'point_search' ? '#ef4444' : '#c4b5fd'}`,
-                                    borderRadius: '8px', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr',
-                                    outline: 'none', background: 'white',
-                                    paddingRight: window.BKK.i18n.isRTL() ? '24px' : '8px',
-                                    paddingLeft: window.BKK.i18n.isRTL() ? '8px' : '24px'
-                                  }}
-                                  onChange={e => { setPointSearchQuery(e.target.value); if (!e.target.value.trim()) setPointSearchResults(null); }}
-                                  onKeyDown={e => { if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) searchPointForRadius(q); } }}
-                                />
-                                {(() => {
-                                  const inp = typeof document !== 'undefined' ? document.getElementById('point-search-input') : null;
-                                  return inp?.value ? (
-                                    <button type="button"
-                                      onClick={() => { inp.value = ''; setPointSearchResults(null); }}
-                                      style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', [window.BKK.i18n.isRTL() ? 'right' : 'left']: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '13px', lineHeight: 1, padding: '2px' }}>✕</button>
-                                  ) : null;
-                                })()}
-                              </div>
-                              {window.BKK?.speechSupported && (
-                                <button type="button"
-                                  onClick={() => toggleRecording('point_search',
-                                    (text) => {
-                                      const inp = document.getElementById('point-search-input');
-                                      if (inp) { inp.value = (inp.value ? inp.value + ' ' : '') + text; }
-                                    },
-                                    () => { const inp = document.getElementById('point-search-input'); if (inp) inp.value = ''; setPointSearchResults(null); },
-                                    'en-US'
-                                  )}
-                                  style={{ width: '34px', height: '34px', borderRadius: '50%', border: 'none', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', background: isRecording && recordingField === 'point_search' ? '#ef4444' : '#f3f4f6', color: isRecording && recordingField === 'point_search' ? 'white' : '#6b7280', boxShadow: isRecording && recordingField === 'point_search' ? '0 0 0 3px rgba(239,68,68,0.3)' : 'none', animation: isRecording && recordingField === 'point_search' ? 'pulse 1s ease-in-out infinite' : 'none' }}
-                                  title={isRecording && recordingField === 'point_search' ? t('speech.stopRecording') : t('speech.startRecording')}>
-                                  {isRecording && recordingField === 'point_search' ? '⏹️' : '🎤'}
-                                </button>
-                              )}
-                            </div>
-                            {/* Interim speech preview — same as dialog */}
-                            {isRecording && recordingField === 'point_search' && interimText && (
-                              <div style={{ marginTop: '4px', padding: '4px 8px', background: '#fef3c7', borderRadius: '6px', fontSize: '12px', color: '#92400e', fontStyle: 'italic', direction: 'ltr' }}>🎤 {interimText}</div>
-                            )}
-                            {/* Search button below — gray until input has value, same as add-manually */}
-                            {(() => {
-                              const hasVal = (typeof document !== 'undefined' && document.getElementById('point-search-input')?.value?.trim()) || pointSearchResults !== null;
-                              // Use a controlled approach via onChange tracking
-                              return (
-                                <button
-                                  id="point-search-btn"
-                                  onClick={() => { const inp = document.getElementById('point-search-input'); if (inp?.value?.trim()) searchPointForRadius(inp.value.trim()); }}
-                                  style={{ width: '100%', marginTop: '6px', padding: '5px 8px', borderRadius: '8px', border: 'none', fontWeight: 'bold', fontSize: '12px', cursor: (pointSearchQuery||'').trim() ? 'pointer' : 'default', background: (pointSearchQuery||'').trim() ? '#7c3aed' : '#e5e7eb', color: (pointSearchQuery||'').trim() ? 'white' : '#9ca3af', transition: 'all 0.15s' }}>
-                                  🔍 {currentLang === 'he' ? 'חפש בגוגל' : 'Search Google'}
-                                </button>
-                              );
-                            })()}
-                            {/* Dropdown results */}
-                            {pointSearchResults !== null && (
-                              <div style={{ marginTop: '4px', border: '1.5px solid #c4b5fd', borderRadius: '10px', overflow: 'hidden', background: 'white', boxShadow: '0 4px 12px rgba(124,58,237,0.12)' }}>
-                                {pointSearchResults.length === 0 ? (
-                                  <div style={{ textAlign: 'center', padding: '12px', color: '#9ca3af', fontSize: '12px' }}>⏳ {t('general.searching')}...</div>
-                                ) : pointSearchResults.map((result, idx) => (
-                                  <button
-                                    key={idx}
-                                    onClick={() => {
-                                      setFormData(prev => ({ ...prev, currentLat: result.lat, currentLng: result.lng, radiusPlaceName: result.name, radiusSource: 'point', radiusPlaceId: result.googlePlaceId || null }));
-                                      setPointSearchResults(null);
-                                      showToast(`✅ ${result.name}`, 'success');
-                                    }}
-                                    style={{ width: '100%', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left', padding: '8px 12px', cursor: 'pointer', background: 'none', border: 'none', borderBottom: idx < pointSearchResults.length - 1 ? '1px solid #f3e8ff' : 'none', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', display: 'block' }}
-                                    onMouseEnter={e => e.currentTarget.style.background = '#faf5ff'}
-                                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                                  >
-                                    <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#6d28d9' }}>{result.name}</div>
-                                    <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '1px' }}>{result.address}{result.rating ? ` ⭐ ${result.rating}` : ''}</div>
-                                  </button>
-                                ))}
-                              </div>
-                            )}
+                          <div style={{ padding: '16px 0' }}>
+                            <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #bae6fd', borderTopColor: '#0ea5e9', borderRadius: '50%', margin: '0 auto 8px' }}></div>
+                            <div style={{ fontSize: '13px', color: '#0369a1', fontWeight: 'bold' }}>📍 {t('form.waitingForGps')}</div>
+                            <div style={{ fontSize: '10px', color: '#7dd3fc', marginTop: '4px' }}>{t('form.allowLocationAccess')}</div>
                           </div>
                         )}
                       </div>
                     )}
 
-                    </div>{/* end fixed-height sub-mode zone */}
-
-                    {/* Radius selector — always visible, +/- stepper with slider */}
-                    {(() => {
-                      const STEPS = [100, 150, 200, 250, 300, 400, 500, 600, 750, 1000, 1250, 1500];
-                      const curR = formData.radiusMeters || 500;
-                      const curIdx = STEPS.indexOf(curR) !== -1 ? STEPS.indexOf(curR) : STEPS.reduce((best, v, i) => Math.abs(v - curR) < Math.abs(STEPS[best] - curR) ? i : best, 0);
-                      const setR = (r) => { setFormData(prev => ({...prev, radiusMeters: r})); window.BKK.logEvent?.('radius_changed', { radius_meters: r }); };
-                      const label = curR >= 1000 ? `${curR/1000}km` : `${curR}m`;
-                      return (
-                        <div style={{ marginTop: '4px' }}>
-                          <div style={{ fontSize: '11px', color: '#0369a1', fontWeight: 'bold', marginBottom: '8px', textAlign: 'center' }}>{t('form.searchRadius')}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            {/* Minus */}
-                            <button
-                              onClick={() => { if (curIdx > 0) setR(STEPS[curIdx - 1]); }}
-                              disabled={curIdx === 0}
-                              style={{ width: '38px', height: '38px', borderRadius: '50%', border: '2px solid #bae6fd', background: curIdx === 0 ? '#f1f5f9' : 'white', fontSize: '20px', fontWeight: 'bold', cursor: curIdx === 0 ? 'default' : 'pointer', color: curIdx === 0 ? '#cbd5e1' : '#0369a1', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
-                            >−</button>
-                            {/* Slider */}
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                              <input
-                                type="range"
-                                min={0} max={STEPS.length - 1} step={1}
-                                value={curIdx}
-                                onChange={e => setR(STEPS[parseInt(e.target.value)])}
-                                style={{ width: '100%', accentColor: '#0369a1', height: '6px', cursor: 'pointer' }}
-                              />
-                              <span style={{ fontSize: '15px', fontWeight: '800', color: '#0369a1', letterSpacing: '-0.5px' }}>{label}</span>
-                            </div>
-                            {/* Plus */}
-                            <button
-                              onClick={() => { if (curIdx < STEPS.length - 1) setR(STEPS[curIdx + 1]); }}
-                              disabled={curIdx === STEPS.length - 1}
-                              style={{ width: '38px', height: '38px', borderRadius: '50%', border: '2px solid #bae6fd', background: curIdx === STEPS.length - 1 ? '#f1f5f9' : 'white', fontSize: '20px', fontWeight: 'bold', cursor: curIdx === STEPS.length - 1 ? 'default' : 'pointer', color: curIdx === STEPS.length - 1 ? '#cbd5e1' : '#0369a1', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
-                            >+</button>
+                    {/* Custom Point sub-mode content */}
+                    {formData.radiusSource === 'point' && (
+                      <div>
+                        {formData.currentLat ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#f0fdf4', borderRadius: '10px', border: '1px solid #86efac', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '14px' }}>📍</span>
+                            <span style={{ flex: 1, fontSize: '13px', fontWeight: 'bold', color: '#15803d' }}>{formData.radiusPlaceName}</span>
+                            <button onClick={() => setFormData(prev => ({ ...prev, currentLat: null, currentLng: null, radiusPlaceName: '' }))}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#6b7280' }}>✕</button>
                           </div>
+                        ) : (
+                          <div style={{ marginBottom: '6px' }}>
+                            <div style={{ display: 'flex', gap: '6px' }}>
+                              <input
+                                type="text"
+                                id="point-search-input"
+                                placeholder={t('wizard.searchPointPlaceholder')}
+                                style={{ flex: 1, padding: '9px 12px', borderRadius: '8px', border: '1.5px solid #bae6fd', fontSize: '14px', background: 'white', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}
+                                onKeyDown={e => { if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) geocodeAddress(q); } }}
+                              />
+                              <button onClick={() => { const inp = document.getElementById('point-search-input'); if (inp?.value?.trim()) geocodeAddress(inp.value.trim()); }}
+                                style={{ padding: '9px 14px', borderRadius: '8px', border: 'none', background: '#0ea5e9', color: 'white', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer' }}>
+                                🔍
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Radius selector — shown when location is set */}
+                    {formData.currentLat && (
+                      <>
+                        <div style={{ fontSize: '11px', color: '#0369a1', fontWeight: 'bold', marginBottom: '6px', textAlign: 'center' }}>{t('form.searchRadius')}:</div>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                          {[100, 250, 500, 750, 1000].map(r => (
+                            <button key={r}
+                              onClick={() => { setFormData(prev => ({...prev, radiusMeters: r})); window.BKK.logEvent?.('radius_changed', { radius_meters: r }); }}
+                              style={{
+                                padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer',
+                                border: formData.radiusMeters === r ? '2px solid #0369a1' : '1.5px solid #bae6fd',
+                                background: formData.radiusMeters === r ? '#0369a1' : 'white',
+                                color: formData.radiusMeters === r ? 'white' : '#374151',
+                                transition: 'all 0.15s', minWidth: '52px'
+                              }}
+                            >{r >= 1000 ? `${r/1000}km` : `${r}m`}</button>
+                          ))}
                         </div>
-                      );
-                    })()}
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -1075,7 +990,7 @@
               <div style={{
                 position: 'sticky', bottom: 0, zIndex: 40,
                 display: 'flex', flexDirection: 'column', gap: '6px',
-                padding: '16px 0 env(safe-area-inset-bottom, 8px)',
+                padding: '8px 0 env(safe-area-inset-bottom, 8px)',
                 background: 'linear-gradient(to top, rgba(255,251,235,1) 80%, rgba(255,251,235,0))'
               }}>
                 <button
@@ -1094,48 +1009,12 @@
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                 >⭐ 🗺️ {t('form.favoritesMap')}</button>
                 {(() => {
-                  const canSearch = isDataLoaded && formData.interests.length > 0 && (formData.searchMode === 'radius' ? (formData.radiusSource === 'gps' || formData.currentLat) : (formData.searchMode === 'area' ? formData.area : true));
+                  const canSearch = isDataLoaded && formData.interests.length > 0 && (formData.searchMode === 'radius' ? formData.currentLat : (formData.searchMode === 'area' ? formData.area : true));
                   return (
                     <button
                       onClick={() => { if (canSearch) {
                         window.BKK.logEvent?.('search_started', { city: selectedCityId, lang: currentLang, interests_count: formData.interests?.length || 0, interests: (formData.interests || []).slice(0, 5).join(','), time_filter: interestTimeFilter || 'all' });
-                        // Helper: inject radius place as manual stop + start point
-                        const injectRadiusPointAsStart = (lat, lng, name) => {
-                          const radiusStop = {
-                            name: name || t('wizard.myLocation'),
-                            lat, lng,
-                            address: name || '',
-                            description: '',
-                            duration: 0,
-                            interests: ['_manual'],
-                            manuallyAdded: true,
-                            isRadiusCenter: true,
-                            googlePlace: false,
-                            rating: 0, ratingCount: 0
-                          };
-                          setManualStops(prev => {
-                            const filtered = prev.filter(s => !s.isRadiusCenter);
-                            return [radiusStop, ...filtered];
-                          });
-                          setStartPointCoords({ lat, lng, address: name || t('wizard.myLocation') });
-                        };
-                        // Lazy GPS: acquire now if radius mode + GPS source + no coords yet
-                        if (formData.searchMode === 'radius' && formData.radiusSource === 'gps' && !formData.currentLat && navigator.geolocation) {
-                          window.BKK.getValidatedGps(
-                            (pos) => {
-                              const lat = pos.coords.latitude, lng = pos.coords.longitude;
-                              setFormData(prev => ({...prev, currentLat: lat, currentLng: lng, radiusPlaceName: t('wizard.myLocation')}));
-                              injectRadiusPointAsStart(lat, lng, t('wizard.myLocation'));
-                              generateRoute(); setRouteChoiceMade(null); setWizardStep(3); window.scrollTo(0, 0);
-                            },
-                            (reason) => { showToast(reason === 'outside_city' ? t('toast.outsideCity') : reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'), 'warning', 'sticky'); }
-                          );
-                        } else {
-                          if (formData.searchMode === 'radius' && formData.currentLat) {
-                            injectRadiusPointAsStart(formData.currentLat, formData.currentLng, formData.radiusPlaceName || t('wizard.myLocation'));
-                          }
-                          generateRoute(); setRouteChoiceMade(null); setWizardStep(3); window.scrollTo(0, 0);
-                        }
+                        generateRoute(); setRouteChoiceMade(null); setWizardStep(3); window.scrollTo(0, 0);
                       } }}
                       disabled={!canSearch}
                       style={{ padding: '14px', borderRadius: '12px',
@@ -1703,16 +1582,10 @@
                                     }}>
                                       {route?.optimized && !isDisabled && hasValidCoords && activeLetterMap[stop.originalIndex] && (() => {
                                         // Color by interest — consistent with map markers and active trail
-                                        // Radius center stops: white fill + green border (no interest color)
-                                        const isRadiusCenter = stop.isRadiusCenter;
                                         const stopColor = isManualGroup
-                                          ? (isRadiusCenter ? null : window.BKK.stopColorPalette[stop.originalIndex % window.BKK.stopColorPalette.length])
+                                          ? window.BKK.stopColorPalette[stop.originalIndex % window.BKK.stopColorPalette.length]
                                           : window.BKK.getInterestColor(interest, allInterestOptions);
-                                        return isRadiusCenter ? (
-                                          <span style={{ background: 'white', color: '#15803d', borderRadius: '50%', width: '22px', height: '22px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold', flexShrink: 0, border: '2px solid #22c55e', boxShadow: '0 1px 3px rgba(34,197,94,0.3)' }}>
-                                            {activeLetterMap[stop.originalIndex]}
-                                          </span>
-                                        ) : (
+                                        return (
                                           <span style={{ background: stopColor, color: 'white', borderRadius: '50%', width: '22px', height: '22px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold', flexShrink: 0, border: '2px solid white', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
                                             {activeLetterMap[stop.originalIndex]}
                                           </span>
@@ -5261,19 +5134,19 @@
                     const legendItems = routeInterests.map(id => allInterestOptions.find(o => o.id === id)).filter(Boolean);
                     if (legendItems.length === 0) return null;
                     return (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '6px 0', borderBottom: '1px solid #e5e7eb', marginBottom: '4px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '4px 0', borderBottom: '1px solid #e5e7eb', marginBottom: '2px' }}>
                         {legendItems.map(int => {
                           const color = window.BKK.getInterestColor(int.id, allInterestOptions);
                           const iconRaw = int.icon || '';
                           const isImg = iconRaw.startsWith('data:');
                           return (
-                            <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#374151', padding: '2px 7px', background: '#f8fafc', borderRadius: '20px', border: '1px solid #e5e7eb' }}>
-                              <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }}></span>
+                            <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: '#4b5563' }}>
+                              <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }}></span>
                               {isImg
-                                ? <img src={iconRaw} alt="" style={{ width: '13px', height: '13px', objectFit: 'contain' }} />
-                                : <span style={{ fontSize: '12px', lineHeight: 1 }}>{iconRaw}</span>
+                                ? <img src={iconRaw} alt="" style={{ width: '12px', height: '12px', objectFit: 'contain' }} />
+                                : <span style={{ fontSize: '11px', lineHeight: 1 }}>{iconRaw}</span>
                               }
-                              <span style={{ fontWeight: '500' }}>{tLabel(int)}</span>
+                              <span>{tLabel(int)}</span>
                             </div>
                           );
                         })}
