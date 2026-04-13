@@ -835,7 +835,6 @@
                     } else if (id === 'point') {
                       setFormData(prev => ({...prev, searchMode: 'radius', radiusSource: 'point', radiusMeters: prev.radiusMeters || 500, currentLat: null, currentLng: null, radiusPlaceName: ''}));
                       window.BKK.logEvent?.('radius_mode_selected', { source: 'point' });
-                      setTimeout(() => { document.getElementById('point-search-input')?.focus(); }, 50);
                     } else {
                       setFormData(prev => ({...prev, searchMode: 'radius', radiusSource: 'gps', radiusMeters: prev.radiusMeters || 500, currentLat: null, currentLng: null, radiusPlaceName: ''}));
                       window.BKK.logEvent?.('radius_mode_selected', { source: 'gps' });
@@ -876,13 +875,13 @@
                                 onClick={() => { setFormData(prev => ({...prev, area: area.id, searchMode: 'area'})); window.BKK.logEvent?.('area_selected', { area_id: area.id, area_name: area.labelEn || area.label }); }}
                                 style={{
                                   padding: '6px', borderRadius: '8px',
-                                  border: formData.area === area.id ? '2px solid #22c55e' : '1.5px solid #e5e7eb',
-                                  background: formData.area === area.id ? '#f0fdf4' : 'white',
+                                  border: formData.area === area.id ? '2px solid #7c3aed' : '1.5px solid #e5e7eb',
+                                  background: formData.area === area.id ? '#faf5ff' : 'white',
                                   cursor: 'pointer', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left',
                                   direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', transition: 'all 0.2s'
                                 }}
                               >
-                                <div style={{ fontWeight: 'bold', fontSize: '12px', color: formData.area === area.id ? '#15803d' : '#1f2937' }}>
+                                <div style={{ fontWeight: 'bold', fontSize: '12px', color: formData.area === area.id ? '#6d28d9' : '#1f2937' }}>
                                   {formData.area === area.id && '✓ '}{tLabel(area)}
                                   {safety === 'caution' && <span style={{ color: '#f59e0b', marginRight: '3px' }} title={t("general.cautionArea")}>⚠️</span>}
                                   {safety === 'danger' && <span style={{ color: '#ef4444', marginRight: '3px' }} title={t("general.dangerArea")}>🔴</span>}
@@ -956,7 +955,8 @@
                               )}
                             </>
                           )}
-                          {/* Radius stepper */}
+                          {/* Radius stepper — spacer keeps same position as gps tab */}
+                          <div style={{ height: '8px' }} />
                           <div style={{ fontSize: '11px', color: '#0369a1', fontWeight: 'bold', marginBottom: '6px', textAlign: 'center' }}>{t('form.searchRadius')}</div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <button onClick={() => { if (curIdx > 0) setR(STEPS[curIdx - 1]); }} disabled={curIdx === 0} style={{ width: '38px', height: '38px', borderRadius: '50%', border: '2px solid #bae6fd', background: curIdx === 0 ? '#f1f5f9' : 'white', fontSize: '20px', fontWeight: 'bold', cursor: curIdx === 0 ? 'default' : 'pointer', color: curIdx === 0 ? '#cbd5e1' : '#0369a1', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
@@ -975,7 +975,8 @@
                           <div style={{ textAlign: 'center', padding: '10px 0 14px', color: '#0369a1', fontSize: '12px', fontWeight: '500' }}>
                             📍 {currentLang === 'he' ? 'המיקום שלך יאותר בעת חיפוש' : 'Your location will be detected at search time'}
                           </div>
-                          {/* Radius stepper */}
+                          {/* Radius stepper — same spacer as point tab so label position never jumps */}
+                          <div style={{ height: '8px' }} />
                           <div style={{ fontSize: '11px', color: '#0369a1', fontWeight: 'bold', marginBottom: '6px', textAlign: 'center' }}>{t('form.searchRadius')}</div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <button onClick={() => { if (curIdx > 0) setR(STEPS[curIdx - 1]); }} disabled={curIdx === 0} style={{ width: '38px', height: '38px', borderRadius: '50%', border: '2px solid #bae6fd', background: curIdx === 0 ? '#f1f5f9' : 'white', fontSize: '20px', fontWeight: 'bold', cursor: curIdx === 0 ? 'default' : 'pointer', color: curIdx === 0 ? '#cbd5e1' : '#0369a1', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
