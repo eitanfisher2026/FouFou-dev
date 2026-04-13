@@ -815,17 +815,11 @@
                 {/* Mode selector — active tab gets 2/3, inactive gets 1/3 */}
                 <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', padding: '4px', background: '#f1f5f9', borderRadius: '14px' }}>
                   {[
-                    { mode: 'area', icon: '🗺️', label: t('wizard.chooseArea'), onClick: () => setFormData(prev => ({...prev, searchMode: 'area'})) },
+                    { mode: 'area', icon: '🗺️', label: t('wizard.chooseArea'), onClick: () => { setFormData(prev => ({...prev, searchMode: 'area'})); setPointSearchResults(null); } },
                     { mode: 'radius', icon: '📍', label: t('general.nearLocation'), onClick: () => {
                       if (formData.searchMode !== 'radius') {
                         setFormData(prev => ({...prev, searchMode: 'radius', radiusMeters: prev.radiusMeters || 500, radiusSource: prev.radiusSource || 'gps'}));
                         window.BKK.logEvent?.('radius_mode_selected', {});
-                        if (navigator.geolocation) {
-                          window.BKK.getValidatedGps(
-                            (pos) => { setFormData(prev => ({...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, radiusPlaceName: t('wizard.myLocation'), radiusSource: 'gps'})); showToast(t('wizard.locationFound'), 'success'); },
-                            (reason) => { setFormData(prev => ({...prev, searchMode: 'area'})); showToast(reason === 'outside_city' ? t('toast.outsideCity') : reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'), 'warning', 'sticky'); }
-                          );
-                        }
                       }
                     }}
                   ].map(({ mode, icon, label, onClick }) => {
@@ -895,15 +889,11 @@
                         return (
                           <button key={src} onClick={() => {
                             if (src === 'gps' && formData.radiusSource !== 'gps') {
+                              // GPS acquired lazily on "Find Places" — just switch source here
                               setFormData(prev => ({ ...prev, radiusSource: 'gps', currentLat: null, currentLng: null, radiusPlaceName: '' }));
-                              if (navigator.geolocation) {
-                                window.BKK.getValidatedGps(
-                                  (pos) => { setFormData(prev => ({ ...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, radiusPlaceName: t('wizard.myLocation'), radiusSource: 'gps' })); showToast(t('wizard.locationFound'), 'success'); },
-                                  (reason) => { showToast(reason === 'outside_city' ? t('toast.outsideCity') : reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'), 'warning', 'sticky'); }
-                                );
-                              }
                             } else if (src === 'point') {
                               setFormData(prev => ({ ...prev, radiusSource: 'point', currentLat: null, currentLng: null, radiusPlaceName: '' }));
+                              setPointSearchResults(null);
                             }
                           }} style={{
                             flex: 1, padding: '10px 8px', cursor: 'pointer',
@@ -923,19 +913,9 @@
                       })}
                     </div>
 
-                    {/* GPS sub-mode content */}
+                    {/* GPS sub-mode content — spacer only, GPS fires on "Find Places" */}
                     {(formData.radiusSource || 'gps') === 'gps' && (
-                      <div style={{ textAlign: 'center' }}>
-                        {formData.currentLat ? (
-                          <div style={{ fontSize: '12px', color: '#059669', fontWeight: 'bold', marginBottom: '8px' }}>✅ {t('wizard.locationFound')}</div>
-                        ) : (
-                          <div style={{ padding: '16px 0' }}>
-                            <div className="animate-spin" style={{ width: '28px', height: '28px', border: '3px solid #bae6fd', borderTopColor: '#0ea5e9', borderRadius: '50%', margin: '0 auto 8px' }}></div>
-                            <div style={{ fontSize: '13px', color: '#0369a1', fontWeight: 'bold' }}>📍 {t('form.waitingForGps')}</div>
-                            <div style={{ fontSize: '10px', color: '#7dd3fc', marginTop: '4px' }}>{t('form.allowLocationAccess')}</div>
-                          </div>
-                        )}
-                      </div>
+                      <div style={{ height: '8px' }} />
                     )}
 
                     {/* Custom Point sub-mode content */}
@@ -1006,26 +986,44 @@
                       </div>
                     )}
 
-                    {/* Radius selector — shown when location is set */}
-                    {formData.currentLat && (
-                      <>
-                        <div style={{ fontSize: '11px', color: '#0369a1', fontWeight: 'bold', marginBottom: '6px', textAlign: 'center' }}>{t('form.searchRadius')}:</div>
-                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                          {[100, 250, 500, 750, 1000].map(r => (
-                            <button key={r}
-                              onClick={() => { setFormData(prev => ({...prev, radiusMeters: r})); window.BKK.logEvent?.('radius_changed', { radius_meters: r }); }}
-                              style={{
-                                padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer',
-                                border: formData.radiusMeters === r ? '2px solid #0369a1' : '1.5px solid #bae6fd',
-                                background: formData.radiusMeters === r ? '#0369a1' : 'white',
-                                color: formData.radiusMeters === r ? 'white' : '#374151',
-                                transition: 'all 0.15s', minWidth: '52px'
-                              }}
-                            >{r >= 1000 ? `${r/1000}km` : `${r}m`}</button>
-                          ))}
+                    {/* Radius selector — always visible, +/- stepper with slider */}
+                    {(() => {
+                      const STEPS = [100, 150, 200, 250, 300, 400, 500, 600, 750, 1000, 1250, 1500];
+                      const curR = formData.radiusMeters || 500;
+                      const curIdx = STEPS.indexOf(curR) !== -1 ? STEPS.indexOf(curR) : STEPS.reduce((best, v, i) => Math.abs(v - curR) < Math.abs(STEPS[best] - curR) ? i : best, 0);
+                      const setR = (r) => { setFormData(prev => ({...prev, radiusMeters: r})); window.BKK.logEvent?.('radius_changed', { radius_meters: r }); };
+                      const label = curR >= 1000 ? `${curR/1000}km` : `${curR}m`;
+                      return (
+                        <div style={{ marginTop: '4px' }}>
+                          <div style={{ fontSize: '11px', color: '#0369a1', fontWeight: 'bold', marginBottom: '8px', textAlign: 'center' }}>{t('form.searchRadius')}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            {/* Minus */}
+                            <button
+                              onClick={() => { if (curIdx > 0) setR(STEPS[curIdx - 1]); }}
+                              disabled={curIdx === 0}
+                              style={{ width: '38px', height: '38px', borderRadius: '50%', border: '2px solid #bae6fd', background: curIdx === 0 ? '#f1f5f9' : 'white', fontSize: '20px', fontWeight: 'bold', cursor: curIdx === 0 ? 'default' : 'pointer', color: curIdx === 0 ? '#cbd5e1' : '#0369a1', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                            >−</button>
+                            {/* Slider */}
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                              <input
+                                type="range"
+                                min={0} max={STEPS.length - 1} step={1}
+                                value={curIdx}
+                                onChange={e => setR(STEPS[parseInt(e.target.value)])}
+                                style={{ width: '100%', accentColor: '#0369a1', height: '6px', cursor: 'pointer' }}
+                              />
+                              <span style={{ fontSize: '15px', fontWeight: '800', color: '#0369a1', letterSpacing: '-0.5px' }}>{label}</span>
+                            </div>
+                            {/* Plus */}
+                            <button
+                              onClick={() => { if (curIdx < STEPS.length - 1) setR(STEPS[curIdx + 1]); }}
+                              disabled={curIdx === STEPS.length - 1}
+                              style={{ width: '38px', height: '38px', borderRadius: '50%', border: '2px solid #bae6fd', background: curIdx === STEPS.length - 1 ? '#f1f5f9' : 'white', fontSize: '20px', fontWeight: 'bold', cursor: curIdx === STEPS.length - 1 ? 'default' : 'pointer', color: curIdx === STEPS.length - 1 ? '#cbd5e1' : '#0369a1', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                            >+</button>
+                          </div>
                         </div>
-                      </>
-                    )}
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -1035,7 +1033,7 @@
               <div style={{
                 position: 'sticky', bottom: 0, zIndex: 40,
                 display: 'flex', flexDirection: 'column', gap: '6px',
-                padding: '8px 0 env(safe-area-inset-bottom, 8px)',
+                padding: '16px 0 env(safe-area-inset-bottom, 8px)',
                 background: 'linear-gradient(to top, rgba(255,251,235,1) 80%, rgba(255,251,235,0))'
               }}>
                 <button
@@ -1054,12 +1052,23 @@
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                 >⭐ 🗺️ {t('form.favoritesMap')}</button>
                 {(() => {
-                  const canSearch = isDataLoaded && formData.interests.length > 0 && (formData.searchMode === 'radius' ? formData.currentLat : (formData.searchMode === 'area' ? formData.area : true));
+                  const canSearch = isDataLoaded && formData.interests.length > 0 && (formData.searchMode === 'radius' ? (formData.radiusSource === 'gps' || formData.currentLat) : (formData.searchMode === 'area' ? formData.area : true));
                   return (
                     <button
                       onClick={() => { if (canSearch) {
                         window.BKK.logEvent?.('search_started', { city: selectedCityId, lang: currentLang, interests_count: formData.interests?.length || 0, interests: (formData.interests || []).slice(0, 5).join(','), time_filter: interestTimeFilter || 'all' });
-                        generateRoute(); setRouteChoiceMade(null); setWizardStep(3); window.scrollTo(0, 0);
+                        // Lazy GPS: acquire now if radius mode + GPS source + no coords yet
+                        if (formData.searchMode === 'radius' && formData.radiusSource === 'gps' && !formData.currentLat && navigator.geolocation) {
+                          window.BKK.getValidatedGps(
+                            (pos) => {
+                              setFormData(prev => ({...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, radiusPlaceName: t('wizard.myLocation')}));
+                              generateRoute(); setRouteChoiceMade(null); setWizardStep(3); window.scrollTo(0, 0);
+                            },
+                            (reason) => { showToast(reason === 'outside_city' ? t('toast.outsideCity') : reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'), 'warning', 'sticky'); }
+                          );
+                        } else {
+                          generateRoute(); setRouteChoiceMade(null); setWizardStep(3); window.scrollTo(0, 0);
+                        }
                       } }}
                       disabled={!canSearch}
                       style={{ padding: '14px', borderRadius: '12px',
