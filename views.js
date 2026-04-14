@@ -906,8 +906,23 @@
                           <div style={{ height: '6px' }} />
                           {formData.currentLat ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#eff6ff', borderRadius: '10px', border: '2px solid #2563eb', marginBottom: '8px' }}>
-                              <span style={{ fontSize: '14px' }}>📍</span>
-                              <span style={{ flex: 1, fontSize: '13px', fontWeight: 'bold', color: '#1d4ed8' }}>{formData.radiusPlaceName}</span>
+                              <span style={{ fontSize: '16px' }}>🎯</span>
+                              <span style={{ flex: 1, fontSize: '13px', fontWeight: 'bold', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                                {formData.radiusPlaceName}
+                                {formData.radiusPlaceId && (() => {
+                                  const fav = (customLocations || []).find(cl => cl.googlePlaceId === formData.radiusPlaceId);
+                                  if (!fav) return null;
+                                  const int = allInterestOptions.find(o => (fav.interests || []).includes(o.id));
+                                  const iconRaw = int?.icon || '';
+                                  return (<>
+                                    {iconRaw ? (iconRaw.startsWith('data:')
+                                      ? <img src={iconRaw} alt="" style={{ width: '13px', height: '13px', objectFit: 'contain', opacity: 0.75, flexShrink: 0 }} />
+                                      : <span style={{ fontSize: '13px', lineHeight: 1, opacity: 0.75 }}>{iconRaw}</span>
+                                    ) : null}
+                                    <img src="icon-32x32.png" alt="FouFou" style={{ width: '16px', height: '16px', flexShrink: 0, opacity: 0.85 }} />
+                                  </>);
+                                })()}
+                              </span>
                               <button onClick={() => { setFormData(prev => ({...prev, currentLat: null, currentLng: null, radiusPlaceName: ''})); setPointSearchResults(null); }}
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#6b7280' }}>✕</button>
                             </div>
