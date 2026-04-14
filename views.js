@@ -969,17 +969,17 @@
                                     {isRecording && recordingField === 'point_search' ? '⏹️' : '🎤'}
                                   </button>
                                 )}
-                                <button
-                                  onClick={() => { const inp = document.getElementById('point-search-input'); if (inp?.value?.trim()) searchPointForRadius(inp.value.trim()); }}
-                                  className={`px-3 py-2 rounded-lg text-sm font-bold whitespace-nowrap ${(pointSearchQuery||'').trim() ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                                  style={{ transition: 'all 0.15s', fontSize: '13px' }}
-                                  title={currentLang === 'he' ? 'חפש גם בגוגל' : 'Search Google too'}>
-                                  {`🔍 Google`}
-                                </button>
                               </div>
                               {isRecording && recordingField === 'point_search' && interimText && (
                                 <div style={{ marginBottom: '4px', padding: '4px 8px', background: '#fef3c7', borderRadius: '6px', fontSize: '12px', color: '#92400e', fontStyle: 'italic', direction: 'ltr' }}>🎤 {interimText}</div>
                               )}
+                              {/* Google button — full width below input, like add-manually dialog */}
+                              <button
+                                onClick={() => { const inp = document.getElementById('point-search-input'); if (inp?.value?.trim()) searchPointForRadius(inp.value.trim()); }}
+                                className={`w-full py-2 rounded-lg text-sm font-bold ${(pointSearchQuery||'').trim() ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                                style={{ marginBottom: '4px', transition: 'all 0.15s' }}>
+                                {`🔍 ${currentLang === 'he' ? 'חפש בגוגל' : 'Search Google'}`}
+                              </button>
                               {pointSearchResults !== null && (
                                 <div style={{ marginBottom: '8px', border: '1.5px solid #bae6fd', borderRadius: '10px', overflow: 'hidden', background: 'white', boxShadow: '0 4px 12px rgba(37,99,235,0.10)' }}>
                                   {/* Loading state */}
