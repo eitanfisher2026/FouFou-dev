@@ -4583,6 +4583,8 @@
                   { key: 'toastDuration', label: t('sysParams.toastDurationLabel'), desc: t('sysParams.toastDurationDesc'), min: 1000, max: 10000, step: 500, type: 'int' },
                   { key: 'includeDrafts', label: t('sysParams.includeDrafts'), desc: t('sysParams.includeDraftsDesc'), type: 'bool' },
                   { key: 'systemAlertIntervalHours', label: 'System Alert Interval (hours)', desc: 'How often to send automated system feedback alerts (e.g. corrupted cacheVersion). Default: 1', min: 1, max: 72, step: 1, type: 'int' },
+                  { key: 'pointSearchMaxGoogle', label: 'מסביב למקום — תוצאות גוגל', desc: 'מקסימום תוצאות גוגל בחיפוש מסביב למקום. ברירת מחדל: 10', min: 3, max: 20, step: 1, type: 'int' },
+                  { key: 'pointSearchMaxFavorites', label: 'מסביב למקום — תוצאות מועדפים', desc: 'מקסימום מועדפים בחיפוש מסביב למקום. ברירת מחדל: 5', min: 1, max: 10, step: 1, type: 'int' },
                 ]},
                 { title: t('sysParams.sectionDedup'), icon: '🔍', color: '#8b5cf6', params: [
                   { key: 'dedupRadiusMeters', label: t('sysParams.dedupRadius'), desc: t('sysParams.dedupRadiusDesc'), min: 10, max: 200, step: 10, type: 'int' },
