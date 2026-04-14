@@ -917,7 +917,7 @@
                                 <input
                                   type="text"
                                   id="point-search-input"
-                                  placeholder={isRecording && recordingField === 'point_search' ? '' : (currentLang === 'he' ? 'הקלד/הקלט שם מקום בגוגל...' : 'Type/speak a place name...')}
+                                  placeholder={isRecording && recordingField === 'point_search' ? '' : (currentLang === 'he' ? 'הקלד/הקלט שם המקום...' : 'Type/speak a place name...')}
                                   className="flex-1 p-2.5 border-2 border-blue-300 rounded-lg focus:border-blue-500"
                                   style={{ fontSize: '14px', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', outline: 'none', borderColor: isRecording && recordingField === 'point_search' ? '#ef4444' : undefined }}
                                   onChange={e => { setPointSearchQuery(e.target.value); if (!e.target.value.trim()) setPointSearchResults(null); }}
@@ -946,19 +946,50 @@
                                 <div style={{ marginBottom: '4px', padding: '4px 8px', background: '#fef3c7', borderRadius: '6px', fontSize: '12px', color: '#92400e', fontStyle: 'italic', direction: 'ltr' }}>🎤 {interimText}</div>
                               )}
                               {pointSearchResults !== null && (
-                                <div style={{ marginBottom: '8px', border: '1.5px solid #c4b5fd', borderRadius: '10px', overflow: 'hidden', background: 'white', boxShadow: '0 4px 12px rgba(124,58,237,0.12)' }}>
-                                  {pointSearchResults.length === 0 ? (
+                                <div style={{ marginBottom: '8px', border: '1.5px solid #bae6fd', borderRadius: '10px', overflow: 'hidden', background: 'white', boxShadow: '0 4px 12px rgba(37,99,235,0.10)' }}>
+                                  {/* Loading state */}
+                                  {Array.isArray(pointSearchResults) && pointSearchResults.length === 0 && (
                                     <div style={{ textAlign: 'center', padding: '12px', color: '#9ca3af', fontSize: '12px' }}>⏳ {t('general.searching')}...</div>
-                                  ) : pointSearchResults.map((result, idx) => (
-                                    <button key={idx}
-                                      onClick={() => { setFormData(prev => ({...prev, currentLat: result.lat, currentLng: result.lng, radiusPlaceName: result.name, radiusSource: 'point', radiusPlaceId: result.googlePlaceId || null})); setPointSearchResults(null); }}
-                                      style={{ width: '100%', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left', padding: '8px 12px', cursor: 'pointer', background: 'none', border: 'none', borderBottom: idx < pointSearchResults.length - 1 ? '1px solid #f3e8ff' : 'none', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', display: 'block' }}
-                                      onMouseEnter={e => e.currentTarget.style.background = '#faf5ff'}
-                                      onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                                      <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#6d28d9' }}>{result.name}</div>
-                                      <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '1px' }}>{result.address}{result.rating ? ` ⭐ ${result.rating}` : ''}</div>
-                                    </button>
-                                  ))}
+                                  )}
+                                  {/* Two-group results */}
+                                  {pointSearchResults && !Array.isArray(pointSearchResults) && (() => {
+                                    const { favorites, google } = pointSearchResults;
+                                    const renderRow = (result, idx, arr, isFav) => (
+                                      <button key={idx}
+                                        onClick={() => {
+                                          setFormData(prev => ({...prev, currentLat: result.lat, currentLng: result.lng, radiusPlaceName: result.name, radiusSource: 'point', radiusPlaceId: result.googlePlaceId || null}));
+                                          setPointSearchResults(null);
+                                        }}
+                                        style={{ width: '100%', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left', padding: '8px 12px', cursor: 'pointer', background: 'none', border: 'none', borderBottom: idx < arr.length - 1 ? '1px solid #f0f9ff' : 'none', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', display: 'block' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                                        <div style={{ fontSize: '12px', fontWeight: 'bold', color: isFav ? '#1d4ed8' : '#374151', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                          {isFav ? '⭐' : '📍'} {result.name}
+                                        </div>
+                                        <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '1px' }}>{result.address}{result.rating ? ` · ⭐ ${result.rating}` : ''}</div>
+                                      </button>
+                                    );
+                                    return (
+                                      <>
+                                        {favorites.length > 0 && (
+                                          <>
+                                            <div style={{ padding: '4px 12px', background: '#eff6ff', fontSize: '10px', fontWeight: '700', color: '#2563eb', borderBottom: '1px solid #bae6fd' }}>
+                                              {currentLang === 'he' ? '⭐ מהמועדפים שלך' : '⭐ Your favorites'}
+                                            </div>
+                                            {favorites.map((r, i) => renderRow(r, i, favorites, true))}
+                                          </>
+                                        )}
+                                        {google.length > 0 && (
+                                          <>
+                                            <div style={{ padding: '4px 12px', background: '#f8fafc', fontSize: '10px', fontWeight: '700', color: '#64748b', borderBottom: '1px solid #e5e7eb', borderTop: favorites.length > 0 ? '1px solid #e5e7eb' : 'none' }}>
+                                              {currentLang === 'he' ? '🔍 מגוגל' : '🔍 From Google'}
+                                            </div>
+                                            {google.map((r, i) => renderRow(r, i, google, false))}
+                                          </>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
                                 </div>
                               )}
                             </>
@@ -1030,11 +1061,12 @@
                     <button
                       onClick={() => { if (canSearch) {
                         window.BKK.logEvent?.('search_started', { city: selectedCityId, lang: currentLang, interests_count: formData.interests?.length || 0, interests: (formData.interests || []).slice(0, 5).join(','), time_filter: interestTimeFilter || 'all' });
-                        // Build radius center stop — if it matches a saved favorite, use the favorite's full data
+                        // Build radius center stop — favorite selection already carries full fav data via formData
                         const buildRadiusStop = (lat, lng, name, googlePlaceId) => {
+                          // If a favorite was selected (isFavorite path sets favData on formData indirectly via radiusPlaceId match),
+                          // check if it's a known favorite to carry its full data
                           const matchedFav = customLocations.find(cl => {
                             if (googlePlaceId && cl.googlePlaceId && cl.googlePlaceId === googlePlaceId) return true;
-                            if (cl.lat && cl.lng && Math.abs(cl.lat - lat) < 0.0002 && Math.abs(cl.lng - lng) < 0.0002) return true;
                             return false;
                           });
                           if (matchedFav) {

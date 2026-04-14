@@ -9928,6 +9928,21 @@
     if (!query || !query.trim()) return;
     try {
       setPointSearchResults([]); // empty = loading
+      const q = query.toLowerCase().trim();
+      // Search favorites first (instant, local)
+      const favMatches = (customLocations || []).filter(cl => {
+        if (!cl.lat || !cl.lng) return false;
+        const name = (cl.name || '').toLowerCase();
+        const desc = (cl.description || '').toLowerCase();
+        const addr = (cl.address || '').toLowerCase();
+        return name.includes(q) || desc.includes(q) || addr.includes(q);
+      }).slice(0, 3).map(cl => ({
+        name: cl.name, lat: cl.lat, lng: cl.lng,
+        address: cl.address || '', rating: cl.googleRating,
+        ratingCount: cl.googleRatingCount, googlePlaceId: cl.googlePlaceId,
+        isFavorite: true, favData: cl
+      }));
+      // Search Google Places
       const cityForSearch = window.BKK.cityNameForSearch || 'Bangkok';
       const countryForSearch = window.BKK.selectedCity?.country || '';
       const searchQuery = query.toLowerCase().includes(cityForSearch.toLowerCase()) ? query : `${query}, ${cityForSearch}${countryForSearch ? ', ' + countryForSearch : ''}`;
@@ -9941,19 +9956,20 @@
         body: JSON.stringify({ textQuery: searchQuery, maxResultCount: 5 })
       });
       const data = await response.json();
-      if (data.places && data.places.length > 0) {
-        setPointSearchResults(data.places.map(p => ({
-          name: p.displayName?.text || '',
-          lat: p.location?.latitude,
-          lng: p.location?.longitude,
-          address: p.formattedAddress || '',
-          rating: p.rating,
-          ratingCount: p.userRatingCount,
-          googlePlaceId: p.id
-        })));
-      } else {
+      const googleResults = data.places && data.places.length > 0
+        ? data.places.map(p => ({
+            name: p.displayName?.text || '',
+            lat: p.location?.latitude, lng: p.location?.longitude,
+            address: p.formattedAddress || '', rating: p.rating,
+            ratingCount: p.userRatingCount, googlePlaceId: p.id,
+            isFavorite: false
+          }))
+        : [];
+      if (favMatches.length === 0 && googleResults.length === 0) {
         setPointSearchResults([]);
         showToast(t('places.noPlacesFound'), 'warning');
+      } else {
+        setPointSearchResults({ favorites: favMatches, google: googleResults });
       }
     } catch (err) {
       console.error('[POINT SEARCH] Error:', err);
