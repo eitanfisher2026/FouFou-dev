@@ -74,6 +74,20 @@
   // ═══════════════════════════════════════════════════════════════
   // AUTH LISTENER — watches Firebase Auth state changes
   // ═══════════════════════════════════════════════════════════════
+  // Handle redirect result (mobile: popup blocked → redirect fallback)
+  useEffect(() => {
+    if (!auth) return;
+    auth.getRedirectResult().then((result) => {
+      if (result && result.user) setShowLoginDialog(false);
+    }).catch((err) => {
+      if (err.code !== 'auth/no-auth-event') {
+        setLoginError(err.message);
+        setShowLoginDialog(true);
+      }
+    });
+  }, []);
+
+  // ═══════════════════════════════════════════════════════════════
   useEffect(() => {
     if (!auth) { setAuthLoading(false); return; }
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
