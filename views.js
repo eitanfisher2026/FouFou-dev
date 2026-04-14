@@ -411,7 +411,7 @@
           <div className="view-fade-in">
             {/* Compact header row */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <button onClick={() => switchLanguage(currentLang === 'he' ? 'en' : 'he')} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '2px 8px', color: '#6b7280', fontSize: '10px', cursor: 'pointer' }}>
+              <button onClick={() => switchLanguage(currentLang === 'he' ? 'en' : 'he')} style={{ background: '#f3f4f6', border: '1.5px solid #9ca3af', borderRadius: '12px', padding: '3px 10px', color: '#374151', fontSize: '11px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>
                 {currentLang === 'he' ? '🇬🇧 EN' : '🇮🇱 עב'}
               </button>
               <div style={{ textAlign: 'center', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -758,7 +758,7 @@
             <div style={{ textAlign: 'center', marginBottom: '4px' }}>
               {/* Step indicators + language toggle */}
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                <button onClick={() => switchLanguage(currentLang === 'he' ? 'en' : 'he')} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '2px 8px', color: '#6b7280', fontSize: '10px', cursor: 'pointer' }}>
+                <button onClick={() => switchLanguage(currentLang === 'he' ? 'en' : 'he')} style={{ background: '#f3f4f6', border: '1.5px solid #9ca3af', borderRadius: '12px', padding: '3px 10px', color: '#374151', fontSize: '11px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.12)' }}>
                   {currentLang === 'he' ? '🇬🇧 EN' : '🇮🇱 עב'}
                 </button>
                 <div style={{ width: '8px' }} />
@@ -932,7 +932,7 @@
                                 <input
                                   type="text"
                                   id="point-search-input"
-                                  placeholder={isRecording && recordingField === 'point_search' ? '' : (currentLang === 'he' ? 'הקלד/הקלט שם המקום...' : 'Type/speak a place name...')}
+                                  placeholder={isRecording && recordingField === 'point_search' ? '' : (currentLang === 'he' ? 'הקלד/הקלט שם המקום...' : 'Type/dictate a place name...')}
                                   className="flex-1 p-2.5 border-2 border-blue-300 rounded-lg focus:border-blue-500"
                                   style={{ fontSize: '14px', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', outline: 'none', borderColor: isRecording && recordingField === 'point_search' ? '#ef4444' : undefined }}
                                   onChange={e => {
@@ -3677,6 +3677,35 @@
                     >{langInfo.flag} {langInfo.name}</button>
                   ))}
                 </div>
+
+                {/* Default language for new users */}
+                <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid #dbeafe' }}>
+                  <div style={{ fontSize: '12px', color: '#374151', marginBottom: '6px' }}>
+                    🌍 {t('settings.newUserDefaultLang')}
+                    <span style={{ fontSize: '10px', color: '#9ca3af', marginRight: '4px', marginLeft: '4px' }}>
+                      ({t('settings.newUserDefaultLangHint')})
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    {Object.entries((window.BKK.i18n && window.BKK.i18n.languages) || {}).map(([langId, langInfo]) => (
+                      <button
+                        key={langId}
+                        onClick={() => {
+                          localStorage.setItem('foufou_admin_default_lang', langId);
+                          setAdminDefaultLang(langId);
+                        }}
+                        style={{
+                          padding: '4px 14px', borderRadius: '14px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold',
+                          border: adminDefaultLang === langId ? '2px solid #f59e0b' : '1.5px solid #e5e7eb',
+                          background: adminDefaultLang === langId ? '#fef3c7' : 'white',
+                          color: adminDefaultLang === langId ? '#92400e' : '#6b7280',
+                          transition: 'all 0.2s'
+                        }}
+                      >{langInfo.flag} {langInfo.name}</button>
+                    ))}
+                  </div>
+                </div>
+
               </div>
             </div>
 

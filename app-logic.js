@@ -183,6 +183,8 @@
       console.error('[AUTH] Email sign-in error:', err);
       setLoginError(err.code === 'auth/user-not-found' ? (t('auth.userNotFound') || 'משתמש לא קיים. נסה להירשם.') :
         err.code === 'auth/wrong-password' ? (t('auth.wrongPassword') || 'סיסמה שגויה') :
+        err.code === 'auth/invalid-login-credentials' ? (t('auth.wrongPassword') || 'אימייל או סיסמה שגויים') :
+        err.code === 'auth/invalid-credential' ? (t('auth.wrongPassword') || 'אימייל או סיסמה שגויים') :
         err.code === 'auth/email-already-in-use' ? (t('auth.emailInUse') || 'אימייל כבר רשום. נסה להתחבר.') :
         err.code === 'auth/weak-password' ? (t('auth.weakPassword') || 'סיסמה חלשה (מינימום 6 תווים)') :
         err.message);
@@ -2586,6 +2588,7 @@
   const [isPaused, setIsPaused] = useState(false);
   const [ttsVoices, setTtsVoices] = useState([]);
   const [selectedVoice, setSelectedVoice] = useState(localStorage.getItem('foufou_tts_voice') || '');
+  const [adminDefaultLang, setAdminDefaultLang] = useState(localStorage.getItem('foufou_admin_default_lang') || 'en');
   React.useEffect(() => {
     const load = () => setTtsVoices(window.speechSynthesis ? window.speechSynthesis.getVoices() : []);
     load();
