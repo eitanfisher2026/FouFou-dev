@@ -989,11 +989,34 @@
                                   {/* Two-group results */}
                                   {pointSearchResults && !Array.isArray(pointSearchResults) && (() => {
                                     const { favorites, google } = pointSearchResults;
+                                    const applyResult = (result) => {
+                                      setFormData(prev => ({...prev, currentLat: result.lat, currentLng: result.lng, radiusPlaceName: result.name, radiusSource: 'point', radiusPlaceId: result.googlePlaceId || null}));
+                                      setPointSearchResults(null);
+                                    };
                                     const renderRow = (result, idx, arr, isFav) => (
                                       <button key={idx}
                                         onClick={() => {
-                                          setFormData(prev => ({...prev, currentLat: result.lat, currentLng: result.lng, radiusPlaceName: result.name, radiusSource: 'point', radiusPlaceId: result.googlePlaceId || null}));
-                                          setPointSearchResults(null);
+                                          if (!isFav && result.googlePlaceId) {
+                                            // Check if this Google result matches a favorite (by placeId only — proximity match is unreliable)
+                                            const matchedFav = (customLocations || []).find(cl =>
+                                              cl.googlePlaceId && cl.googlePlaceId === result.googlePlaceId
+                                            );
+                                            if (matchedFav) {
+                                              // Ask user — different name, same place
+                                              const msg = currentLang === 'he'
+                                                ? `📍 "${result.name}" קיים במועדפים שלך בשם "${matchedFav.name}".
+להשתמש במועדף (עם כל הנתונים שלו)?`
+                                                : `📍 "${result.name}" exists in your favorites as "${matchedFav.name}".
+Use the favorite version (with all its data)?`;
+                                              if (window.confirm(msg)) {
+                                                applyResult({ name: matchedFav.name, lat: matchedFav.lat, lng: matchedFav.lng, googlePlaceId: matchedFav.googlePlaceId || result.googlePlaceId, isFavorite: true });
+                                              } else {
+                                                applyResult(result);
+                                              }
+                                              return;
+                                            }
+                                          }
+                                          applyResult(result);
                                         }}
                                         style={{ width: '100%', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left', padding: '8px 12px', cursor: 'pointer', background: 'none', border: 'none', borderBottom: idx < arr.length - 1 ? '1px solid #f0f9ff' : 'none', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', display: 'block' }}
                                         onMouseEnter={e => e.currentTarget.style.background = '#f0f9ff'}
