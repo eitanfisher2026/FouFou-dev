@@ -1004,10 +1004,8 @@
                                             if (matchedFav) {
                                               // Ask user — different name, same place
                                               const msg = currentLang === 'he'
-                                                ? `📍 "${result.name}" קיים במועדפים שלך בשם "${matchedFav.name}".
-להשתמש במועדף (עם כל הנתונים שלו)?`
-                                                : `📍 "${result.name}" exists in your favorites as "${matchedFav.name}".
-Use the favorite version (with all its data)?`;
+                                                ? `"${matchedFav.name}" שמור אצלך במועדפים — להשתמש בגרסה שלך?`
+                                                : `"${matchedFav.name}" is in your favorites — use your saved version?`;
                                               if (window.confirm(msg)) {
                                                 applyResult({ name: matchedFav.name, lat: matchedFav.lat, lng: matchedFav.lng, googlePlaceId: matchedFav.googlePlaceId || result.googlePlaceId, isFavorite: true });
                                               } else {
@@ -1023,6 +1021,15 @@ Use the favorite version (with all its data)?`;
                                         onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                                         <div style={{ fontSize: '12px', fontWeight: 'bold', color: isFav ? '#1d4ed8' : '#374151', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                           {isFav ? '⭐' : '📍'} {result.name}
+                                          {isFav && (() => {
+                                            // Show interest icon(s) like the route list does
+                                            const intIds = result.favData?.interests || [];
+                                            const firstInt = allInterestOptions.find(o => intIds.includes(o.id));
+                                            if (!firstInt) return null;
+                                            const iconRaw = firstInt.icon || '';
+                                            if (iconRaw.startsWith('data:')) return <img src={iconRaw} alt="" style={{ width: '13px', height: '13px', objectFit: 'contain', flexShrink: 0, opacity: 0.7 }} />;
+                                            return <span style={{ fontSize: '12px', lineHeight: 1, opacity: 0.7 }}>{iconRaw}</span>;
+                                          })()}
                                         </div>
                                         <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '1px' }}>{result.address}{result.rating ? ` · ⭐ ${result.rating}` : ''}</div>
                                       </button>
