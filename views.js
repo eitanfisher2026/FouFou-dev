@@ -905,38 +905,19 @@
                         <div style={{ marginBottom: '8px' }}>
                           <div style={{ height: '6px' }} />
                           {formData.currentLat ? (
-                            {(() => {
-                              // Check if selected place is a favorite
-                              const selFav = formData.radiusPlaceId
-                                ? (customLocations || []).find(cl => cl.googlePlaceId === formData.radiusPlaceId)
-                                : null;
-                              const firstInt = selFav
-                                ? allInterestOptions.find(o => (selFav.interests || []).includes(o.id))
-                                : null;
-                              return (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#eff6ff', borderRadius: '10px', border: '2px solid #2563eb', marginBottom: '8px' }}>
-                                  <span style={{ fontSize: '16px' }}>🎯</span>
-                                  <span style={{ flex: 1, fontSize: '13px', fontWeight: 'bold', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                                    {formData.radiusPlaceName}
-                                    {firstInt && (() => {
-                                      const iconRaw = firstInt.icon || '';
-                                      if (iconRaw.startsWith('data:')) return <img src={iconRaw} alt="" style={{ width: '13px', height: '13px', objectFit: 'contain', opacity: 0.7, flexShrink: 0 }} />;
-                                      return <span style={{ fontSize: '12px', lineHeight: 1, opacity: 0.7 }}>{iconRaw}</span>;
-                                    })()}
-                                    {selFav && <img src="icon-32x32.png" alt="FouFou" style={{ width: "16px", height: "16px", flexShrink: 0, opacity: 0.85 }} />}
-                                  </span>
-                                  <button onClick={() => { setFormData(prev => ({...prev, currentLat: null, currentLng: null, radiusPlaceName: ''})); setPointSearchResults(null); }}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#6b7280' }}>✕</button>
-                                </div>
-                              );
-                            })()}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: '#eff6ff', borderRadius: '10px', border: '2px solid #2563eb', marginBottom: '8px' }}>
+                              <span style={{ fontSize: '14px' }}>📍</span>
+                              <span style={{ flex: 1, fontSize: '13px', fontWeight: 'bold', color: '#1d4ed8' }}>{formData.radiusPlaceName}</span>
+                              <button onClick={() => { setFormData(prev => ({...prev, currentLat: null, currentLng: null, radiusPlaceName: ''})); setPointSearchResults(null); }}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#6b7280' }}>✕</button>
+                            </div>
                           ) : (
                             <>
                               <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '4px' }}>
                                 <input
                                   type="text"
                                   id="point-search-input"
-                                  placeholder={isRecording && recordingField === 'point_search' ? '' : (currentLang === 'he' ? 'הקלד/הקלט שם המקום...' : 'Type/dictate place name...')}
+                                  placeholder={isRecording && recordingField === 'point_search' ? '' : (currentLang === 'he' ? 'הקלד/הקלט שם המקום...' : 'Type/speak a place name...')}
                                   className="flex-1 p-2.5 border-2 border-blue-300 rounded-lg focus:border-blue-500"
                                   style={{ fontSize: '14px', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', outline: 'none', borderColor: isRecording && recordingField === 'point_search' ? '#ef4444' : undefined }}
                                   onChange={e => {
@@ -1039,7 +1020,7 @@
                                         onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                                         <div style={{ fontSize: '12px', fontWeight: 'bold', color: isFav ? '#1d4ed8' : '#374151', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                           {isFav ? '⭐' : '📍'} {result.name}
-                                          {isFav && <img src="icon-32x32.png" alt="FouFou" style={{ width: "16px", height: "16px", flexShrink: 0, opacity: 0.85 }} />}
+                                          {isFav && <img src="icon-32x32.png" alt="FouFou" style={{ width: '16px', height: '16px', flexShrink: 0, opacity: 0.85 }} />}
                                           {isFav && (() => {
                                             // Show interest icon(s) like the route list does
                                             const intIds = result.favData?.interests || [];
