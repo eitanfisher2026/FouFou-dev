@@ -996,7 +996,7 @@
                                 {`🔍 ${currentLang === 'he' ? 'חפש בגוגל' : 'Search Google'}`}
                               </button>
                               {pointSearchResults !== null && (
-                                <div style={{ marginBottom: '8px', border: '1.5px solid #bae6fd', borderRadius: '10px', overflow: 'hidden', background: 'white', boxShadow: '0 4px 12px rgba(37,99,235,0.10)' }}>
+                                <div style={{ marginBottom: '8px', border: '1.5px solid #bae6fd', borderRadius: '10px', overflow: 'hidden', background: 'white', boxShadow: '0 4px 12px rgba(37,99,235,0.10)', maxHeight: '280px', overflowY: 'auto' }}>
                                   {/* Loading state */}
                                   {Array.isArray(pointSearchResults) && pointSearchResults.length === 0 && (
                                     <div style={{ textAlign: 'center', padding: '12px', color: '#9ca3af', fontSize: '12px' }}>⏳ {t('general.searching')}...</div>
@@ -1004,8 +1004,9 @@
                                   {/* Two-group results */}
                                   {pointSearchResults && !Array.isArray(pointSearchResults) && (() => {
                                     const { favorites, google } = pointSearchResults;
-                                    const applyResult = (result) => {
-                                      setFormData(prev => ({...prev, currentLat: result.lat, currentLng: result.lng, radiusPlaceName: result.name, radiusSource: 'point', radiusPlaceId: result.googlePlaceId || null}));
+                                    const applyResult = (result, skipFavMatch = false) => {
+                                      // skipFavMatch=true when user explicitly chose Google — null out placeId so buildRadiusStop won't re-match the favorite
+                                      setFormData(prev => ({...prev, currentLat: result.lat, currentLng: result.lng, radiusPlaceName: result.name, radiusSource: 'point', radiusPlaceId: skipFavMatch ? null : (result.googlePlaceId || null)}));
                                       setPointSearchResults(null);
                                     };
                                     const renderRow = (result, idx, arr, isFav) => (
@@ -1023,7 +1024,7 @@
                                                 : `"${matchedFav.name}" is in your favorites — use your saved version?`;
                                               showConfirm(msg,
                                                 () => applyResult({ name: matchedFav.name, lat: matchedFav.lat, lng: matchedFav.lng, googlePlaceId: matchedFav.googlePlaceId || result.googlePlaceId, isFavorite: true }),
-                                                { confirmLabel: currentLang === 'he' ? '⭐ כן, השתמש במועדף' : '⭐ Yes, use favorite', confirmColor: '#2563eb', cancelLabel: currentLang === 'he' ? 'לא, גוגל' : 'No, Google', onCancel: () => applyResult(result) }
+                                                { confirmLabel: currentLang === 'he' ? '⭐ כן, השתמש במועדף' : '⭐ Yes, use favorite', confirmColor: '#2563eb', cancelLabel: currentLang === 'he' ? 'לא, גוגל' : 'No, Google', onCancel: () => applyResult(result, true) }
                                               );
                                               return;
                                             }

@@ -924,6 +924,9 @@
       speechRate: 1.0,
       // Toast display duration (ms)
       toastDuration: 4000,
+      // Point search (מסביב למקום dropdown)
+      pointSearchMaxGoogle: 10,   // max Google results in dropdown
+      pointSearchMaxFavorites: 5, // max favorite results in dropdown
       // Favorite scoring — weighted priority vs Google results
       // favoriteBaseScore: base score added to any favorite (no rating yet)
       // favoriteBonusPerStar: added per ⭐ when rated above threshold
@@ -9899,7 +9902,7 @@
           'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
           'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount'
         },
-        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: 5 })
+        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: window.BKK.systemParams?.pointSearchMaxGoogle || 10 })
       });
       const data = await response.json();
       if (data.places && data.places.length > 0) {
@@ -9934,7 +9937,7 @@
         if (!cl.lat || !cl.lng) return false;
         const name = (cl.name || '').toLowerCase();
         return name.includes(q);
-      }).slice(0, 3).map(cl => ({
+      }).slice(0, window.BKK.systemParams?.pointSearchMaxFavorites || 5).map(cl => ({
         name: cl.name, lat: cl.lat, lng: cl.lng,
         address: cl.address || '', rating: cl.googleRating,
         ratingCount: cl.googleRatingCount, googlePlaceId: cl.googlePlaceId,
