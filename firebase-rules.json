@@ -81,8 +81,24 @@
     "users": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2",
       "$uid": {
-        ".read": true,
-        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() >= 2)"
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() >= 2)",
+        ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() >= 2)",
+        "name": {
+          ".validate": "newData.isString() && newData.val().length <= 100"
+        },
+        "email": {
+          ".validate": "newData.isString() && newData.val().length <= 200"
+        },
+        "photo": {
+          ".validate": "newData.isString() && newData.val().length <= 500"
+        },
+        "role": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2",
+          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() >= 2 || (!data.exists() && newData.val() <= 1))"
+        },
+        "$other": {
+          ".validate": "true"
+        }
       }
     },
     "accessStats": {
@@ -95,7 +111,9 @@
         ".write": "!data.exists() || (auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() >= 2))",
         ".validate": "newData.hasChildren(['text', 'timestamp'])"
       },
-      ".indexOn": ["timestamp"]
+      ".indexOn": [
+        "timestamp"
+      ]
     },
     "cityStates": {
       ".read": true,

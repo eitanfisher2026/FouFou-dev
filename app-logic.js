@@ -168,26 +168,40 @@
     }
   };
 
-  const authSignInEmail = async () => {
-    if (!auth || !loginEmail) return;
+  const authSignInMicrosoft = async () => {
+    if (!auth) return;
     setLoginError('');
     try {
-      if (loginMode === 'register') {
-        await auth.createUserWithEmailAndPassword(loginEmail, loginPassword);
-      } else {
-        await auth.signInWithEmailAndPassword(loginEmail, loginPassword);
-      }
+      const provider = new firebase.auth.OAuthProvider('microsoft.com');
+      provider.setCustomParameters({ prompt: 'select_account' });
+      await auth.signInWithPopup(provider);
       setShowLoginDialog(false);
-      setLoginEmail(''); setLoginPassword('');
     } catch (err) {
-      console.error('[AUTH] Email sign-in error:', err);
-      setLoginError(err.code === 'auth/user-not-found' ? (t('auth.userNotFound') || 'משתמש לא קיים. נסה להירשם.') :
-        err.code === 'auth/wrong-password' ? (t('auth.wrongPassword') || 'סיסמה שגויה') :
-        err.code === 'auth/invalid-login-credentials' ? (t('auth.wrongPassword') || 'אימייל או סיסמה שגויים') :
-        err.code === 'auth/invalid-credential' ? (t('auth.wrongPassword') || 'אימייל או סיסמה שגויים') :
-        err.code === 'auth/email-already-in-use' ? (t('auth.emailInUse') || 'אימייל כבר רשום. נסה להתחבר.') :
-        err.code === 'auth/weak-password' ? (t('auth.weakPassword') || 'סיסמה חלשה (מינימום 6 תווים)') :
-        err.message);
+      console.error('[AUTH] Microsoft sign-in error:', err);
+      if (err.code === 'auth/popup-blocked') {
+        try { await auth.signInWithRedirect(new firebase.auth.OAuthProvider('microsoft.com')); } catch (e2) { setLoginError(e2.message); }
+      } else {
+        setLoginError(err.message);
+      }
+    }
+  };
+
+  const authSignInApple = async () => {
+    if (!auth) return;
+    setLoginError('');
+    try {
+      const provider = new firebase.auth.OAuthProvider('apple.com');
+      provider.addScope('email');
+      provider.addScope('name');
+      await auth.signInWithPopup(provider);
+      setShowLoginDialog(false);
+    } catch (err) {
+      console.error('[AUTH] Apple sign-in error:', err);
+      if (err.code === 'auth/popup-blocked') {
+        try { await auth.signInWithRedirect(new firebase.auth.OAuthProvider('apple.com')); } catch (e2) { setLoginError(e2.message); }
+      } else {
+        setLoginError(err.message);
+      }
     }
   };
 
