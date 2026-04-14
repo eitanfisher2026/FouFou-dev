@@ -80,7 +80,9 @@
     auth.getRedirectResult().then((result) => {
       if (result && result.user) setShowLoginDialog(false);
     }).catch((err) => {
-      if (err.code !== 'auth/no-auth-event') {
+      // Only show real sign-in failures, ignore background errors
+      const ignored = ['auth/no-auth-event', 'auth/internal-error', 'auth/null-user'];
+      if (!ignored.includes(err.code)) {
         setLoginError(err.message);
         setShowLoginDialog(true);
       }
