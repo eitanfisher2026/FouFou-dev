@@ -1006,11 +1006,10 @@
                                               const msg = currentLang === 'he'
                                                 ? `"${matchedFav.name}" שמור אצלך במועדפים — להשתמש בגרסה שלך?`
                                                 : `"${matchedFav.name}" is in your favorites — use your saved version?`;
-                                              if (window.confirm(msg)) {
-                                                applyResult({ name: matchedFav.name, lat: matchedFav.lat, lng: matchedFav.lng, googlePlaceId: matchedFav.googlePlaceId || result.googlePlaceId, isFavorite: true });
-                                              } else {
-                                                applyResult(result);
-                                              }
+                                              showConfirm(msg,
+                                                () => applyResult({ name: matchedFav.name, lat: matchedFav.lat, lng: matchedFav.lng, googlePlaceId: matchedFav.googlePlaceId || result.googlePlaceId, isFavorite: true }),
+                                                { confirmLabel: currentLang === 'he' ? '⭐ כן, השתמש במועדף' : '⭐ Yes, use favorite', confirmColor: '#2563eb', cancelLabel: currentLang === 'he' ? 'לא, גוגל' : 'No, Google', onCancel: () => applyResult(result) }
+                                              );
                                               return;
                                             }
                                           }
@@ -1021,6 +1020,7 @@
                                         onMouseLeave={e => e.currentTarget.style.background = 'none'}>
                                         <div style={{ fontSize: '12px', fontWeight: 'bold', color: isFav ? '#1d4ed8' : '#374151', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                           {isFav ? '⭐' : '📍'} {result.name}
+                                          {isFav && <img src="icon-32x32.png" alt="FouFou" style={{ width: '13px', height: '13px', flexShrink: 0, opacity: 0.7 }} />}
                                           {isFav && (() => {
                                             // Show interest icon(s) like the route list does
                                             const intIds = result.favData?.interests || [];

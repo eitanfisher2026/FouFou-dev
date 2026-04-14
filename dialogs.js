@@ -2485,7 +2485,7 @@
                 }}
                 className="flex-1 py-2 bg-gray-300 text-gray-700 rounded-lg font-bold hover:bg-gray-400"
               >
-                {t('general.cancel')}
+                {confirmConfig.cancelLabel || t('general.cancel')}
               </button>
             </div>
           </div>
