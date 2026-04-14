@@ -920,13 +920,47 @@
                                   placeholder={isRecording && recordingField === 'point_search' ? '' : (currentLang === 'he' ? 'הקלד/הקלט שם המקום...' : 'Type/speak a place name...')}
                                   className="flex-1 p-2.5 border-2 border-blue-300 rounded-lg focus:border-blue-500"
                                   style={{ fontSize: '14px', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', outline: 'none', borderColor: isRecording && recordingField === 'point_search' ? '#ef4444' : undefined }}
-                                  onChange={e => { setPointSearchQuery(e.target.value); if (!e.target.value.trim()) setPointSearchResults(null); }}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    setPointSearchQuery(val);
+                                    // Instant local favorites search while typing
+                                    const q = val.toLowerCase().trim();
+                                    if (!q) { setPointSearchResults(null); return; }
+                                    const favMatches = (customLocations || []).filter(cl =>
+                                      cl.lat && cl.lng && (cl.name || '').toLowerCase().includes(q)
+                                    ).slice(0, 3).map(cl => ({
+                                      name: cl.name, lat: cl.lat, lng: cl.lng,
+                                      address: cl.address || '', rating: cl.googleRating,
+                                      ratingCount: cl.googleRatingCount, googlePlaceId: cl.googlePlaceId,
+                                      isFavorite: true, favData: cl
+                                    }));
+                                    // Show favorites immediately; google section empty until button pressed
+                                    setPointSearchResults({ favorites: favMatches, google: [] });
+                                  }}
                                   onKeyDown={e => { if (e.key === 'Enter') { const q = e.target.value.trim(); if (q) searchPointForRadius(q); } }}
                                 />
                                 {window.BKK?.speechSupported && (
                                   <button type="button"
                                     onClick={() => toggleRecording('point_search',
-                                      (text) => { const inp = document.getElementById('point-search-input'); if (inp) { inp.value = (inp.value ? inp.value + ' ' : '') + text; setPointSearchQuery(inp.value); } },
+                                      (text) => {
+                                      const inp = document.getElementById('point-search-input');
+                                      if (inp) {
+                                        const newVal = (inp.value ? inp.value + ' ' : '') + text;
+                                        inp.value = newVal;
+                                        setPointSearchQuery(newVal);
+                                        // Instant local search after speech
+                                        const q = newVal.toLowerCase().trim();
+                                        const favMatches = (customLocations || []).filter(cl =>
+                                          cl.lat && cl.lng && (cl.name || '').toLowerCase().includes(q)
+                                        ).slice(0, 3).map(cl => ({
+                                          name: cl.name, lat: cl.lat, lng: cl.lng,
+                                          address: cl.address || '', rating: cl.googleRating,
+                                          ratingCount: cl.googleRatingCount, googlePlaceId: cl.googlePlaceId,
+                                          isFavorite: true, favData: cl
+                                        }));
+                                        setPointSearchResults({ favorites: favMatches, google: [] });
+                                      }
+                                    },
                                       () => { const inp = document.getElementById('point-search-input'); if (inp) inp.value = ''; setPointSearchResults(null); setPointSearchQuery(''); },
                                       'en-US'
                                     )}
@@ -937,9 +971,10 @@
                                 )}
                                 <button
                                   onClick={() => { const inp = document.getElementById('point-search-input'); if (inp?.value?.trim()) searchPointForRadius(inp.value.trim()); }}
-                                  className={`px-3 py-2 rounded-lg text-sm font-bold whitespace-nowrap ${(pointSearchQuery||'').trim() ? 'bg-purple-500 text-white hover:bg-purple-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                                  style={{ transition: 'all 0.15s', fontSize: '13px' }}>
-                                  {`🔍 ${currentLang === 'he' ? 'חפש' : 'Search'}`}
+                                  className={`px-3 py-2 rounded-lg text-sm font-bold whitespace-nowrap ${(pointSearchQuery||'').trim() ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                                  style={{ transition: 'all 0.15s', fontSize: '13px' }}
+                                  title={currentLang === 'he' ? 'חפש גם בגוגל' : 'Search Google too'}>
+                                  {`🔍 Google`}
                                 </button>
                               </div>
                               {isRecording && recordingField === 'point_search' && interimText && (

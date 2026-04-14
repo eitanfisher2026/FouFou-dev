@@ -9929,13 +9929,11 @@
     try {
       setPointSearchResults([]); // empty = loading
       const q = query.toLowerCase().trim();
-      // Search favorites first (instant, local)
+      // Search favorites by name only — address search causes false matches (e.g. "Watthana" district)
       const favMatches = (customLocations || []).filter(cl => {
         if (!cl.lat || !cl.lng) return false;
         const name = (cl.name || '').toLowerCase();
-        const desc = (cl.description || '').toLowerCase();
-        const addr = (cl.address || '').toLowerCase();
-        return name.includes(q) || desc.includes(q) || addr.includes(q);
+        return name.includes(q);
       }).slice(0, 3).map(cl => ({
         name: cl.name, lat: cl.lat, lng: cl.lng,
         address: cl.address || '', rating: cl.googleRating,
@@ -9963,7 +9961,13 @@
             address: p.formattedAddress || '', rating: p.rating,
             ratingCount: p.userRatingCount, googlePlaceId: p.id,
             isFavorite: false
-          }))
+          })).filter(p => {
+            // Remove from Google list if already in favorites (by placeId or proximity)
+            return !favMatches.some(f =>
+              (f.googlePlaceId && p.googlePlaceId && f.googlePlaceId === p.googlePlaceId) ||
+              (f.lat && f.lng && Math.abs(f.lat - p.lat) < 0.0002 && Math.abs(f.lng - p.lng) < 0.0002)
+            );
+          })
         : [];
       if (favMatches.length === 0 && googleResults.length === 0) {
         setPointSearchResults([]);
