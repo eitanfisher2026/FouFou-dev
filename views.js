@@ -789,25 +789,23 @@
             </div>
             {/* Step 2: Choose Area (was step 1) */}
             {wizardStep === 2 && (<>
+              {/* Back button — outside white card, clearly clickable */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', paddingRight: '4px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => { setWizardStep(1); window.scrollTo(0, 0); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 14px', borderRadius: '20px', border: '1.5px solid #3b82f6', background: 'white', color: '#2563eb', fontWeight: '700', fontSize: '13px', cursor: 'pointer', boxShadow: '0 1px 4px rgba(37,99,235,0.12)', flexShrink: 0 }}
+                >
+                  {currentLang === 'he' ? '→' : '←'} {t("general.back")}
+                </button>
+                <span
+                  onClick={() => { setWizardStep(1); window.scrollTo(0, 0); }}
+                  style={{ cursor: 'pointer', fontSize: '11px', color: '#9ca3af' }}
+                >⭐ {formData.interests.slice(0, 3).map(id => {
+                  const opt = allInterestOptions.find(o => o.id === id);
+                  return opt ? tLabel(opt) : id;
+                }).join(', ')}{formData.interests.length > 3 ? ` +${formData.interests.length - 3}` : ''}</span>
+              </div>
               <div className="bg-white rounded-xl shadow-lg p-3">
-                {/* Compact header: back + interests (words) + title */}
-                <div style={{ 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                  fontSize: '11px', color: '#9ca3af', marginBottom: '8px', flexWrap: 'wrap'
-                }}>
-                  <span
-                    onClick={() => { setWizardStep(1); window.scrollTo(0, 0); }}
-                    style={{ cursor: 'pointer', color: '#3b82f6', fontWeight: '600' }}
-                  >{currentLang === 'he' ? '→' : '←'} {t("general.back")}</span>
-                  <span style={{ color: '#d1d5db' }}>|</span>
-                  <span
-                    onClick={() => { setWizardStep(1); window.scrollTo(0, 0); }}
-                    style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: '#d1d5db' }}
-                  >⭐ {formData.interests.slice(0, 3).map(id => {
-                    const opt = allInterestOptions.find(o => o.id === id);
-                    return opt ? tLabel(opt) : id;
-                  }).join(', ')}{formData.interests.length > 3 ? ` +${formData.interests.length - 3}` : ''}</span>
-                </div>
                 {renderStepHeader('📍', t('wizard.step1Title'), t('wizard.step1Subtitle'), 'hint_area')}
                 {renderContextHint('hint_area')}
 
@@ -830,6 +828,9 @@
                   const onTab = (id) => {
                     setPointSearchResults(null);
                     setPointSearchQuery('');
+                    // Clear disabled stops when switching search type (area ↔ gps ↔ point)
+                    const prevTab = formData.searchMode !== 'radius' ? 'area' : (formData.radiusSource || 'gps') === 'point' ? 'point' : 'gps';
+                    if (id !== prevTab) setDisabledStops([]);
                     if (id === 'area') {
                       setFormData(prev => ({...prev, searchMode: 'area'}));
                     } else if (id === 'point') {
@@ -1029,33 +1030,36 @@
                     <button
                       onClick={() => { if (canSearch) {
                         window.BKK.logEvent?.('search_started', { city: selectedCityId, lang: currentLang, interests_count: formData.interests?.length || 0, interests: (formData.interests || []).slice(0, 5).join(','), time_filter: interestTimeFilter || 'all' });
-                        // Build radius center stop to inject directly into generateRoute (avoids async state timing)
-                        const buildRadiusStop = (lat, lng, name) => ({
-                          name: name || t('wizard.myLocation'),
-                          lat, lng,
-                          address: name || '',
-                          description: '',
-                          duration: 0,
-                          interests: ['_manual'],
-                          manuallyAdded: true,
-                          isRadiusCenter: true,
-                          googlePlace: false,
-                          rating: 0, ratingCount: 0
-                        });
+                        // Build radius center stop — if it matches a saved favorite, use the favorite's full data
+                        const buildRadiusStop = (lat, lng, name, googlePlaceId) => {
+                          const matchedFav = customLocations.find(cl => {
+                            if (googlePlaceId && cl.googlePlaceId && cl.googlePlaceId === googlePlaceId) return true;
+                            if (cl.lat && cl.lng && Math.abs(cl.lat - lat) < 0.0002 && Math.abs(cl.lng - lng) < 0.0002) return true;
+                            return false;
+                          });
+                          if (matchedFav) {
+                            return { ...matchedFav, isRadiusCenter: true, manuallyAdded: true, source: 'custom', custom: true };
+                          }
+                          return {
+                            name: name || t('wizard.myLocation'), lat, lng, address: name || '',
+                            description: '', duration: 0, interests: ['_manual'],
+                            manuallyAdded: true, isRadiusCenter: true, googlePlace: false, rating: 0, ratingCount: 0
+                          };
+                        };
                         // GPS mode: check if coords are ready; if not, try one more time then error
                         if (formData.searchMode === 'radius' && formData.radiusSource === 'gps' && !formData.currentLat && navigator.geolocation) {
                           window.BKK.getValidatedGps(
                             (pos) => {
                               const lat = pos.coords.latitude, lng = pos.coords.longitude;
                               setFormData(prev => ({...prev, currentLat: lat, currentLng: lng, radiusPlaceName: t('wizard.myLocation')}));
-                              const radiusStop = buildRadiusStop(lat, lng, t('wizard.myLocation'));
+                              const radiusStop = buildRadiusStop(lat, lng, t('wizard.myLocation'), null);
                               generateRoute(radiusStop); setRouteChoiceMade(null); setWizardStep(3); window.scrollTo(0, 0);
                             },
                             (reason) => { showToast(reason === 'outside_city' ? t('toast.outsideCity') : reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'), 'warning', 'sticky'); }
                           );
                         } else {
                           const radiusStop = (formData.searchMode === 'radius' && formData.currentLat)
-                            ? buildRadiusStop(formData.currentLat, formData.currentLng, formData.radiusPlaceName || t('wizard.myLocation'))
+                            ? buildRadiusStop(formData.currentLat, formData.currentLng, formData.radiusPlaceName || t('wizard.myLocation'), formData.radiusPlaceId || null)
                             : null;
                           generateRoute(radiusStop); setRouteChoiceMade(null); setWizardStep(3); window.scrollTo(0, 0);
                         }
