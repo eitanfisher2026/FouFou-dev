@@ -998,36 +998,10 @@
                     )}
                   </div>
                 </div>
-                {/* Color override for map markers — admin only */}
+                {/* Color override for map markers + delete — admin/editor only */}
                 {isUnlocked && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#6b7280' }}>{t('interests.mapColor') || 'צבע במפה:'}</span>
-                    <input
-                      type="color"
-                      value={newInterest.color || window.BKK.getInterestColor(newInterest.id || '', allInterestOptions || [])}
-                      onChange={e => setNewInterest({...newInterest, color: e.target.value})}
-                      style={{ width: '28px', height: '22px', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer', padding: 0 }}
-                    />
-                    {newInterest.color && (
-                      <button onClick={() => setNewInterest({...newInterest, color: ''})}
-                        style={{ fontSize: '9px', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>✕ auto</button>
-                    )}
-                    {newInterest.id && (
-                      <button
-                        onClick={() => {
-                          setShowAddInterestDialog(false);
-                          setMapMode('favorites');
-                          setMapFavRadius(null);
-                          setMapFavArea(null);
-                          setMapFocusPlace(null);
-                          setMapFavFilter(new Set([newInterest.id]));
-                          setMapBottomSheet(null);
-                          setMapReturnPlace(null);
-                          setShowMapModal(true);
-                        }}
-                        style={{ fontSize: '9px', padding: '2px 8px', borderRadius: '4px', background: '#f3e8ff', border: '1px solid #c084fc', color: '#7c3aed', cursor: 'pointer', fontWeight: 'bold', marginInlineEnd: 'auto' }}
-                      >🗺️ {t('wizard.showMap') || 'מפה'}</button>
-                    )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', flexWrap: 'nowrap' }}>
+                    {/* Delete — first in row */}
                     {editingCustomInterest && isEditor && (() => {
                       const inUseCount = customLocations.filter(loc => (loc.interests || []).includes(editingCustomInterest?.id)).length;
                       const canDelete = isAdmin || inUseCount === 0;
@@ -1048,11 +1022,37 @@
                               }, { confirmLabel: t('general.delete') || 'מחק', confirmColor: '#ef4444' });
                             }
                           }}
-                          style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5', background: 'white', color: '#dc2626', cursor: 'pointer' }}
-                          title={t("general.deleteInterest")}
-                        >🗑️</button>
-                      ) : <span style={{ fontSize: '9px', color: '#9ca3af' }} title={`${inUseCount} places`}>🔗{inUseCount}</span>;
+                          style={{ fontSize: '9px', padding: '2px 8px', borderRadius: '4px', border: '1px solid #fca5a5', background: 'white', color: '#dc2626', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+                        >{t("general.deleteInterest") || 'מחק תחום'}</button>
+                      ) : <span style={{ fontSize: '9px', color: '#9ca3af', flexShrink: 0 }} title={`${inUseCount} places`}>🔗{inUseCount}</span>;
                     })()}
+                    <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#6b7280', whiteSpace: 'nowrap' }}>{t('interests.mapColor') || 'צבע:'}</span>
+                    <input
+                      type="color"
+                      value={newInterest.color || window.BKK.getInterestColor(newInterest.id || '', allInterestOptions || [])}
+                      onChange={e => setNewInterest({...newInterest, color: e.target.value})}
+                      style={{ width: '28px', height: '22px', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer', padding: 0, flexShrink: 0 }}
+                    />
+                    {newInterest.color && (
+                      <button onClick={() => setNewInterest({...newInterest, color: ''})}
+                        style={{ fontSize: '9px', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>✕</button>
+                    )}
+                    {newInterest.id && (
+                      <button
+                        onClick={() => {
+                          setShowAddInterestDialog(false);
+                          setMapMode('favorites');
+                          setMapFavRadius(null);
+                          setMapFavArea(null);
+                          setMapFocusPlace(null);
+                          setMapFavFilter(new Set([newInterest.id]));
+                          setMapBottomSheet(null);
+                          setMapReturnPlace(null);
+                          setShowMapModal(true);
+                        }}
+                        style={{ fontSize: '9px', padding: '2px 8px', borderRadius: '4px', background: '#f3e8ff', border: '1px solid #c084fc', color: '#7c3aed', cursor: 'pointer', fontWeight: 'bold', flexShrink: 0 }}
+                      >🗺️</button>
+                    )}
                   </div>
                 )}
                 </div>{/* close inner wrapper */}
@@ -1189,7 +1189,7 @@
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <div style={{ flex: 1 }}>
                       <label style={{ display: 'block', fontSize: '10px', color: '#92400e', marginBottom: '3px' }}>
-                        {window.BKK.i18n.currentLang === 'en' ? 'Min ratings (filtered out below)' : 'מינימום דירוגים (מסונן מתחת)'}
+                        {window.BKK.i18n.currentLang === 'en' ? 'Min ratings' : 'מינ׳ דירוגים'}
                       </label>
                       <input
                         type="number" min="0" max="10000"
@@ -1202,7 +1202,7 @@
                     </div>
                     <div style={{ flex: 1 }}>
                       <label style={{ display: 'block', fontSize: '10px', color: '#92400e', marginBottom: '3px' }}>
-                        {window.BKK.i18n.currentLang === 'en' ? 'Low ratings (deprioritized below)' : 'דירוגים נמוכים (מדורג נמוך מתחת)'}
+                        {window.BKK.i18n.currentLang === 'en' ? 'Low ratings' : 'דירוגים נמוכים'}
                       </label>
                       <input
                         type="number" min="0" max="10000"

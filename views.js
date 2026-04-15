@@ -2556,13 +2556,13 @@
                     >🏷️ {noInterestCount}</button>
                   );
                 })()}
-                {/* addedBy filter — admin: dropdown; editor: small self-toggle */}
-                {Object.keys(userNamesMap || {}).length > 0 && (() => {
-                  const myUid = authUser?.uid;
-                  const myName = myUid ? (userNamesMap[myUid] || '') : '';
-                  const hasMine = myUid && cityCustomLocations.some(l => l.addedBy === myUid);
+                {/* addedBy filter — admin: dropdown with names; any logged-in: הכל/אני toggle */}
+                {authUser && !authUser.isAnonymous && (() => {
+                  const myUid = authUser.uid;
+                  const hasMine = cityCustomLocations.some(l => l.addedBy === myUid);
+                  if (!hasMine && !isAdmin) return null;
                   if (isAdmin) {
-                    const allContribs = Object.entries(userNamesMap)
+                    const allContribs = Object.entries(userNamesMap || {})
                       .filter(([uid]) => cityCustomLocations.some(l => l.addedBy === uid))
                       .sort(([,a],[,b]) => a.localeCompare(b));
                     if (allContribs.length <= 1) return null;
@@ -2577,15 +2577,13 @@
                       </select>
                     );
                   }
-                  // Editor: small icon toggle — show only mine / show all
-                  if (!hasMine) return null;
+                  // Any logged-in user: simple הכל/אני toggle
                   const isFiltered = filterAddedBy === myUid;
                   return (
                     <button
                       onClick={() => { const v = isFiltered ? '' : myUid; setFilterAddedBy(v); try { localStorage.setItem('foufou_filter_addedby', v); } catch(_) {} }}
                       className={`px-2 py-1 rounded text-xs font-bold transition-all ${isFiltered ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                      title={isFiltered ? `מציג: ${myName}` : 'סנן לשלי'}
-                    >👤{isFiltered ? ` ${myName}` : ''}</button>
+                    >{isFiltered ? '👤 אני' : '👤 הכל'}</button>
                   );
                 })()}
               </div>
