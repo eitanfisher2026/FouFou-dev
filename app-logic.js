@@ -964,10 +964,16 @@
       // favoriteBonusPerStar: added per ⭐ when rated above threshold
       // favoriteLowRatingThreshold: avg below this = penalty instead of bonus
       // favoriteLowRatingPenalty: subtracted from base when rating is poor
+      // Formula: googleScore + base + (ff_rating - favoriteNeutralRating) × bonusPerStar
+      // ff_rating > neutral → bonus, ff_rating = neutral → no change, ff_rating < threshold → penalty
+      // bonus applies only if favoriteMinRatingsForBonus ratings exist in FouFou
       favoriteBaseScore: 20,
       favoriteBonusPerStar: 5,
+      favoriteNeutralRating: 3.0,
       favoriteLowRatingThreshold: 2.5,
       favoriteLowRatingPenalty: 60,
+      favoriteMinRatingsForBonus: 1,
+      favoriteGoogleScoreWeight: 1.0,
 
       // Google Places rating count filters (applies only to Google results, never to saved favorites)
       // googleMinRatingCount: places with fewer ratings than this are NEVER shown (filtered like blacklist)
@@ -6375,16 +6381,22 @@
       }
       // Favorite base priority (unrated favorites get this by default)
       const base = sp.favoriteBaseScore ?? 20;
+      const googleWeight = sp.favoriteGoogleScoreWeight ?? 1.0;
+      const weightedGoogle = googleScore * googleWeight;
       const pk = (s.name || '').replace(/[.#$/\[\]]/g, '_');
       const ra = reviewAverages[pk];
-      if (!ra || ra.count === 0) return googleScore + base; // no rating yet — default priority
+      const minRatings = sp.favoriteMinRatingsForBonus ?? 1;
+      const hasEnoughRatings = ra && ra.count >= minRatings;
+      if (!hasEnoughRatings) return weightedGoogle + base; // no rating or too few — default priority
       const threshold = sp.favoriteLowRatingThreshold ?? 2.5;
       if (ra.avg < threshold) {
         // Poor rating — penalize: may fall below strong Google results
-        return googleScore + base - (sp.favoriteLowRatingPenalty ?? 60);
+        return weightedGoogle + base - (sp.favoriteLowRatingPenalty ?? 60);
       }
-      // Good rating — bonus per star (e.g. 4.5⭐ × 5 = +22.5 on top of base)
-      return googleScore + base + ra.avg * (sp.favoriteBonusPerStar ?? 5);
+      // Neutral rating = no bonus/penalty. Above neutral = bonus. Formula: (ff - neutral) × bonusPerStar
+      const neutral = sp.favoriteNeutralRating ?? 3.0;
+      const bonusPerStar = sp.favoriteBonusPerStar ?? 5;
+      return weightedGoogle + base + (ra.avg - neutral) * bonusPerStar;
     };
     for (const id of selectedInterests) {
       buckets[id].sort((a, b) => {
@@ -7659,7 +7671,11 @@
       let fromApi = 0;
       
       for (const interest of formData.interests) {
-        const allUsedNames = [...existingNames, ...allNewPlaces.map(p => p.name.toLowerCase().trim())];
+        // allUsedNames must be recomputed each iteration to include places added in previous iterations
+        const allUsedNames = [
+          ...existingNames,
+          ...allNewPlaces.map(p => p.name.toLowerCase().trim())
+        ];
         let placesForInterest = [];
         
         // LAYER 1: Unused custom locations

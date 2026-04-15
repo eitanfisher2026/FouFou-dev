@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.22.45
+// FouFou app-data.js v3.22.46
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -1164,6 +1164,12 @@ help: {
     favoriteLowRatingThresholdDesc: 'ממוצע דירוג מתחת לערך זה ייחשב גרוע וייקבל עונש (ברירת מחדל: 2.5)',
     favoriteLowRatingPenalty: 'עונש על דירוג גרוע',
     favoriteLowRatingPenaltyDesc: 'מחסיר מציון המועדף כשהדירוג גרוע — מאפשר לגוגל חזק לנצח אותו (ברירת מחדל: 60)',
+    favoriteNeutralRating: 'דרוג ניטרלי',
+    favoriteNeutralRatingDesc: 'דרוג שמעליו = בונוס, שמתחתיו = מינוס, בדיוק עליו = ±0 — דרוג 3 = לא משפיע על הסדר (ברירת מחדל: 3.0)',
+    favoriteMinRatingsForBonus: 'מינימום דרוגי פופו לבונוס',
+    favoriteMinRatingsForBonusDesc: 'כמה אנשים צריכים לדרג בפופו כדי שהבונוס יופעל — פחות מכך = כאילו אין דרוג (ברירת מחדל: 1)',
+    favoriteGoogleScoreWeight: 'משקל ניקוד גוגל (מועדף)',
+    favoriteGoogleScoreWeightDesc: 'כפל על ניקוד גוגל של מועדף — 1.0=רגיל, 0=מתעלם מגוגל לחלוטין, 2.0=מכפיל (ברירת מחדל: 1.0)',
     sectionFavorites: '⭐ ניקוד מועדפים',
     sectionGoogleFilter: '🔍 סינון גוגל',
     googleMinRatingCount: 'מינימום דירוגים (דלג לצמיתות)',
@@ -2283,6 +2289,12 @@ help: {
     favoriteLowRatingThresholdDesc: 'Average rating below this value is considered poor and receives a penalty (default: 2.5)',
     favoriteLowRatingPenalty: 'Poor rating penalty',
     favoriteLowRatingPenaltyDesc: 'Subtracted from favorite score when rating is poor — allows strong Google results to win (default: 60)',
+    favoriteNeutralRating: 'Neutral FouFou rating',
+    favoriteNeutralRatingDesc: 'Rating above this = bonus, below = minus, exactly = ±0 — rating 3 = no effect on order (default: 3.0)',
+    favoriteMinRatingsForBonus: 'Min FouFou ratings for bonus',
+    favoriteMinRatingsForBonusDesc: 'How many people must rate in FouFou before bonus activates — fewer = treated as unrated (default: 1)',
+    favoriteGoogleScoreWeight: 'Google score weight (favorites)',
+    favoriteGoogleScoreWeightDesc: 'Multiplier on Google score for favorites — 1.0=normal, 0=ignore Google entirely, 2.0=double (default: 1.0)',
     sectionFavorites: '⭐ Favorite Scoring',
     sectionGoogleFilter: '🔍 Google Filtering',
     googleMinRatingCount: 'Min ratings (always skip)',
@@ -3499,7 +3511,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.22.45';
+window.BKK.VERSION = '3.22.46';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));

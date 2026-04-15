@@ -4637,8 +4637,12 @@
                   { key: 'gapPenaltyMultiplier', label: t('sysParams.gapPenalty'), desc: t('sysParams.gapPenaltyDesc'), min: 1, max: 20, step: 1, type: 'int' },
                 ]},
                 { title: t('sysParams.sectionFavorites') || '⭐ מועדפים', icon: '⭐', color: '#f59e0b', params: [
+                  { key: '_formula', type: 'info', desc: '📐 נוסחה: googleWeight×G + base + (ff - neutral)×bonusPerStar | ff < threshold → -penalty | ff = neutral → ±0' },
                   { key: 'favoriteBaseScore', label: t('sysParams.favoriteBaseScore'), desc: t('sysParams.favoriteBaseScoreDesc'), min: 0, max: 100, step: 5, type: 'int' },
+                  { key: 'favoriteGoogleScoreWeight', label: t('sysParams.favoriteGoogleScoreWeight') || 'משקל ניקוד גוגל (מועדף)', desc: t('sysParams.favoriteGoogleScoreWeightDesc') || 'כפל על googleScore של מועדף — 1.0=רגיל, 0=מתעלם מגוגל, 2=מכפיל (ברירת מחדל: 1.0)', min: 0, max: 3, step: 0.1, type: 'float' },
                   { key: 'favoriteBonusPerStar', label: t('sysParams.favoriteBonusPerStar'), desc: t('sysParams.favoriteBonusPerStarDesc'), min: 0, max: 30, step: 1, type: 'int' },
+                  { key: 'favoriteNeutralRating', label: t('sysParams.favoriteNeutralRating') || 'דרוג ניטרלי', desc: t('sysParams.favoriteNeutralRatingDesc') || 'דרוג שמעליו = בונוס, שמתחתיו = מינוס, בדיוק עליו = ±0 (ברירת מחדל: 3.0)', min: 1, max: 5, step: 0.5, type: 'float' },
+                  { key: 'favoriteMinRatingsForBonus', label: t('sysParams.favoriteMinRatingsForBonus') || 'מינימום דרוגי פופו לבונוס', desc: t('sysParams.favoriteMinRatingsForBonusDesc') || 'כמה אנשים צריכים לדרג בפופו כדי שהבונוס יופעל — פחות מכך = כאילו אין דרוג (ברירת מחדל: 1)', min: 1, max: 20, step: 1, type: 'int' },
                   { key: 'favoriteLowRatingThreshold', label: t('sysParams.favoriteLowRatingThreshold'), desc: t('sysParams.favoriteLowRatingThresholdDesc'), min: 1, max: 4, step: 0.5, type: 'float' },
                   { key: 'favoriteLowRatingPenalty', label: t('sysParams.favoriteLowRatingPenalty'), desc: t('sysParams.favoriteLowRatingPenaltyDesc'), min: 0, max: 200, step: 10, type: 'int' },
                 ]},
@@ -4710,6 +4714,9 @@
                 showToast(t('sysParams.resetDone'), 'success');
               };
               const renderRow = (p) => {
+                if (p.type === 'info') return (
+                  <div key={p.key} style={{ padding: '6px 10px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd', fontSize: '10px', color: '#0369a1', fontFamily: 'monospace' }}>{p.desc}</div>
+                );
                 const def = window.BKK._defaultSystemParams[p.key];
                 const isDefault = systemParams[p.key] === def;
                 const isToggle = p.min === 0 && p.max === 1 && p.step === 1;
@@ -5472,28 +5479,35 @@
                       const lines = ['=== FouFou Filter Log ===', new Date().toLocaleString('he-IL'), ''];
                       const calcScore = (p) => {
                         const googleScore = (p.rating || 0) * Math.log10((p.reviews || 0) + 1);
-                        const base = window.BKK.systemParams?.favoriteBaseScore ?? 20;
-                        const bonusPerStar = window.BKK.systemParams?.favoriteBonusPerStar ?? 5;
-                        const penalty = window.BKK.systemParams?.favoriteLowRatingPenalty ?? 60;
-                        const threshold = window.BKK.systemParams?.favoriteLowRatingThreshold ?? 2.5;
+                        const sp = window.BKK.systemParams || {};
+                        const base = sp.favoriteBaseScore ?? 20;
+                        const bonusPerStar = sp.favoriteBonusPerStar ?? 5;
+                        const neutral = sp.favoriteNeutralRating ?? 3.0;
+                        const penalty = sp.favoriteLowRatingPenalty ?? 60;
+                        const threshold = sp.favoriteLowRatingThreshold ?? 2.5;
+                        const minRatings = sp.favoriteMinRatingsForBonus ?? 1;
+                        const gWeight = sp.favoriteGoogleScoreWeight ?? 1.0;
+                        const wG = googleScore * gWeight;
                         const isFav = p.isFavorite || p.custom || p.fetchMoreSource === 'custom'
                           || !!(customLocations||[]).find(cl => cl.name === p.name);
                         const pk = (p.name||'').replace(/[.#$/\\[\\]]/g,'_');
                         const ra = reviewAverages?.[pk];
-                        const fouFouRating = ra?.count > 0 ? ra.avg : null;
+                        const hasRatings = ra && ra.count >= minRatings;
+                        const fouFouRating = hasRatings ? ra.avg : null;
                         let score, formula;
                         if (!isFav) {
                           score = googleScore;
                           formula = `G:${p.rating}×log(${p.reviews}+1)=${googleScore.toFixed(1)}`;
                         } else if (!fouFouRating) {
-                          score = googleScore + base;
-                          formula = `G:${googleScore.toFixed(1)} + base:${base} = ${score.toFixed(1)}`;
+                          score = wG + base;
+                          formula = `${gWeight!==1?gWeight+'×':''}G:${wG.toFixed(1)} + base:${base} = ${score.toFixed(1)}`;
                         } else if (fouFouRating < threshold) {
-                          score = googleScore + base - penalty;
-                          formula = `G:${googleScore.toFixed(1)} + base:${base} - penalty:${penalty} = ${score.toFixed(1)}`;
+                          score = wG + base - penalty;
+                          formula = `${gWeight!==1?gWeight+'×':''}G:${wG.toFixed(1)} + base:${base} - pen:${penalty} = ${score.toFixed(1)}`;
                         } else {
-                          score = googleScore + base + fouFouRating * bonusPerStar;
-                          formula = `G:${googleScore.toFixed(1)} + base:${base} + FF:${fouFouRating.toFixed(1)}×${bonusPerStar} = ${score.toFixed(1)}`;
+                          const adj = (fouFouRating - neutral) * bonusPerStar;
+                          score = wG + base + adj;
+                          formula = `${gWeight!==1?gWeight+'×':''}G:${wG.toFixed(1)} + base:${base} + (FF:${fouFouRating.toFixed(1)}-${neutral})×${bonusPerStar}=${adj.toFixed(1)} = ${score.toFixed(1)}`;
                         }
                         return { score, formula, isFav, fouFouRating };
                       };
@@ -5589,20 +5603,26 @@
                         </div>
                         {entry.passed.map((p, pi) => {
                           const googleScore = (p.rating || 0) * Math.log10((p.reviews || 0) + 1);
-                          const base = window.BKK.systemParams?.favoriteBaseScore ?? 20;
-                          const bonusPerStar = window.BKK.systemParams?.favoriteBonusPerStar ?? 5;
-                          const penalty = window.BKK.systemParams?.favoriteLowRatingPenalty ?? 60;
-                          const threshold = window.BKK.systemParams?.favoriteLowRatingThreshold ?? 2.5;
+                          const _sp = window.BKK.systemParams || {};
+                          const base = _sp.favoriteBaseScore ?? 20;
+                          const bonusPerStar = _sp.favoriteBonusPerStar ?? 5;
+                          const neutral = _sp.favoriteNeutralRating ?? 3.0;
+                          const penalty = _sp.favoriteLowRatingPenalty ?? 60;
+                          const threshold = _sp.favoriteLowRatingThreshold ?? 2.5;
+                          const minRatings = _sp.favoriteMinRatingsForBonus ?? 1;
+                          const gWeight = _sp.favoriteGoogleScoreWeight ?? 1.0;
+                          const wG = googleScore * gWeight;
                           const isFav = p.isFavorite || p.custom || p.fetchMoreSource === 'custom'
                             || !!(customLocations||[]).find(cl => cl.name === p.name);
                           const pk = (p.name||'').replace(/[.#$/\\[\\]]/g,'_');
                           const ra = reviewAverages?.[pk];
-                          const fr = ra?.count > 0 ? ra.avg : null;
+                          const hasRatings = ra && ra.count >= minRatings;
+                          const fr = hasRatings ? ra.avg : null;
                           let score, formula;
                           if (!isFav) { score = googleScore; formula = `G:${googleScore.toFixed(1)}`; }
-                          else if (!fr) { score = googleScore + base; formula = `G:${googleScore.toFixed(1)}+base:${base}`; }
-                          else if (fr < threshold) { score = googleScore + base - penalty; formula = `G:${googleScore.toFixed(1)}+${base}-pen:${penalty}`; }
-                          else { score = googleScore + base + fr * bonusPerStar; formula = `G:${googleScore.toFixed(1)}+${base}+FF:${fr.toFixed(1)}×${bonusPerStar}`; }
+                          else if (!fr) { score = wG + base; formula = `G:${wG.toFixed(1)}+base:${base}`; }
+                          else if (fr < threshold) { score = wG + base - penalty; formula = `G:${wG.toFixed(1)}+${base}-pen:${penalty}`; }
+                          else { const adj=(fr-neutral)*bonusPerStar; score = wG + base + adj; formula = `G:${wG.toFixed(1)}+${base}+(${fr.toFixed(1)}-${neutral})×${bonusPerStar}=${adj.toFixed(1)}`; }
                           return (
                           <div key={pi} style={{ padding: '6px 12px', borderBottom: '1px solid #f0fdf4', fontSize: '11px', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                             {p.rank != null && <span style={{ color: '#6b7280', minWidth: '16px', fontSize: '10px' }}>#{p.rank}</span>}
