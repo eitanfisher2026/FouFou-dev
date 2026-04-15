@@ -2502,40 +2502,7 @@
                   )}
                 </div>
               </div>
-              {/* Filter by addedBy — admin sees all, editor sees only self */}
-              {isUnlocked && Object.keys(userNamesMap || {}).length > 0 && (() => {
-                const allContribs = Object.entries(userNamesMap)
-                  .filter(([uid]) => cityCustomLocations.some(l => l.addedBy === uid))
-                  .sort(([,a],[,b]) => a.localeCompare(b));
-                // Non-admin editor: only show dropdown if they have their own places (filter to self only option)
-                const myUid = authUser?.uid;
-                const myName = myUid ? (userNamesMap[myUid] || '') : '';
-                const options = isAdmin ? allContribs : (myUid && allContribs.some(([uid]) => uid === myUid) ? [[myUid, myName]] : []);
-                if (options.length === 0) return null;
-                return (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>👤</span>
-                    <select
-                      value={filterAddedBy}
-                      onChange={e => {
-                        const v = e.target.value;
-                        setFilterAddedBy(v);
-                        try { localStorage.setItem('foufou_filter_addedby', v); } catch(_) {}
-                      }}
-                      style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '8px', border: '1px solid #d1d5db', background: filterAddedBy ? '#ede9fe' : 'white', color: filterAddedBy ? '#7c3aed' : '#374151', fontWeight: filterAddedBy ? 'bold' : 'normal', cursor: 'pointer' }}
-                    >
-                      <option value="">{t('general.all') || 'הכל'}</option>
-                      {options.map(([uid, name]) => (
-                        <option key={uid} value={uid}>{name}</option>
-                      ))}
-                    </select>
-                    {filterAddedBy && (
-                      <button onClick={() => { setFilterAddedBy(''); try { localStorage.removeItem('foufou_filter_addedby'); } catch(_) {} }}
-                        style={{ fontSize: '10px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}>✕</button>
-                    )}
-                  </div>
-                );
-              })()}
+              {/* Filter by addedBy — admin: dropdown; editor: icon toggle in filter row below */}
               {/* Row 2: Action buttons — Snap place removed (use floating camera button) */}
               <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
                 <button
@@ -2587,6 +2554,38 @@
                       className={`px-2 py-1 rounded text-xs font-bold transition-all ${filterNoInterest ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
                       title={window.BKK.i18n.currentLang === 'en' ? `No interest (${noInterestCount})` : `ללא תחום (${noInterestCount})`}
                     >🏷️ {noInterestCount}</button>
+                  );
+                })()}
+                {/* addedBy filter — admin: dropdown; editor: small self-toggle */}
+                {Object.keys(userNamesMap || {}).length > 0 && (() => {
+                  const myUid = authUser?.uid;
+                  const myName = myUid ? (userNamesMap[myUid] || '') : '';
+                  const hasMine = myUid && cityCustomLocations.some(l => l.addedBy === myUid);
+                  if (isAdmin) {
+                    const allContribs = Object.entries(userNamesMap)
+                      .filter(([uid]) => cityCustomLocations.some(l => l.addedBy === uid))
+                      .sort(([,a],[,b]) => a.localeCompare(b));
+                    if (allContribs.length <= 1) return null;
+                    return (
+                      <select
+                        value={filterAddedBy}
+                        onChange={e => { const v = e.target.value; setFilterAddedBy(v); try { localStorage.setItem('foufou_filter_addedby', v); } catch(_) {} }}
+                        style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '8px', border: '1px solid #d1d5db', background: filterAddedBy ? '#ede9fe' : 'white', color: filterAddedBy ? '#7c3aed' : '#374151', fontWeight: filterAddedBy ? 'bold' : 'normal', cursor: 'pointer', maxWidth: '110px' }}
+                      >
+                        <option value="">👤 {t('general.all') || 'הכל'}</option>
+                        {allContribs.map(([uid, name]) => <option key={uid} value={uid}>{name}</option>)}
+                      </select>
+                    );
+                  }
+                  // Editor: small icon toggle — show only mine / show all
+                  if (!hasMine) return null;
+                  const isFiltered = filterAddedBy === myUid;
+                  return (
+                    <button
+                      onClick={() => { const v = isFiltered ? '' : myUid; setFilterAddedBy(v); try { localStorage.setItem('foufou_filter_addedby', v); } catch(_) {} }}
+                      className={`px-2 py-1 rounded text-xs font-bold transition-all ${isFiltered ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                      title={isFiltered ? `מציג: ${myName}` : 'סנן לשלי'}
+                    >👤{isFiltered ? ` ${myName}` : ''}</button>
                   );
                 })()}
               </div>

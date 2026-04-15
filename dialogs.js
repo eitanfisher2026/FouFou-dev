@@ -1025,9 +1025,34 @@
                           setMapReturnPlace(null);
                           setShowMapModal(true);
                         }}
-                        style={{ fontSize: '9px', padding: '2px 8px', borderRadius: '4px', background: '#f3e8ff', border: '1px solid #c084fc', color: '#7c3aed', cursor: 'pointer', fontWeight: 'bold', marginRight: 'auto' }}
+                        style={{ fontSize: '9px', padding: '2px 8px', borderRadius: '4px', background: '#f3e8ff', border: '1px solid #c084fc', color: '#7c3aed', cursor: 'pointer', fontWeight: 'bold', marginInlineEnd: 'auto' }}
                       >🗺️ {t('wizard.showMap') || 'מפה'}</button>
                     )}
+                    {editingCustomInterest && isEditor && (() => {
+                      const inUseCount = customLocations.filter(loc => (loc.interests || []).includes(editingCustomInterest?.id)).length;
+                      const canDelete = isAdmin || inUseCount === 0;
+                      return canDelete ? (
+                        <button
+                          onClick={() => {
+                            if (newInterest.builtIn) {
+                              const msg = `${t('interests.deleteBuiltIn')} "${newInterest.label}"?`;
+                              showConfirm(msg, () => {
+                                if (isFirebaseAvailable && database) removeInterestConfig(editingCustomInterest.id);
+                                showToast(t('interests.builtInRemoved'), 'success');
+                                setShowAddInterestDialog(false); setEditingCustomInterest(null);
+                              }, { confirmLabel: t('general.delete') || 'מחק', confirmColor: '#ef4444' });
+                            } else {
+                              showConfirm(`מחק "${newInterest.label}"?`, () => {
+                                setShowAddInterestDialog(false); setEditingCustomInterest(null);
+                                deleteCustomInterest(editingCustomInterest.id);
+                              }, { confirmLabel: t('general.delete') || 'מחק', confirmColor: '#ef4444' });
+                            }
+                          }}
+                          style={{ fontSize: '9px', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5', background: 'white', color: '#dc2626', cursor: 'pointer' }}
+                          title={t("general.deleteInterest")}
+                        >🗑️</button>
+                      ) : <span style={{ fontSize: '9px', color: '#9ca3af' }} title={`${inUseCount} places`}>🔗{inUseCount}</span>;
+                    })()}
                   </div>
                 )}
                 </div>{/* close inner wrapper */}
@@ -1477,41 +1502,7 @@
                 </div>
                 )}
 
-                {/* Status toggle - locked (admin only) */}
-                {/* Actions: Enable/Disable + Delete (edit mode only) */}
-                {editingCustomInterest && isUnlocked && (
-                  <div className="border-t border-red-100 px-4 py-2" style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    {isEditor && (() => {
-                      const inUseCount = customLocations.filter(loc => (loc.interests || []).includes(editingCustomInterest?.id)).length;
-                      const canDelete = isAdmin || inUseCount === 0;
-                      return canDelete ? (
-                        <button
-                          onClick={() => {
-                            if (newInterest.builtIn) {
-                              const msg = `${t('interests.deleteBuiltIn')} "${newInterest.label}"?`;
-                              showConfirm(msg, () => {
-                                if (isFirebaseAvailable && database) removeInterestConfig(editingCustomInterest.id);
-                                showToast(t('interests.builtInRemoved'), 'success');
-                                setShowAddInterestDialog(false); setEditingCustomInterest(null);
-                              }, { confirmLabel: t('general.delete') || 'מחק', confirmColor: '#ef4444' });
-                            } else {
-                              setShowAddInterestDialog(false); setEditingCustomInterest(null);
-                              deleteCustomInterest(editingCustomInterest.id);
-                            }
-                          }}
-                          style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '6px', border: '1px solid #fca5a5', background: 'white', color: '#dc2626', cursor: 'pointer', fontWeight: 'bold' }}
-                          title={t("general.deleteInterest")}
-                        >
-                          🗑️ {t("general.deleteInterest")}
-                        </button>
-                      ) : (
-                        <span style={{ fontSize: '10px', color: '#9ca3af' }} title={`${inUseCount} ${t('route.places')}`}>
-                          🔗 {inUseCount}
-                        </span>
-                      );
-                    })()}
-                  </div>
-                )}
+                {/* Delete button moved to map color row */}
               </div>
               
               {/* Footer */}
