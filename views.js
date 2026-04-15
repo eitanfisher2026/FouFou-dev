@@ -2428,37 +2428,41 @@
         {/* My Content View - Compact Design */}
         {currentView === 'myPlaces' && (
           <div className="view-fade-in bg-white rounded-xl shadow-lg p-3">
-            <div className="flex items-center gap-2 mb-3">
-              <h2 className="text-lg font-bold">{`⭐ ${t("nav.favorites")}`}</h2>
-              <button
-                onClick={() => refreshAllData()}
-                disabled={isRefreshing}
-                style={{ padding: '4px 8px', fontSize: '11px', fontWeight: 'bold', background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', cursor: isRefreshing ? 'wait' : 'pointer' }}
-                title={t('settings.refreshData') || 'רענן'}
-              ><span className={isRefreshing ? 'animate-spin inline-block' : ''}>🔄</span></button>
+            <div className="flex items-center gap-2 mb-3" style={{ flexWrap: 'nowrap' }}>
+              <h2 className="text-lg font-bold" style={{ flexShrink: 0 }}>{`⭐ ${t("nav.favorites")}`}</h2>
+              <span style={{ fontSize: '11px', color: '#9ca3af', flexShrink: 0 }}>({cityCustomLocations.filter(l => l.status !== 'blacklist').length})</span>
               {isUnlocked && customLocations.length > 1 && (
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: '4px' }}>
-                  <button
-                    onClick={() => scanAllDuplicates(false)}
-                    style={{ padding: '5px 10px', fontSize: '10px', fontWeight: 'bold', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.15)' }}
-                    title={t('dedup.scanByInterest')}
-                  >🔍 {t('dedup.scanButton')}</button>
-                  <button
-                    onClick={() => scanAllDuplicates(true)}
-                    style={{ padding: '5px 10px', fontSize: '10px', fontWeight: 'bold', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.15)' }}
-                    title={t('dedup.scanByCoords')}
-                  >📐 {t('dedup.scanCoordsButton')}</button>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <button onClick={() => scanAllDuplicates(false)}
+                    style={{ padding: '4px 8px', fontSize: '10px', fontWeight: 'bold', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                    title={t('dedup.scanByInterest')}>🔍</button>
+                  <button onClick={() => scanAllDuplicates(true)}
+                    style={{ padding: '4px 8px', fontSize: '10px', fontWeight: 'bold', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                    title={t('dedup.scanCoordsButton')}>📐</button>
                 </div>
               )}
-              {isUnlocked && (
-                <div style={{ marginLeft: customLocations.length <= 1 ? 'auto' : '0' }}>
-                  <input type="file" accept=".json" id="importDataFav" className="hidden"
-                    onChange={(e) => { parseImportFile(e.target.files?.[0]); e.target.value = ''; }} />
-                  <label htmlFor="importDataFav"
-                    style={{ padding: '5px 10px', fontSize: '10px', fontWeight: 'bold', background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.15)', display: 'inline-block' }}
-                  >📥 {t('general.import')}</label>
-                </div>
-              )}
+              <div style={{ marginInlineStart: 'auto', display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
+                {authUser && !authUser.isAnonymous && !isUnlocked && (() => {
+                  const myUid = authUser.uid;
+                  if (!cityCustomLocations.some(l => l.addedBy === myUid)) return null;
+                  const isFiltered = filterAddedBy === myUid;
+                  return (
+                    <button
+                      onClick={() => { const v = isFiltered ? '' : myUid; setFilterAddedBy(v); try { localStorage.setItem('foufou_filter_addedby', v); } catch(_) {} }}
+                      style={{ padding: '3px 8px', fontSize: '10px', fontWeight: 'bold', borderRadius: '8px', border: 'none', cursor: 'pointer', background: isFiltered ? '#ede9fe' : '#f3f4f6', color: isFiltered ? '#7c3aed' : '#6b7280' }}
+                    >{isFiltered ? '👤 אני' : '👤 הכל'}</button>
+                  );
+                })()}
+                {isAdmin && (
+                  <>
+                    <input type="file" accept=".json" id="importDataFav" className="hidden"
+                      onChange={(e) => { parseImportFile(e.target.files?.[0]); e.target.value = ''; }} />
+                    <label htmlFor="importDataFav"
+                      style={{ padding: '3px 8px', fontSize: '10px', fontWeight: 'bold', background: '#f0fdf4', color: '#16a34a', border: '1px solid #86efac', borderRadius: '8px', cursor: 'pointer', display: 'inline-block' }}
+                    >📥</label>
+                  </>
+                )}
+              </div>
             </div>
             {renderContextHint('hint_favorites')}
             
@@ -2588,21 +2592,7 @@
                 })()}
               </div>
               )}
-              {/* addedBy הכל/אני — for any non-anonymous logged-in user, outside isUnlocked guard */}
-              {authUser && !authUser.isAnonymous && !isUnlocked && (() => {
-                const myUid = authUser.uid;
-                const hasMine = cityCustomLocations.some(l => l.addedBy === myUid);
-                if (!hasMine) return null;
-                const isFiltered = filterAddedBy === myUid;
-                return (
-                  <div className="flex mb-2 gap-1 items-center justify-end">
-                    <button
-                      onClick={() => { const v = isFiltered ? '' : myUid; setFilterAddedBy(v); try { localStorage.setItem('foufou_filter_addedby', v); } catch(_) {} }}
-                      className={`px-2 py-1 rounded text-xs font-bold transition-all ${isFiltered ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                    >{isFiltered ? '👤 אני' : '👤 הכל'}</button>
-                  </div>
-                );
-              })()}
+
 
               {/* Pending locations waiting for sync */}
               {lastImportBatch && (placesTab === 'all' || placesTab === 'drafts') && (() => {
