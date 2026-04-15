@@ -1612,14 +1612,37 @@
                     const calcStopScore = (stop) => {
                       const googleScore = (stop.rating || stop.googleRating || 0) * Math.log10((stop.ratingCount || stop.googleRatingCount || 0) + 1);
                       const isCustom = stop.source === 'custom' || stop.custom || !!customLocations.find(loc => loc.name === stop.name);
+                      const gWeight = sp.favoriteGoogleScoreWeight ?? 1.0;
+                      const wG = googleScore * gWeight;
                       if (!isCustom) return googleScore;
                       const base = sp.favoriteBaseScore ?? 20;
                       const pk = (stop.name || '').replace(/[.#$/\\[\\]]/g, '_');
                       const ra = reviewAverages[pk];
-                      if (!ra || ra.count === 0) return googleScore + base;
+                      const minRatings = sp.favoriteMinRatingsForBonus ?? 1;
+                      if (!ra || ra.count < minRatings) return wG + base;
                       const threshold = sp.favoriteLowRatingThreshold ?? 2.5;
-                      if (ra.avg < threshold) return googleScore + base - (sp.favoriteLowRatingPenalty ?? 60);
-                      return googleScore + base + ra.avg * (sp.favoriteBonusPerStar ?? 5);
+                      if (ra.avg < threshold) return wG + base - (sp.favoriteLowRatingPenalty ?? 60);
+                      const neutral = sp.favoriteNeutralRating ?? 3.0;
+                      return wG + base + (ra.avg - neutral) * (sp.favoriteBonusPerStar ?? 5);
+                    };
+                    const calcStopScoreDetail = (stop) => {
+                      const g = (stop.rating || stop.googleRating || 0);
+                      const cnt = (stop.ratingCount || stop.googleRatingCount || 0);
+                      const googleScore = g * Math.log10(cnt + 1);
+                      const isCustom = stop.source === 'custom' || stop.custom || !!customLocations.find(loc => loc.name === stop.name);
+                      const gWeight = sp.favoriteGoogleScoreWeight ?? 1.0;
+                      const wG = googleScore * gWeight;
+                      if (!isCustom) return `G:${g}×log(${cnt}+1)=${googleScore.toFixed(1)}`;
+                      const base = sp.favoriteBaseScore ?? 20;
+                      const pk = (stop.name || '').replace(/[.#$/\\[\\]]/g, '_');
+                      const ra = reviewAverages[pk];
+                      const minRatings = sp.favoriteMinRatingsForBonus ?? 1;
+                      if (!ra || ra.count < minRatings) return `G:${wG.toFixed(1)}+base:${base}=${( wG+base).toFixed(1)}`;
+                      const threshold = sp.favoriteLowRatingThreshold ?? 2.5;
+                      if (ra.avg < threshold) return `G:${wG.toFixed(1)}+${base}-pen=${( wG+base-(sp.favoriteLowRatingPenalty??60)).toFixed(1)}`;
+                      const neutral = sp.favoriteNeutralRating ?? 3.0;
+                      const adj = (ra.avg - neutral) * (sp.favoriteBonusPerStar ?? 5);
+                      return `G:${wG.toFixed(1)}+${base}+(${ra.avg.toFixed(1)}-${neutral})×${sp.favoriteBonusPerStar??5}=${(wG+base+adj).toFixed(1)}`;
                     };
                     
                     return Object.entries(groupedStops)
@@ -1876,6 +1899,15 @@
                                         </div>
                                       );
                                     })()}
+                                  {debugMode && isUnlocked && (() => {
+                                    const score = calcStopScore(stop);
+                                    const detail = calcStopScoreDetail(stop);
+                                    return (
+                                      <div style={{ fontSize: '9px', marginTop: '2px', color: '#7c3aed', fontFamily: 'monospace', background: '#f5f3ff', borderRadius: '4px', padding: '1px 5px', display: 'inline-block' }}>
+                                        🔢 {score.toFixed(1)} | {detail}
+                                      </div>
+                                    );
+                                  })()}
                                   </a>
                                   {/* Add to favorites — compact inline star, editors/admins only (regular users add during active trail) */}
                                   {!isCustom && !isDisabled && isEditor && (() => {
