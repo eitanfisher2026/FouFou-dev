@@ -1421,8 +1421,8 @@
                         </div>
                       </div>
                       {isAdmin && (
-                        <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '8px' }}>
-                          <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', marginBottom: '4px' }}>🔒 Lock</div>
+                        <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                          <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b' }}>Lock</div>
                           <button type="button"
                             onClick={async () => {
                               const newLocked = !cfg.locked;
@@ -1434,11 +1434,9 @@
                               }
                               showToast(`${newLocked ? '🔒' : '🔓'} ${tLabel(editingCustomInterest) || interestId}`, 'info');
                             }}
-                            style={{ fontSize: '10px', padding: '3px 8px', borderRadius: '6px', cursor: 'pointer',
-                              background: cfg.locked ? '#fef3c7' : '#f1f5f9',
-                              border: `1px solid ${cfg.locked ? '#fcd34d' : '#e2e8f0'}`,
-                              fontWeight: cfg.locked ? 'bold' : 'normal' }}>
-                            {cfg.locked ? '🔒 On' : '🔓 Off'}
+                            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${cfg.locked ? 'border-green-600 bg-green-600 text-white' : 'border-amber-300 bg-amber-50 text-amber-600'}`}
+                            title={cfg.locked ? 'Locked' : 'Unlocked'}>
+                            {cfg.locked ? '🔒' : '✏️'}
                           </button>
                         </div>
                       )}

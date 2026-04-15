@@ -2502,12 +2502,16 @@
                   )}
                 </div>
               </div>
-              {/* Filter by addedBy — admin/editor only */}
+              {/* Filter by addedBy — admin sees all, editor sees only self */}
               {isUnlocked && Object.keys(userNamesMap || {}).length > 0 && (() => {
-                const contributors = Object.entries(userNamesMap)
+                const allContribs = Object.entries(userNamesMap)
                   .filter(([uid]) => cityCustomLocations.some(l => l.addedBy === uid))
                   .sort(([,a],[,b]) => a.localeCompare(b));
-                if (contributors.length <= 1) return null;
+                // Non-admin editor: only show dropdown if they have their own places (filter to self only option)
+                const myUid = authUser?.uid;
+                const myName = myUid ? (userNamesMap[myUid] || '') : '';
+                const options = isAdmin ? allContribs : (myUid && allContribs.some(([uid]) => uid === myUid) ? [[myUid, myName]] : []);
+                if (options.length === 0) return null;
                 return (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                     <span style={{ fontSize: '10px', color: '#9ca3af' }}>👤</span>
@@ -2521,7 +2525,7 @@
                       style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '8px', border: '1px solid #d1d5db', background: filterAddedBy ? '#ede9fe' : 'white', color: filterAddedBy ? '#7c3aed' : '#374151', fontWeight: filterAddedBy ? 'bold' : 'normal', cursor: 'pointer' }}
                     >
                       <option value="">{t('general.all') || 'הכל'}</option>
-                      {contributors.map(([uid, name]) => (
+                      {options.map(([uid, name]) => (
                         <option key={uid} value={uid}>{name}</option>
                       ))}
                     </select>
@@ -2722,8 +2726,8 @@
                       <div className="bg-gray-100 px-2 py-1 text-xs font-bold text-gray-500">
                         {placesSortBy === 'updatedAt' ? `🕐 ${t('places.sortByUpdated') || 'עודכן לאחרונה'}` :
                          placesSortBy === 'addedAt' ? `📅 ${t('places.sortByAdded') || 'נוסף לאחרונה'}` :
-                         placesSortBy === 'name' ? `🔤 ${t('places.sortByName') || 'שם'}` :
-                         t("places.noInterest")} ({groupedPlaces.ungrouped.length})
+                         placesSortBy === 'name' ? `🔤 ${t('places.sortByName') || 'שם'} (${groupedPlaces.ungrouped.length})` :
+                         `${t("places.noInterest")} (${groupedPlaces.ungrouped.length})`}
                       </div>
                       <div className="p-1">
                         {groupedPlaces.ungrouped.filter(loc => (!filterImportBatch || !lastImportBatch || loc.importBatch === lastImportBatch) && (!filterNoInterest || !loc.interests || loc.interests.length === 0)).map(loc => {

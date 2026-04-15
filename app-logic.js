@@ -6108,7 +6108,7 @@
       };
       if (isFlatEarly) {
         const flat = [...filteredByUser].sort((a, b) => {
-          if (placesSortBy === 'name') return (a.name || '').localeCompare(b.name || '', 'en', { sensitivity: 'base' });
+          if (placesSortBy === 'name') { const na = (a.name || '').trim().toLowerCase(); const nb = (b.name || '').trim().toLowerCase(); return na.localeCompare(nb, 'en', { sensitivity: 'base', numeric: true }); }
           const ta = getTs2(a), tb = getTs2(b);
           if (ta === 0 && tb === 0) return (a.name || '').localeCompare(b.name || '', 'en', { sensitivity: 'base' });
           if (ta === 0) return 1; if (tb === 0) return -1;
