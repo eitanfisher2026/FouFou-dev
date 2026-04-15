@@ -828,6 +828,7 @@
   const [lastImportBatch, setLastImportBatch] = useState(null); // batch ID of last import
   const [filterImportBatch, setFilterImportBatch] = useState(false); // filter to show only last import
   const [filterNoInterest, setFilterNoInterest] = useState(false); // admin/editor: show places with no interest
+  const [filterAddedBy, setFilterAddedBy] = useState(''); // admin/editor: filter by uid of creator
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [placesGroupBy, setPlacesGroupBy] = useState('interest'); // 'interest' or 'area'
   const [placesSortBy, setPlacesSortBy] = useState(() => {
@@ -6058,13 +6059,16 @@
       if (filteredTabLocations.length === 0) return { groups: {}, ungrouped: [], sortedKeys: [], activeCount: draftsLocations.length + readyLocations.length, blacklistedLocations, draftsLocations, readyLocations, draftsCount: draftsLocations.length, readyCount: readyLocations.length, blacklistCount: blacklistedLocations.length };
       
       // Derive grouping mode from sort selection
+      const filteredByUser = filterAddedBy
+        ? filteredTabLocations.filter(loc => loc.addedBy === filterAddedBy)
+        : filteredTabLocations;
       const isFlatEarly = placesSortBy === 'updatedAt' || placesSortBy === 'addedAt' || placesSortBy === 'name';
       const groupByMode = placesSortBy === 'area' ? 'area' : 'interest';
 
       const groups = {};
       const ungrouped = [];
       
-      filteredTabLocations.forEach(loc => {
+      filteredByUser.forEach(loc => {
         if (groupByMode === 'interest') {
           const interests = (loc.interests || []).filter(i => i !== '_manual');
           if (interests.length === 0) {
@@ -6103,7 +6107,7 @@
         return d ? (new Date(d).getTime() || 0) : 0;
       };
       if (isFlatEarly) {
-        const flat = [...filteredTabLocations].sort((a, b) => {
+        const flat = [...filteredByUser].sort((a, b) => {
           if (placesSortBy === 'name') return (a.name || '').localeCompare(b.name || '', 'en', { sensitivity: 'base' });
           const ta = getTs2(a), tb = getTs2(b);
           if (ta === 0 && tb === 0) return (a.name || '').localeCompare(b.name || '', 'en', { sensitivity: 'base' });
@@ -6133,7 +6137,7 @@
       console.error('[MEMO] groupedPlaces error:', e);
       return { groups: {}, ungrouped: [], sortedKeys: [], activeCount: 0, blacklistedLocations: [], draftsLocations: [], readyLocations: [], draftsCount: 0, readyCount: 0, blacklistCount: 0 };
     }
-  }, [cityCustomLocations, placesGroupBy, placesSortBy, placesTab, interestMap, areaMap, searchQuery]);
+  }, [cityCustomLocations, placesGroupBy, placesSortBy, placesTab, interestMap, areaMap, searchQuery, filterAddedBy]);
 
   // Flat navigation list for prev/next in edit dialog
   const flatNavList = useMemo(() => {

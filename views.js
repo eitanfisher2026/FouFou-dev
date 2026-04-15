@@ -2502,6 +2502,30 @@
                   )}
                 </div>
               </div>
+              {/* Filter by addedBy — admin/editor only */}
+              {isUnlocked && Object.keys(userNamesMap || {}).length > 0 && (() => {
+                const contributors = Object.entries(userNamesMap)
+                  .filter(([uid]) => cityCustomLocations.some(l => l.addedBy === uid))
+                  .sort(([,a],[,b]) => a.localeCompare(b));
+                if (contributors.length <= 1) return null;
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>👤</span>
+                    <button onClick={() => setFilterAddedBy('')}
+                      style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '12px', border: 'none', cursor: 'pointer',
+                        background: !filterAddedBy ? '#3b82f6' : '#e5e7eb', color: !filterAddedBy ? 'white' : '#6b7280', fontWeight: 'bold' }}>
+                      {t('general.all') || 'הכל'}
+                    </button>
+                    {contributors.map(([uid, name]) => (
+                      <button key={uid} onClick={() => setFilterAddedBy(prev => prev === uid ? '' : uid)}
+                        style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '12px', border: 'none', cursor: 'pointer',
+                          background: filterAddedBy === uid ? '#7c3aed' : '#e5e7eb', color: filterAddedBy === uid ? 'white' : '#6b7280', fontWeight: 'bold' }}>
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
               {/* Row 2: Action buttons — Snap place removed (use floating camera button) */}
               <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
                 <button
@@ -2690,7 +2714,10 @@
                   {groupedPlaces.ungrouped.length > 0 && (
                     <div className="border border-gray-200 rounded-lg overflow-hidden mb-1.5">
                       <div className="bg-gray-100 px-2 py-1 text-xs font-bold text-gray-500">
-                        {t("places.noInterest")} ({groupedPlaces.ungrouped.length})
+                        {placesSortBy === 'updatedAt' ? `🕐 ${t('places.sortByUpdated') || 'עודכן לאחרונה'}` :
+                         placesSortBy === 'addedAt' ? `📅 ${t('places.sortByAdded') || 'נוסף לאחרונה'}` :
+                         placesSortBy === 'name' ? `🔤 ${t('places.sortByName') || 'שם'}` :
+                         t("places.noInterest")} ({groupedPlaces.ungrouped.length})
                       </div>
                       <div className="p-1">
                         {groupedPlaces.ungrouped.filter(loc => (!filterImportBatch || !lastImportBatch || loc.importBatch === lastImportBatch) && (!filterNoInterest || !loc.interests || loc.interests.length === 0)).map(loc => {
@@ -4418,6 +4445,11 @@
                       {cityLabel}
                     </button>
                     <button onClick={() => openFn(i)} style={{ padding: '2px 6px', fontSize: '11px', border: '1px solid #e5e7eb', borderRadius: '6px', background: '#f9fafb', cursor: 'pointer', flexShrink: 0 }}>✏️</button>
+                    {customInterests.some(ci => ci.id === i.id) && (
+                      <button onClick={() => {
+                        showConfirm(`מחק תחום "${tLabel(i) || i.id}"? פעולה זו בלתי הפיכה.`, () => deleteCustomInterest(i.id));
+                      }} style={{ fontSize: '9px', color: '#d1d5db', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', flexShrink: 0 }} title="מחק תחום">🗑️</button>
+                    )}
                   </div>
                 );
               };
@@ -4602,8 +4634,8 @@
                             <input value={gData.labelEn || ''} onChange={(e) => saveInterestGroup(gId, gData.labelHe || '', e.target.value, gData.order ?? idx)} placeholder="English" style={{ fontSize: '12px', fontWeight: 'bold', border: '1px solid #d1d5db', borderRadius: '4px', padding: '2px 6px', width: '80px' }} />
                             <button onClick={() => {
                               if (members.length > 0) { showToast('⚠️ יש ' + members.length + ' תחומים בקיבוץ — שנה אותם קודם', 'warning'); return; }
-                              deleteInterestGroup(gId);
-                            }} style={{ fontSize: '11px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', marginLeft: 'auto' }}>🗑️</button>
+                              showConfirm(`מחק קיבוץ "${gData.labelHe || gId}"?`, () => deleteInterestGroup(gId));
+                            }} style={{ fontSize: '9px', color: '#d1d5db', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', marginInlineStart: 'auto' }} title="מחק קיבוץ">🗑️</button>
                           </div>
                           {members.length > 0 && (
                             <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
@@ -4747,7 +4779,47 @@
               };
               const renderRow = (p) => {
                 if (p.type === 'info') return (
-                  <div key={p.key} style={{ padding: '6px 10px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd', fontSize: '10px', color: '#0369a1', fontFamily: 'monospace' }}>{p.desc}</div>
+                  <div key={p.key} style={{ padding: '6px 10px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #bae6fd', fontSize: '10px', color: '#0369a1', fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ flex: 1 }}>{p.desc}</span>
+                    <button onClick={() => {
+                      const _sp = window.BKK.systemParams || {};
+                      const _base = _sp.favoriteBaseScore ?? 20;
+                      const _bps = _sp.favoriteBonusPerStar ?? 5;
+                      const _neutral = _sp.favoriteNeutralRating ?? 3.0;
+                      const _penalty = _sp.favoriteLowRatingPenalty ?? 60;
+                      const _threshold = _sp.favoriteLowRatingThreshold ?? 2.5;
+                      const _gw = _sp.favoriteGoogleScoreWeight ?? 1.0;
+                      const _g1 = (_gw * 4.5 * Math.log10(409)).toFixed(1);
+                      const _g2 = (_gw * 4.2 * Math.log10(6708)).toFixed(1);
+                      const _g3 = (_gw * 4.8 * Math.log10(51)).toFixed(1);
+                      const _fav1 = (parseFloat(_g2) + _base + (4.5 - _neutral) * _bps).toFixed(1);
+                      const _fav2 = (parseFloat(_g2) + _base + (3.0 - _neutral) * _bps).toFixed(1);
+                      const _fav3 = (parseFloat(_g2) + _base - _penalty).toFixed(1);
+                      showToast([
+                        '📐 Score Formula (current params)',
+                        '',
+                        '── Google places ──',
+                        'score = rating × log₁₀(reviews + 1)',
+                        '',
+                        '  Ex1: 4.5⭐ / 408 reviews',
+                        '       4.5 × log(409) = ' + _g1,
+                        '  Ex2: 4.2⭐ / 6707 reviews',
+                        '       4.2 × log(6708) = ' + _g2,
+                        '  Ex3: 4.8⭐ / 50 reviews',
+                        '       4.8 × log(51) = ' + _g3,
+                        '',
+                        'Why log? 400 reviews is more reliable than 40,',
+                        'but not 10× better. log() compresses large counts.',
+                        '',
+                        '── Favorites (4.2⭐/6707 as base G=' + _g2 + ') ──',
+                        'score = ' + _gw + '×G + ' + _base + ' + (ff − ' + _neutral + ') × ' + _bps,
+                        '',
+                        '  Ex1: FF=4.5 (good) → ' + _g2 + ' + ' + _base + ' + (4.5−' + _neutral + ')×' + _bps + ' = ' + _fav1,
+                        '  Ex2: FF=' + _neutral + ' (neutral) → ' + _g2 + ' + ' + _base + ' + 0 = ' + _fav2,
+                        '  Ex3: FF=' + (_threshold - 0.1).toFixed(1) + ' (poor) → ' + _g2 + ' + ' + _base + ' − ' + _penalty + ' = ' + _fav3,
+                      ].join('\n'), 'info', 'sticky');
+                    }} style={{ flexShrink: 0, background: '#0369a1', color: 'white', border: 'none', borderRadius: '50%', width: '18px', height: '18px', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', fontStyle: 'italic', fontWeight: 'bold' }}>i</button>
+                  </div>
                 );
                 const def = window.BKK._defaultSystemParams[p.key];
                 const isDefault = systemParams[p.key] === def;

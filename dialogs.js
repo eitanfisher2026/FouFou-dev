@@ -1460,44 +1460,36 @@
                 {/* Status toggle - locked (admin only) */}
                 {/* Actions: Enable/Disable + Delete (edit mode only) */}
                 {editingCustomInterest && isUnlocked && (
-                  <div className="border-t border-red-200 bg-red-50 px-4 py-2">
-                    <div className="flex gap-2">
-
-                      {isEditor && (() => {
-                        const inUseCount = customLocations.filter(loc => (loc.interests || []).includes(editingCustomInterest?.id)).length;
-                        const canDelete = isAdmin || inUseCount === 0;
-                        return canDelete ? (
+                  <div className="border-t border-red-100 px-4 py-2" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    {isEditor && (() => {
+                      const inUseCount = customLocations.filter(loc => (loc.interests || []).includes(editingCustomInterest?.id)).length;
+                      const canDelete = isAdmin || inUseCount === 0;
+                      return canDelete ? (
                         <button
                           onClick={() => {
                             if (newInterest.builtIn) {
-                              // Built-in interests: simple confirm + remove config only
                               const msg = `${t('interests.deleteBuiltIn')} "${newInterest.label}"?`;
                               showConfirm(msg, () => {
-                                if (isFirebaseAvailable && database) {
-                                  removeInterestConfig(editingCustomInterest.id);
-                                }
+                                if (isFirebaseAvailable && database) removeInterestConfig(editingCustomInterest.id);
                                 showToast(t('interests.builtInRemoved'), 'success');
-                                setShowAddInterestDialog(false);
-                                setEditingCustomInterest(null);
+                                setShowAddInterestDialog(false); setEditingCustomInterest(null);
                               }, { confirmLabel: t('general.delete') || 'מחק', confirmColor: '#ef4444' });
                             } else {
-                              // Custom interests: deleteCustomInterest handles its own confirm + full cleanup
-                              setShowAddInterestDialog(false);
-                              setEditingCustomInterest(null);
+                              setShowAddInterestDialog(false); setEditingCustomInterest(null);
                               deleteCustomInterest(editingCustomInterest.id);
                             }
                           }}
-                          className="flex-1 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700"
+                          style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '6px', border: '1px solid #fca5a5', background: 'white', color: '#dc2626', cursor: 'pointer', fontWeight: 'bold' }}
+                          title={t("general.deleteInterest")}
                         >
                           🗑️ {t("general.deleteInterest")}
                         </button>
-                        ) : (
-                        <div className="flex-1 py-2 bg-gray-200 text-gray-500 rounded-lg text-xs font-bold text-center" title={`${inUseCount} ${t('route.places')}`}>
-                          🔗 {t('auth.inUseBy') || `בשימוש ${inUseCount} מקומות`}
-                        </div>
-                        );
-                      })()}
-                    </div>
+                      ) : (
+                        <span style={{ fontSize: '10px', color: '#9ca3af' }} title={`${inUseCount} ${t('route.places')}`}>
+                          🔗 {inUseCount}
+                        </span>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
