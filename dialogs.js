@@ -1420,6 +1420,28 @@
                           ))}
                         </div>
                       </div>
+                      {isAdmin && (
+                        <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '8px' }}>
+                          <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', marginBottom: '4px' }}>🔒 Lock</div>
+                          <button type="button"
+                            onClick={async () => {
+                              const newLocked = !cfg.locked;
+                              const updCfg = { ...interestConfig, [interestId]: { ...cfg, locked: newLocked } };
+                              setInterestConfig(updCfg);
+                              if (isFirebaseAvailable && database) {
+                                database.ref(`settings/interestConfig/${interestId}/locked`).set(newLocked).catch(() => {});
+                                database.ref('settings/cacheVersion').set(Date.now()).catch(() => {});
+                              }
+                              showToast(`${newLocked ? '🔒' : '🔓'} ${tLabel(editingCustomInterest) || interestId}`, 'info');
+                            }}
+                            style={{ fontSize: '10px', padding: '3px 8px', borderRadius: '6px', cursor: 'pointer',
+                              background: cfg.locked ? '#fef3c7' : '#f1f5f9',
+                              border: `1px solid ${cfg.locked ? '#fcd34d' : '#e2e8f0'}`,
+                              fontWeight: cfg.locked ? 'bold' : 'normal' }}>
+                            {cfg.locked ? '🔒 On' : '🔓 Off'}
+                          </button>
+                        </div>
+                      )}
                       <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '8px' }}>
                         <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', marginBottom: '4px' }}>⭐ Places</div>
                         <div style={{ fontSize: '11px', fontWeight: 'bold', color: tagged.length > 0 ? '#059669' : '#94a3b8' }}>

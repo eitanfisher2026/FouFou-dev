@@ -2509,20 +2509,26 @@
                   .sort(([,a],[,b]) => a.localeCompare(b));
                 if (contributors.length <= 1) return null;
                 return (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                     <span style={{ fontSize: '10px', color: '#9ca3af' }}>👤</span>
-                    <button onClick={() => setFilterAddedBy('')}
-                      style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '12px', border: 'none', cursor: 'pointer',
-                        background: !filterAddedBy ? '#3b82f6' : '#e5e7eb', color: !filterAddedBy ? 'white' : '#6b7280', fontWeight: 'bold' }}>
-                      {t('general.all') || 'הכל'}
-                    </button>
-                    {contributors.map(([uid, name]) => (
-                      <button key={uid} onClick={() => setFilterAddedBy(prev => prev === uid ? '' : uid)}
-                        style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '12px', border: 'none', cursor: 'pointer',
-                          background: filterAddedBy === uid ? '#7c3aed' : '#e5e7eb', color: filterAddedBy === uid ? 'white' : '#6b7280', fontWeight: 'bold' }}>
-                        {name}
-                      </button>
-                    ))}
+                    <select
+                      value={filterAddedBy}
+                      onChange={e => {
+                        const v = e.target.value;
+                        setFilterAddedBy(v);
+                        try { localStorage.setItem('foufou_filter_addedby', v); } catch(_) {}
+                      }}
+                      style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '8px', border: '1px solid #d1d5db', background: filterAddedBy ? '#ede9fe' : 'white', color: filterAddedBy ? '#7c3aed' : '#374151', fontWeight: filterAddedBy ? 'bold' : 'normal', cursor: 'pointer' }}
+                    >
+                      <option value="">{t('general.all') || 'הכל'}</option>
+                      {contributors.map(([uid, name]) => (
+                        <option key={uid} value={uid}>{name}</option>
+                      ))}
+                    </select>
+                    {filterAddedBy && (
+                      <button onClick={() => { setFilterAddedBy(''); try { localStorage.removeItem('foufou_filter_addedby'); } catch(_) {} }}
+                        style={{ fontSize: '10px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}>✕</button>
+                    )}
                   </div>
                 );
               })()}

@@ -828,7 +828,7 @@
   const [lastImportBatch, setLastImportBatch] = useState(null); // batch ID of last import
   const [filterImportBatch, setFilterImportBatch] = useState(false); // filter to show only last import
   const [filterNoInterest, setFilterNoInterest] = useState(false); // admin/editor: show places with no interest
-  const [filterAddedBy, setFilterAddedBy] = useState(''); // admin/editor: filter by uid of creator
+  const [filterAddedBy, setFilterAddedBy] = useState(() => { try { return localStorage.getItem('foufou_filter_addedby') || ''; } catch(_) { return ''; } }); // admin/editor: filter by uid of creator
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [placesGroupBy, setPlacesGroupBy] = useState('interest'); // 'interest' or 'area'
   const [placesSortBy, setPlacesSortBy] = useState(() => {
