@@ -2588,7 +2588,22 @@
                 })()}
               </div>
               )}
-              
+              {/* addedBy הכל/אני — for any non-anonymous logged-in user, outside isUnlocked guard */}
+              {authUser && !authUser.isAnonymous && !isUnlocked && (() => {
+                const myUid = authUser.uid;
+                const hasMine = cityCustomLocations.some(l => l.addedBy === myUid);
+                if (!hasMine) return null;
+                const isFiltered = filterAddedBy === myUid;
+                return (
+                  <div className="flex mb-2 gap-1 items-center justify-end">
+                    <button
+                      onClick={() => { const v = isFiltered ? '' : myUid; setFilterAddedBy(v); try { localStorage.setItem('foufou_filter_addedby', v); } catch(_) {} }}
+                      className={`px-2 py-1 rounded text-xs font-bold transition-all ${isFiltered ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                    >{isFiltered ? '👤 אני' : '👤 הכל'}</button>
+                  </div>
+                );
+              })()}
+
               {/* Pending locations waiting for sync */}
               {lastImportBatch && (placesTab === 'all' || placesTab === 'drafts') && (() => {
                 const batchCount = cityCustomLocations.filter(l => l.importBatch === lastImportBatch && l.status !== 'blacklist' && !l.locked).length;
