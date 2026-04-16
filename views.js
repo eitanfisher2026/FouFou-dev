@@ -1183,7 +1183,7 @@
                         border: canSearch ? '2px solid #22c55e' : '2px solid #d1d5db',
                         background: canSearch ? 'linear-gradient(135deg, #f0fdf4, #dcfce7)' : '#f3f4f6',
                         color: canSearch ? '#15803d' : '#9ca3af', fontSize: '16px', fontWeight: 'bold' }}
-                    >{isDataLoaded ? `🔍 ${t('wizard.findPlaces')} (${formData.maxStops || 10})` : `⏳ ${t('general.loading')}...`}</button>
+                    >{isDataLoaded ? `🔍 ${t('wizard.findPlaces')} (${t('general.upTo') || 'עד'} ${formData.maxStops || 10})` : `⏳ ${t('general.loading')}...`}</button>
                   );
                 })()}
               </div>
