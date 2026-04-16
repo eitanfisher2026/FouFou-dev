@@ -1750,10 +1750,65 @@
 
   const parseTakeoutFile = (file) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
+
+    const processJsonText = (text) => {
       try {
-        const data = JSON.parse(e.target.result);
+        const data = JSON.parse(text);
+        if (!data.features || !Array.isArray(data.features)) {
+          showToast('Invalid file — expected Saved Places.json (GeoJSON format)', 'error');
+          return;
+        }
+        processTakeoutData(data);
+      } catch (err) {
+        showToast('Error reading file: ' + err.message, 'error');
+      }
+    };
+
+    // Handle ZIP file
+    if (file.name.endsWith('.zip') || file.type === 'application/zip') {
+      // Dynamically load JSZip from CDN
+      if (!window.JSZip) {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+        script.onload = () => extractFromZip(file);
+        script.onerror = () => showToast('Failed to load ZIP library', 'error');
+        document.head.appendChild(script);
+      } else {
+        extractFromZip(file);
+      }
+      return;
+    }
+
+    // Handle JSON file
+    const reader = new FileReader();
+    reader.onload = (e) => processJsonText(e.target.result);
+    reader.readAsText(file);
+
+    function extractFromZip(zipFile) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const zip = await window.JSZip.loadAsync(e.target.result);
+          // Find Saved Places.json anywhere in the ZIP
+          let targetFile = null;
+          zip.forEach((path, f) => {
+            if (!f.dir && path.match(/Saved Places\.json$/i)) targetFile = f;
+          });
+          if (!targetFile) {
+            showToast('Could not find "Saved Places.json" inside the ZIP', 'error');
+            return;
+          }
+          const text = await targetFile.async('text');
+          processJsonText(text);
+        } catch (err) {
+          showToast('Error reading ZIP: ' + err.message, 'error');
+        }
+      };
+      reader.readAsArrayBuffer(zipFile);
+    }
+
+    function processTakeoutData(data) {
+      try {
         if (!data.features || !Array.isArray(data.features)) {
           showToast('Invalid file — expected Saved Places.json (GeoJSON format)', 'error');
           return;
@@ -1841,8 +1896,7 @@
         console.error('[TAKEOUT] Parse error:', err);
         showToast('Error reading file: ' + err.message, 'error');
       }
-    };
-    reader.readAsText(file);
+    } // end processTakeoutData
   };
 
   const executeTakeoutImport = async () => {
