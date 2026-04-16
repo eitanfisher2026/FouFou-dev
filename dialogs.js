@@ -3665,12 +3665,19 @@
                     !used.has(locKey(l)) && locKey(l) !== locKey(dl) &&
                     dist(dl, l) <= aRadius && intOverlap(dl.interests, l.interests)
                   );
-                  if (isUnlocked) console.log('[DEDUP-APPROVED] Pass2 dl=' + dl.name + ' key=' + locKey(dl) + ' partners=' + partners.map(p => p.name + '/' + locKey(p)).join(','));
                   if (partners.length === 0) continue; // no partner → Pass 3 will auto-clear
                   used.add(locKey(dl));
                   partners.forEach(l => used.add(locKey(l)));
                   approvedClusters.push({ loc: dl, matches: partners.map(l => ({ ...l, _distance: dist(dl, l) })), _matchType: 'proximity' });
                 }
+                // Dedup approvedClusters by loc key (guard against React double-render)
+                const seenClusterKeys = new Set();
+                const dedupedClusters = approvedClusters.filter(c => {
+                  const k = locKey(c.loc);
+                  if (seenClusterKeys.has(k)) return false;
+                  seenClusterKeys.add(k);
+                  return true;
+                });
                 // Pass 3: solo dedupOk — partner was deleted, auto-clear the flag
                 for (const dl of dedupLocs.filter(l => !used.has(locKey(l)))) {
                   setCustomLocations(prev => prev.map(l => l.id === dl.id ? { ...l, dedupOk: false } : l));
@@ -3700,7 +3707,7 @@
                     </button>
                     {isOpen && (
                       <div style={{ padding: '8px 12px', background: 'white' }}>
-                        {approvedClusters.map((cluster, ci) => {
+                        {dedupedClusters.map((cluster, ci) => {
                           const allPlaces = [cluster.loc, ...cluster.matches];
                           return (
                             <div key={ci} style={{ marginBottom: '12px', padding: '10px', background: '#f0fdf4', border: '2px solid #86efac', borderRadius: '12px' }}>
