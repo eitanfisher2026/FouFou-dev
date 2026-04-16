@@ -9478,6 +9478,18 @@
     }
 
     setBulkDedupResults(clusters);
+    // Auto-clear dedupOk on places whose partner no longer exists
+    const usedInClusters = new Set();
+    clusters.forEach(c => { usedInClusters.add(c.loc.id); c.matches.forEach(m => usedInClusters.add(m.id)); });
+    const orphans = customLocations.filter(l => l.dedupOk && !usedInClusters.has(l.id) && l.status !== 'blacklist');
+    if (orphans.length > 0) {
+      setCustomLocations(prev => prev.map(l => orphans.some(o => o.id === l.id) ? { ...l, dedupOk: false } : l));
+      orphans.forEach(l => {
+        if (isFirebaseAvailable && database && l.firebaseKey)
+          database.ref(`cities/${selectedCityId}/locations/${l.firebaseKey}`).update({ dedupOk: false });
+      });
+      showToast(`🧹 ${orphans.length} ${currentLang === 'he' ? 'סימוני כפילות נוקו אוטומטית' : 'orphaned duplicate flags cleared'}`, 'info');
+    }
     // Use same filter as the dialog — skip clusters where all places have dedupOk
     const visibleClusters = clusters.filter(c => ![c.loc, ...c.matches].every(p => p.dedupOk));
     if (visibleClusters.length === 0) {

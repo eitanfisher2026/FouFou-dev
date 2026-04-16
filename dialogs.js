@@ -3660,9 +3660,12 @@
                   partners.forEach(l => used.add(l.id));
                   approvedClusters.push({ loc: dl, matches: partners.map(l => ({ ...l, _distance: dist(dl, l) })), _matchType: 'proximity' });
                 }
-                // Pass 3: solo dedupOk (no partner found — show anyway for revoke)
+                // Pass 3: solo dedupOk — partner was deleted, auto-clear the flag
                 for (const dl of dedupLocs.filter(l => !used.has(l.id))) {
-                  approvedClusters.push({ loc: dl, matches: [], _matchType: 'solo' });
+                  setCustomLocations(prev => prev.map(l => l.id === dl.id ? { ...l, dedupOk: false } : l));
+                  if (isFirebaseAvailable && database && dl.firebaseKey) {
+                    database.ref(`cities/${selectedCityId}/locations/${dl.firebaseKey}`).update({ dedupOk: false });
+                  }
                 }
 
                 const isOpen = !!window._dedupApprovedOpen;
