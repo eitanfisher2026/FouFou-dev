@@ -3665,6 +3665,7 @@
                     !used.has(locKey(l)) && locKey(l) !== locKey(dl) &&
                     dist(dl, l) <= aRadius && intOverlap(dl.interests, l.interests)
                   );
+                  if (isUnlocked) console.log('[DEDUP-APPROVED] Pass2 dl=' + dl.name + ' key=' + locKey(dl) + ' partners=' + partners.map(p => p.name + '/' + locKey(p)).join(','));
                   if (partners.length === 0) continue; // no partner → Pass 3 will auto-clear
                   used.add(locKey(dl));
                   partners.forEach(l => used.add(locKey(l)));
@@ -3673,8 +3674,9 @@
                 // Pass 3: solo dedupOk — partner was deleted, auto-clear the flag
                 for (const dl of dedupLocs.filter(l => !used.has(locKey(l)))) {
                   setCustomLocations(prev => prev.map(l => l.id === dl.id ? { ...l, dedupOk: false } : l));
-                  if (isFirebaseAvailable && database && dl.firebaseKey) {
-                    database.ref(`cities/${selectedCityId}/locations/${dl.firebaseKey}`).update({ dedupOk: false });
+                  const fbKey = dl.firebaseId || dl.firebaseKey;
+                  if (isFirebaseAvailable && database && fbKey) {
+                    database.ref(`cities/${selectedCityId}/locations/${fbKey}`).update({ dedupOk: false });
                   }
                 }
 
@@ -3682,8 +3684,9 @@
                 const toggle = () => { window._dedupApprovedOpen = !isOpen; setBulkDedupResults(prev => prev ? [...prev] : prev); };
                 const revoke = (loc) => {
                   setCustomLocations(prev => prev.map(l => l.id === loc.id ? { ...l, dedupOk: false } : l));
-                  if (isFirebaseAvailable && database && loc.firebaseKey) {
-                    database.ref(`cities/${selectedCityId}/locations/${loc.firebaseKey}`).update({ dedupOk: false });
+                  const fbKey = loc.firebaseId || loc.firebaseKey;
+                  if (isFirebaseAvailable && database && fbKey) {
+                    database.ref(`cities/${selectedCityId}/locations/${fbKey}`).update({ dedupOk: false });
                   }
                 };
 
