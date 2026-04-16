@@ -262,10 +262,18 @@
                       return canSearchEdit ? (
                         <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
                           <button
-                            onClick={() => searchPlacesByName(newLocation.name)}
-                            disabled={!newLocation.name?.trim()}
-                            className={`flex-1 py-1.5 rounded-lg text-xs font-bold ${newLocation.name?.trim() ? 'bg-purple-500 text-white hover:bg-purple-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                          >🔍 {t("form.searchPlaceGoogle")}</button>
+                            onClick={() => {
+                              // If placeId known and editor+ → fetch Place Details directly ($0.017 vs $0.032)
+                              if (isUnlocked && newLocation.googlePlaceId) {
+                                setGooglePlaceInfo(null);
+                                fetchGooglePlaceInfo(newLocation);
+                              } else {
+                                searchPlacesByName(newLocation.name);
+                              }
+                            }}
+                            disabled={!newLocation.name?.trim() || loadingGoogleInfo}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-bold ${newLocation.name?.trim() && !loadingGoogleInfo ? 'bg-purple-500 text-white hover:bg-purple-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                          >{loadingGoogleInfo ? `⏳ ...` : isUnlocked && newLocation.googlePlaceId ? `🔍 ${t('places.googleInfo') || 'Google Info'}` : `🔍 ${t('form.searchPlaceGoogle')}`}</button>
                         </div>
                       ) : null;
                     })()}
@@ -298,6 +306,19 @@
                               }
                               setNewLocation(updatedLoc);
                               setLocationSearchResults(null);
+                              // Auto-populate Google Info from search result (types already in FieldMask — no extra API call)
+                              if (isUnlocked && (result.types || result.primaryType)) {
+                                setGooglePlaceInfo({
+                                  name: result.name,
+                                  address: result.address,
+                                  types: result.types || [],
+                                  primaryType: result.primaryType || null,
+                                  primaryTypeDisplayName: result.primaryTypeDisplayName || null,
+                                  rating: result.rating,
+                                  ratingCount: result.ratingCount,
+                                  googlePlaceId: result.googlePlaceId
+                                });
+                              }
                               showToast(`✅ ${result.name} ${t("toast.selectedPlace")}${detected.length > 0 ? ` (${detected.length} ${t("toast.detectedAreas")})` : ''}`, 'success');
                             }}
                             style={{ width: '100%', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left', padding: '6px 10px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: 'none', border: 'none', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}
@@ -716,13 +737,7 @@
                       {/* Edit-mode only: Google Info + Lock + Skip + Metadata */}
                       {showEditLocationDialog && (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 space-y-1.5" style={{ position: 'relative', zIndex: 15 }}>
-                          {/* Row 1: Google Info */}
-                          {(isAdmin || isEditor) && (
-                            <button onClick={() => { setGooglePlaceInfo(null); fetchGooglePlaceInfo(newLocation); }}
-                              disabled={!newLocation.name?.trim() || loadingGoogleInfo}
-                              className={`w-full py-1.5 rounded-lg text-xs font-bold ${newLocation.name?.trim() && !loadingGoogleInfo ? 'bg-indigo-500 text-white hover:bg-indigo-600' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-                            >🔍 {loadingGoogleInfo ? '...' : t('places.googleInfo')}</button>
-                          )}
+                          {/* Google Info result panel — populated by search button above */}
                           {googlePlaceInfo && !googlePlaceInfo.notFound && (
                             <div className="text-xs space-y-1 bg-white rounded p-2 border border-indigo-200" style={{ direction: 'ltr' }}>
                               <div><span className="font-bold text-indigo-700">Found:</span><span className="ml-1">{googlePlaceInfo.name}</span></div>
@@ -3547,7 +3562,10 @@
                 return (
                 <div key={ci} style={{ marginBottom: '16px', padding: '12px', background: '#fefce8', border: '2px solid #eab308', borderRadius: '14px' }}>
                   <div style={{ fontSize: '10px', color: '#92400e', fontWeight: 'bold', marginBottom: '8px', textAlign: 'center' }}>
-                    {allPlaces.length} {t('route.places')} · {cluster.matches[0]?._distance || 0}m
+                    {cluster._matchType === 'placeId'
+                      ? `🆔 ${currentLang === 'he' ? 'אותו Place ID' : 'Same Place ID'} · ${allPlaces.length} ${t('route.places')}`
+                      : `📐 ${allPlaces.length} ${t('route.places')} · ${cluster.matches[0]?._distance || 0}m`
+                    }
                   </div>
                   {allPlaces.map((loc, li) => {
                     const interest = allInterestOptions.find(o => loc.interests?.includes(o.id));

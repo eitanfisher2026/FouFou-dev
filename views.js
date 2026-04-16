@@ -2432,14 +2432,9 @@
               <h2 className="text-lg font-bold" style={{ flexShrink: 0 }}>{`⭐ ${t("nav.favorites")}`}</h2>
               <span style={{ fontSize: '11px', color: '#9ca3af', flexShrink: 0 }}>({groupedPlaces.activeCount})</span>
               {isUnlocked && customLocations.length > 1 && (
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  <button onClick={() => scanAllDuplicates(false)}
-                    style={{ padding: '4px 8px', fontSize: '10px', fontWeight: 'bold', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
-                    title={t('dedup.scanByInterest')}>🔍</button>
-                  <button onClick={() => scanAllDuplicates(true)}
-                    style={{ padding: '4px 8px', fontSize: '10px', fontWeight: 'bold', background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
-                    title={t('dedup.scanCoordsButton')}>📐</button>
-                </div>
+                <button onClick={() => scanAllDuplicates()}
+                  style={{ padding: '4px 8px', fontSize: '10px', fontWeight: 'bold', background: 'linear-gradient(135deg, #f59e0b, #8b5cf6)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', flexShrink: 0 }}
+                  title={t('dedup.scanByInterest')}>🔍📐</button>
               )}
               <div style={{ marginInlineStart: 'auto', display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
                 {authUser && !authUser.isAnonymous && !isUnlocked && (() => {

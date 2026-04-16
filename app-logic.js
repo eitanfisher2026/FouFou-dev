@@ -5545,70 +5545,69 @@
     setLoadingGoogleInfo(true);
     
     try {
-      // Use Text Search to find the place
-      const searchQuery = location.name + ' ' + (window.BKK.cityNameForSearch || 'Bangkok');
-      
-      const response = await fetch(GOOGLE_PLACES_TEXT_SEARCH_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType,places.primaryTypeDisplayName,places.currentOpeningHours'
-        },
-        body: JSON.stringify({
-          textQuery: searchQuery,
-          maxResultCount: 5,
-          locationBias: location.lat && location.lng ? {
-            circle: {
-              center: { latitude: location.lat, longitude: location.lng },
-              radius: 1000.0
-            }
-          } : undefined
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Google API error');
-      }
-      
-      const data = await response.json();
-      
-      if (!data.places || data.places.length === 0) {
-        setGooglePlaceInfo({ notFound: true, searchQuery });
-        showToast(t('places.placeNotOnGoogle'), 'warning');
-        return null;
-      }
-      
-      // Find best match (closest to our coordinates if available)
-      let bestMatch = data.places[0];
-      
-      if (location.lat && location.lng && data.places.length > 1) {
-        const getDistance = (place) => {
-          const lat = place.location?.latitude || 0;
-          const lng = place.location?.longitude || 0;
-          return Math.sqrt(Math.pow(lat - location.lat, 2) + Math.pow(lng - location.lng, 2));
-        };
-        
-        bestMatch = data.places.reduce((best, place) => 
-          getDistance(place) < getDistance(best) ? place : best
+      let bestMatch = null;
+
+      // Prefer Place Details GET ($0.017) over Text Search ($0.032) when placeId known
+      if (location.googlePlaceId) {
+        const resp = await fetch(
+          `https://places.googleapis.com/v1/places/${location.googlePlaceId}`,
+          { method: 'GET', headers: {
+            'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+            'X-Goog-FieldMask': 'id,displayName,formattedAddress,location,rating,userRatingCount,types,primaryType,primaryTypeDisplayName,currentOpeningHours'
+          }}
         );
+        if (resp.ok) {
+          const d = await resp.json();
+          bestMatch = { ...d, id: d.id || location.googlePlaceId };
+        }
+      }
+
+      // Fallback: Text Search by name (when no placeId or Place Details failed)
+      if (!bestMatch) {
+        const searchQuery = location.name + ' ' + (window.BKK.cityNameForSearch || 'Bangkok');
+        const response = await fetch(GOOGLE_PLACES_TEXT_SEARCH_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType,places.primaryTypeDisplayName,places.currentOpeningHours'
+          },
+          body: JSON.stringify({
+            textQuery: searchQuery,
+            maxResultCount: 5,
+            locationBias: location.lat && location.lng ? {
+              circle: { center: { latitude: location.lat, longitude: location.lng }, radius: 1000.0 }
+            } : undefined
+          })
+        });
+        if (!response.ok) throw new Error('Google API error');
+        const data = await response.json();
+        if (!data.places || data.places.length === 0) {
+          setGooglePlaceInfo({ notFound: true, searchQuery });
+          showToast(t('places.placeNotOnGoogle'), 'warning');
+          setLoadingGoogleInfo(false);
+          return null;
+        }
+        // Pick closest result
+        let pick = data.places[0];
+        if (location.lat && location.lng && data.places.length > 1) {
+          const dist = p => Math.sqrt(Math.pow((p.location?.latitude||0) - location.lat, 2) + Math.pow((p.location?.longitude||0) - location.lng, 2));
+          pick = data.places.reduce((b, p) => dist(p) < dist(b) ? p : b);
+        }
+        bestMatch = { ...pick, id: pick.id };
       }
       
+      // Normalize: Place Details returns flat fields; Text Search wraps them the same way
       const placeInfo = {
-        name: bestMatch.displayName?.text,
+        name: bestMatch.displayName?.text || bestMatch.displayName,
         address: bestMatch.formattedAddress,
         types: bestMatch.types || [],
         primaryType: bestMatch.primaryType,
-        primaryTypeDisplayName: bestMatch.primaryTypeDisplayName?.text,
+        primaryTypeDisplayName: bestMatch.primaryTypeDisplayName?.text || bestMatch.primaryTypeDisplayName,
         rating: bestMatch.rating,
         ratingCount: bestMatch.userRatingCount,
         location: bestMatch.location,
-        googlePlaceId: bestMatch.id || null,
-        allResults: data.places.map(p => ({
-          name: p.displayName?.text,
-          types: p.types,
-          primaryType: p.primaryType
-        }))
+        googlePlaceId: bestMatch.id || null
       };
       
       setGooglePlaceInfo(placeInfo);
@@ -9413,26 +9412,44 @@
   };
 
   // Bulk dedup scan — find all suspected duplicate pairs
-  const scanAllDuplicates = (coordsOnly = false) => {
+  const scanAllDuplicates = () => {
     const radius = sp.dedupRadiusMeters || 50;
     const locs = customLocations.filter(l => l.lat && l.lng);
     const clusters = [];
     const seen = new Set();
-    
-    // Build related interest map (bidirectional) — only for interest-based mode
-    const relatedMap = {};
-    if (!coordsOnly) {
-      for (const opt of allInterestOptions) {
-        const related = interestConfig[opt.id]?.dedupRelated || opt.dedupRelated || [];
-        if (!relatedMap[opt.id]) relatedMap[opt.id] = new Set();
-        related.forEach(r => {
-          relatedMap[opt.id].add(r);
-          if (!relatedMap[r]) relatedMap[r] = new Set();
-          relatedMap[r].add(opt.id);
-        });
+
+    // Pass 1: exact googlePlaceId match — definite duplicates, free, no API call
+    const byPlaceId = {};
+    for (const loc of locs) {
+      if (loc.googlePlaceId) {
+        if (!byPlaceId[loc.googlePlaceId]) byPlaceId[loc.googlePlaceId] = [];
+        byPlaceId[loc.googlePlaceId].push(loc);
       }
     }
-    
+    for (const group of Object.values(byPlaceId)) {
+      if (group.length < 2) continue;
+      const [first, ...rest] = group;
+      if (seen.has(first.id)) continue;
+      seen.add(first.id);
+      rest.forEach(l => seen.add(l.id));
+      clusters.push({
+        loc: first,
+        matches: rest.map(l => ({ ...l, _distance: Math.round(calcDistance(first.lat, first.lng, l.lat, l.lng)), _matchType: 'placeId' })),
+        _matchType: 'placeId'
+      });
+    }
+
+    // Pass 2: proximity + overlapping interests (bidirectional dedupRelated)
+    const relatedMap = {};
+    for (const opt of allInterestOptions) {
+      const related = interestConfig[opt.id]?.dedupRelated || opt.dedupRelated || [];
+      if (!relatedMap[opt.id]) relatedMap[opt.id] = new Set();
+      related.forEach(r => {
+        relatedMap[opt.id].add(r);
+        if (!relatedMap[r]) relatedMap[r] = new Set();
+        relatedMap[r].add(opt.id);
+      });
+    }
     const interestsOverlap = (a, b) => {
       if (!a?.length || !b?.length) return false;
       for (const ia of a) {
@@ -9442,30 +9459,33 @@
       }
       return false;
     };
-    
     for (let i = 0; i < locs.length; i++) {
       if (seen.has(locs[i].id)) continue;
       const matches = [];
       for (let j = i + 1; j < locs.length; j++) {
         if (seen.has(locs[j].id)) continue;
         const dist = calcDistance(locs[i].lat, locs[i].lng, locs[j].lat, locs[j].lng);
-        if (dist <= radius && (coordsOnly || interestsOverlap(locs[i].interests, locs[j].interests))) {
-          matches.push({ ...locs[j], _distance: Math.round(dist) });
+        if (dist <= radius && interestsOverlap(locs[i].interests, locs[j].interests)) {
+          matches.push({ ...locs[j], _distance: Math.round(dist), _matchType: 'proximity' });
           seen.add(locs[j].id);
         }
       }
       if (matches.length > 0) {
         seen.add(locs[i].id);
-        clusters.push({ loc: locs[i], matches });
+        clusters.push({ loc: locs[i], matches, _matchType: 'proximity' });
       }
     }
-    
+
     setBulkDedupResults(clusters);
-    const modeLabel = coordsOnly ? '📐' : '🔍';
     if (clusters.length === 0) {
       showToast('✅ ' + t('dedup.noDuplicates'), 'success');
     } else {
-      showToast(`${modeLabel} ${clusters.length} ${t('dedup.clustersFound')}`, 'info');
+      const placeIdCount = clusters.filter(c => c._matchType === 'placeId').length;
+      const proxCount = clusters.filter(c => c._matchType === 'proximity').length;
+      const parts = [];
+      if (placeIdCount > 0) parts.push(`🆔 ${placeIdCount}`);
+      if (proxCount > 0) parts.push(`📐 ${proxCount}`);
+      showToast(`${parts.join(' · ')} ${t('dedup.clustersFound')}`, 'info');
     }
   };
 
@@ -9976,7 +9996,7 @@
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount'
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.primaryType,places.primaryTypeDisplayName'
         },
         body: JSON.stringify({ textQuery: searchQuery, maxResultCount: window.BKK.systemParams?.pointSearchMaxGoogle || 10 })
       });
@@ -10032,7 +10052,7 @@
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount'
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.primaryType,places.primaryTypeDisplayName'
         },
         body: JSON.stringify({ textQuery: searchQuery, maxResultCount: window.BKK.systemParams?.pointSearchMaxGoogle || 10 })
       });
