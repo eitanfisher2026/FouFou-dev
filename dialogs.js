@@ -655,11 +655,11 @@
                             onClick={() => {
                               const newVal = !newLocation.dedupOk;
                               setNewLocation({...newLocation, dedupOk: newVal});
-                              // Save immediately — don't wait for "עדכן"
+                              setEditingLocation(prev => prev ? { ...prev, dedupOk: newVal } : prev);
+                              setCustomLocations(prev => prev.map(l => l.id === editingLocation?.id ? { ...l, dedupOk: newVal } : l));
                               if (editingLocation?.firebaseKey && isFirebaseAvailable && database) {
                                 database.ref(`cities/${selectedCityId}/locations/${editingLocation.firebaseKey}`).update({ dedupOk: newVal });
                               }
-                              setCustomLocations(prev => prev.map(l => l.id === editingLocation?.id ? { ...l, dedupOk: newVal } : l));
                             }}
                             style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '3px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', border: newLocation.dedupOk ? '1.5px solid #16a34a' : '1.5px solid #d1d5db', background: newLocation.dedupOk ? '#f0fdf4' : '#f9fafb', color: newLocation.dedupOk ? '#15803d' : '#9ca3af' }}
                             title={newLocation.dedupOk ? 'כפילות אושרה' : 'לא נבדק לכפילויות'}
