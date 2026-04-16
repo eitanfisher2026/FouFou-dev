@@ -1020,8 +1020,8 @@
                                             if (matchedFav) {
                                               // Ask user — different name, same place
                                               const msg = currentLang === 'he'
-                                                ? `"${matchedFav.name}" שמור אצלך במועדפים — להשתמש בגרסה שלך?`
-                                                : `"${matchedFav.name}" is in your favorites — use your saved version?`;
+                                                ? `"${matchedFav.name}" קיים במועדפים. להשתמש בו?`
+                                                : `"${matchedFav.name}" is in your favorites. Use it?`;
                                               showConfirm(msg,
                                                 () => applyResult({ name: matchedFav.name, lat: matchedFav.lat, lng: matchedFav.lng, googlePlaceId: matchedFav.googlePlaceId || result.googlePlaceId, isFavorite: true }),
                                                 { confirmLabel: currentLang === 'he' ? '⭐ כן, השתמש במועדף' : '⭐ Yes, use favorite', confirmColor: '#2563eb', cancelLabel: currentLang === 'he' ? 'לא, גוגל' : 'No, Google', onCancel: () => applyResult(result, true) }

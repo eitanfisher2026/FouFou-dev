@@ -622,6 +622,29 @@
                     );
                   })()}
 
+                  {/* Status toggle: draft / approved — below ratings, outside collapsible */}
+                  {showEditLocationDialog && (() => {
+                    const canToggleStatus = isAdmin || isEditor ||
+                      (authUser?.uid && (editingLocation?.userId === authUser?.uid || editingLocation?.addedBy === authUser?.uid));
+                    if (!canToggleStatus) return null;
+                    const isApproved = !!newLocation.locked;
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '4px' }}>
+                        <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>
+                          {currentLang === 'he' ? 'סטטוס:' : 'Status:'}
+                        </span>
+                        <button type="button"
+                          onClick={() => setNewLocation({...newLocation, locked: !isApproved})}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', border: isApproved ? '1.5px solid #16a34a' : '1.5px solid #f59e0b', background: isApproved ? '#f0fdf4' : '#fffbeb', color: isApproved ? '#15803d' : '#b45309' }}
+                          title={isApproved ? (t('places.approved') || 'מאושר') : (t('places.draft') || 'טיוטה')}
+                        >
+                          {isApproved ? '✅' : '📝'}
+                          {isApproved ? (t('places.approved') || 'מאושר') : (t('places.draft') || 'טיוטה')}
+                        </button>
+                      </div>
+                    );
+                  })()}
+
                 </div>
 
                 {/* ── "פרטים נוספים" collapsible ── */}
@@ -690,18 +713,12 @@
                       {/* Edit-mode only: Google Info + Lock + Skip + Metadata */}
                       {showEditLocationDialog && (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 space-y-1.5" style={{ position: 'relative', zIndex: 15 }}>
-                          {/* Row 1: Google Info + Lock toggle */}
+                          {/* Row 1: Google Info */}
                           {(isAdmin || isEditor) && (
-                            <div className="flex gap-1.5 items-center">
-                              <button onClick={() => { setGooglePlaceInfo(null); fetchGooglePlaceInfo(newLocation); }}
-                                disabled={!newLocation.name?.trim() || loadingGoogleInfo}
-                                className={`flex-1 py-1.5 rounded-lg text-xs font-bold ${newLocation.name?.trim() && !loadingGoogleInfo ? 'bg-indigo-500 text-white hover:bg-indigo-600' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
-                              >🔍 {loadingGoogleInfo ? '...' : t('places.googleInfo')}</button>
-                              <button type="button" onClick={() => setNewLocation({...newLocation, locked: !newLocation.locked})}
-                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${newLocation.locked ? 'border-green-600 bg-green-600 text-white' : 'border-amber-300 bg-amber-50 text-amber-600'}`}
-                                title={newLocation.locked ? t('places.approved') || 'מאושר' : t('places.draft') || 'טיוטה'}
-                              >{newLocation.locked ? '🔒' : '✏️'}</button>
-                            </div>
+                            <button onClick={() => { setGooglePlaceInfo(null); fetchGooglePlaceInfo(newLocation); }}
+                              disabled={!newLocation.name?.trim() || loadingGoogleInfo}
+                              className={`w-full py-1.5 rounded-lg text-xs font-bold ${newLocation.name?.trim() && !loadingGoogleInfo ? 'bg-indigo-500 text-white hover:bg-indigo-600' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                            >🔍 {loadingGoogleInfo ? '...' : t('places.googleInfo')}</button>
                           )}
                           {googlePlaceInfo && !googlePlaceInfo.notFound && (
                             <div className="text-xs space-y-1 bg-white rounded p-2 border border-indigo-200" style={{ direction: 'ltr' }}>
@@ -2074,8 +2091,8 @@
                           );
                           if (matchedFav) {
                             const msg = currentLang === 'he'
-                              ? `"${matchedFav.name}" שמור אצלך במועדפים — להשתמש בגרסה שלך?`
-                              : `"${matchedFav.name}" is in your favorites — use your saved version?`;
+                              ? `"${matchedFav.name}" קיים במועדפים. להשתמש בו?`
+                              : `"${matchedFav.name}" is in your favorites. Use it?`;
                             showConfirm(msg,
                               () => addManualStop({ name: matchedFav.name, lat: matchedFav.lat, lng: matchedFav.lng, address: matchedFav.address, rating: matchedFav.googleRating, ratingCount: matchedFav.googleRatingCount, googlePlaceId: matchedFav.googlePlaceId, isFavorite: true }),
                               { confirmLabel: currentLang === 'he' ? '⭐ כן, השתמש במועדף' : '⭐ Yes, use favorite', confirmColor: '#2563eb', cancelLabel: currentLang === 'he' ? 'לא, גוגל' : 'No, Google', onCancel: () => addManualStop(result) }
