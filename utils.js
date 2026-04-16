@@ -198,6 +198,29 @@ window.BKK.getInterestColor = (interestId, allInterests) => {
 };
 
 // ============================================================================
+// Pick the dominant (most-specific) interest from a set for display color.
+// Rule: if interest A appears in interest B's dedupRelated (both in the set),
+//       A is the "child"/specific one and wins. Ties → first in allInts order.
+// Used by favorites map, and anywhere a single representative color is needed.
+// ============================================================================
+window.BKK.pickDominantInterest = (ids, allInts) => {
+  if (!ids || ids.length === 0) return null;
+  if (ids.length === 1) return ids[0];
+  const set = new Set(ids);
+  // Collect candidates that are referenced as "child" by a sibling
+  const children = ids.filter(id =>
+    allInts.some(o => set.has(o.id) && o.id !== id && (o.dedupRelated || []).includes(id))
+  );
+  // From children pick first in system order; fall back to first id in system order
+  const ordered = allInts.map(o => o.id).filter(id => set.has(id));
+  if (children.length > 0) {
+    const winner = ordered.find(id => children.includes(id));
+    if (winner) return winner;
+  }
+  return ordered[0] || ids[0];
+};
+
+// ============================================================================
 // Get all areas for a location (handles both .areas array and .area string)
 // ============================================================================
 window.BKK.getLocationAreas = (loc) => {

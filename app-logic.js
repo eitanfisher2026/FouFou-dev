@@ -1658,7 +1658,13 @@
           // Place markers in placeMarkersPane (z-650), always on top
           const mkrs = [];
           locs.forEach(loc => {
-            const pi = (loc.interests || [])[0];
+            const locInts = loc.interests || [];
+            // Determine which interests to consider: active filter narrows the pool
+            const relevantInts = mapFavFilter.size > 0
+              ? locInts.filter(id => mapFavFilter.has(id))
+              : locInts;
+            // Pick the most specific (dominant) interest for color
+            const pi = window.BKK.pickDominantInterest(relevantInts.length > 0 ? relevantInts : locInts, allInts);
             const color = pi ? window.BKK.getInterestColor(pi, allInts) : '#9ca3af';
             const isFocused = mapFocusPlace && mapFocusPlace.id === loc.id;
             const r = isFocused ? 11 : 8;
