@@ -1789,13 +1789,28 @@
       reader.onload = async (e) => {
         try {
           const zip = await window.JSZip.loadAsync(e.target.result);
-          // Find Saved Places.json anywhere in the ZIP
+          // Find the GeoJSON places file — try by name first, then by content
           let targetFile = null;
+          const jsonFiles = [];
           zip.forEach((path, f) => {
-            if (!f.dir && path.match(/Saved Places\.json$/i)) targetFile = f;
+            if (!f.dir && path.match(/\.json$/i)) {
+              // Prefer files with "saved" or "places" or "שמור" in path
+              if (path.match(/saved|places|שמור|מקומות/i)) targetFile = f;
+              else jsonFiles.push(f);
+            }
           });
+          // Fallback: try all JSON files, pick the one with "features" array
           if (!targetFile) {
-            showToast('Could not find "Saved Places.json" inside the ZIP', 'error');
+            for (const f of jsonFiles) {
+              const sample = await f.async('text');
+              if (sample.includes('"features"') && sample.includes('"geometry"')) {
+                targetFile = f;
+                break;
+              }
+            }
+          }
+          if (!targetFile) {
+            showToast('Could not find places file inside the ZIP', 'error');
             return;
           }
           const text = await targetFile.async('text');

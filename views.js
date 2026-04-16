@@ -2458,16 +2458,6 @@
                     >📥 <span>ייבא שמורים מגוגל</span></label>
                   </>
                 )}
-                {isAdmin && (
-                  <>
-                    <input type="file" accept=".json" id="importDataFav" className="hidden"
-                      onChange={(e) => { parseImportFile(e.target.files?.[0]); e.target.value = ''; }} />
-                    <label htmlFor="importDataFav"
-                      title="Import FouFou backup"
-                      style={{ padding: '3px 6px', fontSize: '12px', cursor: 'pointer', display: 'inline-block', opacity: 0.5 }}
-                    >📦</label>
-                  </>
-                )}
               </div>
             </div>
             {renderContextHint('hint_favorites')}
