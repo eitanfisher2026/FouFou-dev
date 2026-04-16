@@ -3646,9 +3646,6 @@
                   return false;
                 };
                 const dist = (a, b) => Math.round(calcDistance(a.lat, a.lng, b.lat, b.lng));
-                // Debug: log dedupOk places to console
-                console.log('[DEDUP-APPROVED] dedupOk places (' + dedupLocs.length + '):', dedupLocs.map(l => ({ name: l.name, id: l.id, firebaseKey: l.firebaseKey, googlePlaceId: l.googlePlaceId })));
-                console.log('[DEDUP-APPROVED] allActive count:', allActive.length);
                 const locKey = (l) => l.firebaseKey || l.firebaseId || l.id;
                 const approvedClusters = [];
                 const used = new Set();
@@ -3668,6 +3665,7 @@
                     !used.has(locKey(l)) && locKey(l) !== locKey(dl) &&
                     dist(dl, l) <= aRadius && intOverlap(dl.interests, l.interests)
                   );
+                  if (partners.length === 0) continue; // no partner → Pass 3 will auto-clear
                   used.add(locKey(dl));
                   partners.forEach(l => used.add(locKey(l)));
                   approvedClusters.push({ loc: dl, matches: partners.map(l => ({ ...l, _distance: dist(dl, l) })), _matchType: 'proximity' });

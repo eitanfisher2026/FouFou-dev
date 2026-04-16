@@ -9417,6 +9417,12 @@
     const radius = sp.dedupRadiusMeters || 50;
     // Exclude places marked dedupOk — user explicitly approved their co-existence
     const locs = customLocations.filter(l => l.lat && l.lng && !l.dedupOk);
+    // Debug: always log dedupOk places when scan is triggered
+    if (isUnlocked) {
+      const dedupOkLocs = customLocations.filter(l => l.dedupOk && l.status !== 'blacklist');
+      console.log('[DEDUP-APPROVED] scan triggered — dedupOk places (' + dedupOkLocs.length + '):', dedupOkLocs.map(l => ({ name: l.name, id: l.id, firebaseKey: l.firebaseKey, googlePlaceId: l.googlePlaceId })));
+      console.log('[DEDUP-APPROVED] total customLocations:', customLocations.length, '| with coords:', locs.length);
+    }
     const clusters = [];
     const seen = new Set();
 
