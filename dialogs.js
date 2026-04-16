@@ -3647,10 +3647,8 @@
                 };
                 const dist = (a, b) => Math.round(calcDistance(a.lat, a.lng, b.lat, b.lng));
                 // Debug: log dedupOk places to console
-                if (isUnlocked) {
-                  console.log('[DEDUP-APPROVED] dedupOk places:', dedupLocs.map(l => ({ name: l.name, id: l.id, firebaseId: l.firebaseId, firebaseKey: l.firebaseKey, googlePlaceId: l.googlePlaceId, dedupOk: l.dedupOk })));
-                  console.log('[DEDUP-APPROVED] allActive sample:', allActive.slice(0,3).map(l => ({ name: l.name, id: l.id, firebaseId: l.firebaseId, firebaseKey: l.firebaseKey })));
-                }
+                console.log('[DEDUP-APPROVED] dedupOk places (' + dedupLocs.length + '):', dedupLocs.map(l => ({ name: l.name, id: l.id, firebaseKey: l.firebaseKey, googlePlaceId: l.googlePlaceId })));
+                console.log('[DEDUP-APPROVED] allActive count:', allActive.length);
                 const locKey = (l) => l.firebaseKey || l.firebaseId || l.id;
                 const approvedClusters = [];
                 const used = new Set();
