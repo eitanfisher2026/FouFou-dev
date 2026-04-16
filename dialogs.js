@@ -4079,7 +4079,8 @@
       {showTakeoutDialog && (() => {
         const places = takeoutPlaces?.places || [];
         const selectedCount = Object.values(takeoutImportSelections).filter(s => s.import).length;
-        const allInterests = (allInterestOptions || []).filter(opt => {
+
+        const activeInterests = (allInterestOptions || []).filter(opt => {
           const aStatus = opt.adminStatus || 'active';
           if (aStatus === 'hidden') return false;
           if (aStatus === 'draft' && !isUnlocked) return false;
@@ -4087,41 +4088,98 @@
           return true;
         });
 
-        const InterestPicker = ({ value, onChange, compact }) => (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-            {allInterests.map(opt => {
-              const sel = value.includes(opt.id);
-              const iconRaw = opt.icon || '';
-              const isImg = iconRaw.startsWith('data:');
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => {
-                    const next = sel ? value.filter(id => id !== opt.id) : [...value, opt.id];
-                    onChange(next);
-                  }}
-                  style={{
-                    padding: compact ? '2px 6px' : '3px 8px',
-                    borderRadius: '8px',
-                    fontSize: compact ? '10px' : '11px',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    border: sel ? '2px solid #6366f1' : '1px solid #e5e7eb',
-                    background: sel ? '#eef2ff' : 'white',
-                    color: sel ? '#4338ca' : '#6b7280',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '3px',
-                  }}
-                >
-                  {isImg ? <img src={iconRaw} alt="" style={{ width: '12px', height: '12px', objectFit: 'contain' }} /> : <span>{iconRaw}</span>}
-                  <span style={{ maxWidth: compact ? '60px' : '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt.labelEn || opt.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        );
+        // Build groups in FouFou order
+        const groupOrder = Object.keys(interestGroups || {}).sort((a, b) => {
+          const oa = interestGroups[a]?.order ?? 99, ob = interestGroups[b]?.order ?? 99;
+          return oa !== ob ? oa - ob : a.localeCompare(b);
+        });
+        const grouped = [];
+        const usedIds = new Set();
+        groupOrder.forEach(gId => {
+          const members = activeInterests.filter(o => o.group === gId);
+          if (members.length > 0) { grouped.push({ label: interestGroups[gId], members }); members.forEach(o => usedIds.add(o.id)); }
+        });
+        const ungrouped = activeInterests.filter(o => !usedIds.has(o.id));
+        if (ungrouped.length > 0) grouped.push({ label: null, members: ungrouped });
+
+        // Dropdown component with checkboxes grouped
+        const InterestDropdown = ({ value, onChange, placeholder }) => {
+          const [open, setOpen] = React.useState(false);
+          const label = value.length === 0
+            ? (placeholder || 'Select interests...')
+            : value.map(id => { const o = activeInterests.find(x => x.id === id); return o ? (o.labelEn || o.label) : id; }).join(', ');
+          return (
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={() => setOpen(p => !p)}
+                style={{
+                  width: '100%', padding: '5px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: value.length > 0 ? 'bold' : 'normal',
+                  border: value.length > 0 ? '2px solid #6366f1' : '1px solid #d1d5db',
+                  background: value.length > 0 ? '#eef2ff' : '#f9fafb', color: value.length > 0 ? '#4338ca' : '#9ca3af',
+                  cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', textAlign: 'left',
+                }}
+              >
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{label}</span>
+                <span style={{ flexShrink: 0, fontSize: '10px' }}>{open ? '▲' : '▼'}</span>
+              </button>
+              {open && (
+                <React.Fragment>
+                  <div style={{ position: 'fixed', inset: 0, zIndex: 10400 }} onClick={() => setOpen(false)} />
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10401,
+                    background: 'white', border: '1px solid #e0e7ff', borderRadius: '10px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.15)', maxHeight: '260px', overflowY: 'auto', marginTop: '3px',
+                  }}>
+                    {value.length > 0 && (
+                      <div style={{ padding: '6px 10px', borderBottom: '1px solid #f3f4f6' }}>
+                        <button type="button" onClick={() => { onChange([]); }} style={{ fontSize: '11px', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+                          ✕ Clear all ({value.length})
+                        </button>
+                      </div>
+                    )}
+                    {grouped.map((group, gi) => (
+                      <div key={gi}>
+                        {group.label && (
+                          <div style={{ padding: '5px 10px 2px', fontSize: '10px', fontWeight: 'bold', color: '#9ca3af', background: '#fafafa', borderBottom: '1px solid #f3f4f6' }}>
+                            {'he' === currentLang ? group.label.labelHe : group.label.labelEn || group.label.labelHe}
+                          </div>
+                        )}
+                        {group.members.map(opt => {
+                          const sel = value.includes(opt.id);
+                          const iconRaw = opt.icon || '';
+                          const isImg = iconRaw.startsWith('data:');
+                          return (
+                            <label key={opt.id} style={{
+                              display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px',
+                              cursor: 'pointer', background: sel ? '#f5f3ff' : 'white', borderBottom: '1px solid #f9fafb',
+                            }}>
+                              <input
+                                type="checkbox"
+                                checked={sel}
+                                onChange={() => { const next = sel ? value.filter(id => id !== opt.id) : [...value, opt.id]; onChange(next); }}
+                                style={{ width: '14px', height: '14px', cursor: 'pointer', accentColor: '#6366f1', flexShrink: 0 }}
+                              />
+                              <span style={{ fontSize: '14px', lineHeight: 1, flexShrink: 0 }}>
+                                {isImg ? <img src={iconRaw} alt="" style={{ width: '14px', height: '14px', objectFit: 'contain', verticalAlign: 'middle' }} /> : iconRaw}
+                              </span>
+                              <span style={{ fontSize: '12px', color: sel ? '#4338ca' : '#374151', fontWeight: sel ? 'bold' : 'normal' }}>
+                                {opt.labelEn || opt.label}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                </React.Fragment>
+              )}
+            </div>
+          );
+        };
+
+        const hasAnyInterests = takeoutBulkInterests.length > 0 || Object.values(takeoutImportSelections).some(s => s.import && s.interests.length > 0);
+        const canImport = selectedCount > 0 && hasAnyInterests && !takeoutImporting;
 
         return (
           <div className="fixed inset-0 bg-black bg-opacity-60 z-[10300] flex flex-col" style={{ direction: 'ltr' }}>
@@ -4148,100 +4206,83 @@
                 <div style={{ fontSize: '12px', color: '#374151', display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
                   <span>✅ <b>{takeoutSummary.added}</b> added as drafts</span>
                   {takeoutSummary.skippedDup > 0 && <span>🔁 <b>{takeoutSummary.skippedDup}</b> duplicates skipped</span>}
-                  {takeoutSummary.skippedNoInterest > 0 && <span>🏷️ <b>{takeoutSummary.skippedNoInterest}</b> no interests — skipped</span>}
+                  {takeoutSummary.skippedNoInterest > 0 && <span>🏷️ <b>{takeoutSummary.skippedNoInterest}</b> skipped (no interests)</span>}
                 </div>
               </div>
             )}
 
             {/* Bulk assign bar */}
-            <div style={{ background: '#f8faff', borderBottom: '1px solid #e0e7ff', padding: '8px 12px', flexShrink: 0 }}>
+            <div style={{ background: '#f8faff', borderBottom: '2px solid #e0e7ff', padding: '8px 12px', flexShrink: 0 }}>
               <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#4338ca', marginBottom: '5px' }}>
                 🏷️ Assign interests to all selected ({selectedCount}):
               </div>
-              <InterestPicker value={takeoutBulkInterests} onChange={v => {
-                setTakeoutBulkInterests(v);
-              }} compact={false} />
+              <InterestDropdown
+                value={takeoutBulkInterests}
+                onChange={v => setTakeoutBulkInterests(v)}
+                placeholder="Select interests for all..."
+              />
+            </div>
+
+            {/* Table header */}
+            <div style={{ display: 'grid', gridTemplateColumns: '28px 1fr 180px', gap: '8px', padding: '6px 12px', background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', fontSize: '10px', fontWeight: 'bold', color: '#64748b', flexShrink: 0 }}>
+              <span></span>
+              <span>Place</span>
+              <span>Interests (override)</span>
             </div>
 
             {/* Places list */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
+            <div style={{ flex: 1, overflowY: 'auto' }}>
               {places.map((place, i) => {
                 const sel = takeoutImportSelections[i] || { import: false, interests: [] };
                 const effectiveInterests = sel.interests.length > 0 ? sel.interests : takeoutBulkInterests;
-                const hasInterests = effectiveInterests.length > 0;
                 return (
                   <div
                     key={i}
                     style={{
-                      marginBottom: '6px',
-                      padding: '8px 10px',
-                      borderRadius: '10px',
-                      border: '1px solid',
-                      borderColor: place.alreadyExists ? '#d1d5db' : sel.import ? '#a5b4fc' : '#e5e7eb',
+                      display: 'grid', gridTemplateColumns: '28px 1fr 180px', gap: '8px',
+                      alignItems: 'center', padding: '7px 12px',
+                      borderBottom: '1px solid #f1f5f9',
                       background: place.alreadyExists ? '#f9fafb' : sel.import ? '#f5f3ff' : 'white',
-                      opacity: place.alreadyExists ? 0.7 : 1,
+                      opacity: place.alreadyExists ? 0.65 : 1,
                     }}
                   >
-                    {/* Row 1: checkbox + name + status */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                      <input
-                        type="checkbox"
-                        checked={sel.import}
-                        onChange={e => setTakeoutImportSelections(prev => ({
-                          ...prev,
-                          [i]: { ...prev[i], import: e.target.checked }
-                        }))}
-                        style={{ marginTop: '3px', flexShrink: 0, width: '15px', height: '15px', cursor: 'pointer' }}
-                      />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                          <a
-                            href={place.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ fontWeight: 'bold', fontSize: '13px', color: '#2563eb', textDecoration: 'none' }}
-                          >
-                            {place.name} ↗
-                          </a>
-                          {place.alreadyExists ? (
-                            <span style={{ fontSize: '10px', background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '6px', fontWeight: 'bold' }}>✅ In FouFou</span>
-                          ) : (
-                            <span style={{ fontSize: '10px', background: '#ede9fe', color: '#6d28d9', padding: '1px 6px', borderRadius: '6px', fontWeight: 'bold' }}>🆕 New</span>
-                          )}
-                        </div>
-                        {place.address && (
-                          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {place.address}
-                          </div>
-                        )}
+                    {/* Checkbox */}
+                    <input
+                      type="checkbox"
+                      checked={sel.import}
+                      onChange={e => setTakeoutImportSelections(prev => ({ ...prev, [i]: { ...prev[i], import: e.target.checked } }))}
+                      style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1' }}
+                    />
+
+                    {/* Name + address + status */}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <a
+                          href={place.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontWeight: 'bold', fontSize: '12px', color: '#2563eb', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        >
+                          {place.name} ↗
+                        </a>
+                        {place.alreadyExists
+                          ? <span style={{ fontSize: '9px', background: '#dcfce7', color: '#15803d', padding: '1px 5px', borderRadius: '5px', fontWeight: 'bold', flexShrink: 0 }}>✅</span>
+                          : <span style={{ fontSize: '9px', background: '#ede9fe', color: '#6d28d9', padding: '1px 5px', borderRadius: '5px', fontWeight: 'bold', flexShrink: 0 }}>New</span>
+                        }
                       </div>
+                      {place.address && (
+                        <div style={{ fontSize: '10px', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {place.address}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Row 2: per-place interests (shown when checked and wants to override bulk) */}
-                    {sel.import && (
-                      <div style={{ marginTop: '6px', paddingLeft: '22px' }}>
-                        <div style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '3px' }}>
-                          {sel.interests.length > 0 ? '🏷️ Custom interests for this place:' : '🏷️ Using bulk interests (click to override):'}
-                        </div>
-                        <InterestPicker
-                          value={sel.interests}
-                          onChange={v => setTakeoutImportSelections(prev => ({
-                            ...prev,
-                            [i]: { ...prev[i], interests: v }
-                          }))}
-                          compact={true}
-                        />
-                        {sel.interests.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => setTakeoutImportSelections(prev => ({ ...prev, [i]: { ...prev[i], interests: [] } }))}
-                            style={{ marginTop: '3px', fontSize: '10px', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                          >
-                            ✕ Clear (use bulk)
-                          </button>
-                        )}
-                      </div>
-                    )}
+                    {/* Per-place interest override dropdown */}
+                    <InterestDropdown
+                      value={sel.interests}
+                      onChange={v => setTakeoutImportSelections(prev => ({ ...prev, [i]: { ...prev[i], interests: v } }))}
+                      placeholder={effectiveInterests.length > 0 ? `Bulk (${effectiveInterests.length})` : 'Override...'}
+                    />
                   </div>
                 );
               })}
@@ -4249,8 +4290,8 @@
 
             {/* Footer */}
             <div style={{ borderTop: '1px solid #e5e7eb', padding: '10px 14px', background: 'white', flexShrink: 0, display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <div style={{ flex: 1, fontSize: '11px', color: '#6b7280' }}>
-                {selectedCount} selected · {takeoutBulkInterests.length > 0 || Object.values(takeoutImportSelections).some(s => s.interests.length > 0) ? '✅ interests set' : '⚠️ Set interests above'}
+              <div style={{ flex: 1, fontSize: '11px', color: canImport ? '#374151' : '#ef4444', fontWeight: canImport ? 'normal' : 'bold' }}>
+                {selectedCount === 0 ? '⚠️ Select places to import' : !hasAnyInterests ? '⚠️ Set interests above' : `${selectedCount} selected · ready`}
               </div>
               <button
                 onClick={() => {
@@ -4259,23 +4300,18 @@
                   places.forEach((_, i) => { newSel[i] = { ...takeoutImportSelections[i], import: !allChecked }; });
                   setTakeoutImportSelections(newSel);
                 }}
-                style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white', fontSize: '12px', cursor: 'pointer', color: '#374151', whiteSpace: 'nowrap' }}
+                style={{ padding: '7px 12px', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white', fontSize: '12px', cursor: 'pointer', color: '#374151', whiteSpace: 'nowrap' }}
               >
                 Toggle All
               </button>
               <button
                 onClick={executeTakeoutImport}
-                disabled={takeoutImporting || selectedCount === 0 || (takeoutBulkInterests.length === 0 && !Object.values(takeoutImportSelections).some(s => s.import && s.interests.length > 0))}
+                disabled={!canImport}
                 style={{
-                  padding: '8px 16px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  fontWeight: 'bold',
-                  fontSize: '13px',
-                  cursor: takeoutImporting || selectedCount === 0 || (takeoutBulkInterests.length === 0 && !Object.values(takeoutImportSelections).some(s => s.import && s.interests.length > 0)) ? 'not-allowed' : 'pointer',
-                  background: takeoutImporting || selectedCount === 0 ? '#e5e7eb' : 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-                  color: takeoutImporting || selectedCount === 0 ? '#9ca3af' : 'white',
-                  whiteSpace: 'nowrap',
+                  padding: '8px 18px', borderRadius: '10px', border: 'none', fontWeight: 'bold', fontSize: '13px',
+                  cursor: canImport ? 'pointer' : 'not-allowed',
+                  background: canImport ? 'linear-gradient(135deg, #4f46e5, #7c3aed)' : '#e5e7eb',
+                  color: canImport ? 'white' : '#9ca3af', whiteSpace: 'nowrap',
                 }}
               >
                 {takeoutImporting ? '⏳ Importing...' : `Import Selected (${selectedCount})`}
