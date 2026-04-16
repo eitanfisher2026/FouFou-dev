@@ -234,6 +234,43 @@ Order: **[מחק תחום] [צבע:] [color picker] [✕ auto] [🗺️]**
 2. **boundaryFactor** not exposed in systemParams UI — by design (per-city field).
 3. **showConfirm cancelLabel** — supported in `dialogs.js` (v3.22.33+).
 4. **GPS toast "מצא מיקום"** — verify sticky toast no longer appears on tab click (fixed v3.22.25).
+5. **dedupRelated relationships** — `pickDominantInterest` relies on `dedupRelated` being set correctly per interest. Review interest data to ensure parent-child relationships are defined (e.g. קפה בראנץ.dedupRelated includes קפה).
+
+---
+
+## Changes — v3.22.55 → v3.22.64
+
+### v3.22.56 — Search consolidation + manual add dialog
+- `_searchPlacesCore(query, setResults)` — single shared function replacing duplicate `searchPointForRadius` / `searchManualForDialog`
+- Manual add dialog now shows multi-result dropdown (favorites + Google groups), same as point search
+- Bug fix: `searchPointForRadius` had hardcoded `maxResultCount: 5` — now uses `pointSearchMaxGoogle` param everywhere
+- `manualSearchResults` state added
+
+### v3.22.57 — Favorite match confirm in manual add
+- When picking a Google result in manual add dialog that matches a favorite → same `showConfirm` as point search
+
+### v3.22.58–59 — Status system (draft / approved)
+- Lock icon (🔒/✏️) replaced with ✅ מאושר / ✕ טיוטה
+- Status toggle moved out of collapsible, shown below ratings row
+- Permissions: `isAdmin || isEditor || userId/addedBy === authUser.uid`
+- `includeDrafts` bug fix: all checks now use `=== false` (not `!value`)
+- Confirm dialog text shortened: `"X" קיים במועדפים. להשתמש בו?`
+
+### v3.22.60 — Status row + favorites filtering
+- `dedupOk` button (✕/✓ כפילות) added to status row, pushed to far side (`marginInlineStart:auto`)
+- Google Info button restored to collapsible gray box
+- Favorites list + map: regular users see approved + own drafts; anon sees approved only
+- Filtered in 4 places: `groupedPlaces` useMemo, header count, nav count, favorites map
+
+### v3.22.61–62 — Favorites map marker color
+- `window.BKK.pickDominantInterest(ids, allInts)` added to `utils.js`
+  - Finds the "child" interest (the one that appears in a sibling's `dedupRelated`)
+  - Falls back to first in system order if no relationship found
+- Favorites map: color based on active filter ∩ place interests → `pickDominantInterest`
+
+### v3.22.63–64 — Fixes
+- v63: Reverted Google Info button placement (v3.22.60 mistake), moved `dedupOk` correctly
+- v64: `dedupOk` label changed to `✓ כפילות` / `✕ כפילות`
 
 ---
 
