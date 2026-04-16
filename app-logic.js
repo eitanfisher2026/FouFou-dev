@@ -1546,7 +1546,15 @@
           const locs = customLocations.filter(loc => {
             if (loc.status === 'blacklist') return false;
             if (!loc.lat || !loc.lng) return false;
-            if (!showDrafts && !loc.locked) return false;
+            if (!loc.locked) {
+              // Draft place visibility: admin/editor respects includeDrafts setting;
+              // regular user sees own drafts only; anon sees none
+              if (isUnlocked) { if (!showDrafts) return false; }
+              else {
+                const isAnon = !authUser || authUser.isAnonymous;
+                if (isAnon || !authUser?.uid || loc.addedBy !== authUser.uid) return false;
+              }
+            }
             // Only show places whose interests are visible to this user
             const locInts = loc.interests || [];
             if (locInts.length > 0) {
@@ -6042,7 +6050,15 @@
       if (!cityCustomLocations || cityCustomLocations.length === 0) {
         return { groups: {}, ungrouped: [], sortedKeys: [], activeCount: 0, blacklistedLocations: [], draftsLocations: [], readyLocations: [], draftsCount: 0, readyCount: 0, blacklistCount: 0 };
       }
-      const draftsLocations = cityCustomLocations.filter(loc => loc.status !== 'blacklist' && !loc.locked);
+      // Drafts visibility: admin/editor sees all; regular user sees only own; anon sees none
+      const _myUid = authUser?.uid;
+      const _isAnon = !authUser || authUser.isAnonymous;
+      const draftsLocations = cityCustomLocations.filter(loc => {
+        if (loc.status === 'blacklist' || loc.locked) return false;
+        if (isUnlocked) return true;                          // admin/editor: all drafts
+        if (_isAnon || !_myUid) return false;                 // anon: no drafts
+        return loc.addedBy === _myUid;                        // regular: own drafts only
+      });
       const readyLocations = cityCustomLocations.filter(loc => loc.status !== 'blacklist' && loc.locked);
       const blacklistedLocations = cityCustomLocations.filter(loc => loc.status === 'blacklist');
       
@@ -6169,8 +6185,8 @@
       // CRITICAL: Skip blacklisted locations!
       if (loc.status === 'blacklist') return false;
       
-      // Skip drafts if includeDrafts is off
-      if (!window.BKK.systemParams?.includeDrafts && !loc.locked) return false;
+      // Skip drafts if includeDrafts is explicitly false
+      if (window.BKK.systemParams?.includeDrafts === false && !loc.locked) return false;
       
       // Skip invalid locations (missing required data)
       if (!isLocationValid(loc)) return false;
