@@ -2067,9 +2067,27 @@
                     {manualSearchResults && !Array.isArray(manualSearchResults) && (() => {
                       const { favorites, google } = manualSearchResults;
                       const isRTL = window.BKK.i18n.isRTL();
+                      const handleRowClick = (result, isFav) => {
+                        if (!isFav && result.googlePlaceId) {
+                          const matchedFav = (customLocations || []).find(cl =>
+                            cl.googlePlaceId && cl.googlePlaceId === result.googlePlaceId
+                          );
+                          if (matchedFav) {
+                            const msg = currentLang === 'he'
+                              ? `"${matchedFav.name}" שמור אצלך במועדפים — להשתמש בגרסה שלך?`
+                              : `"${matchedFav.name}" is in your favorites — use your saved version?`;
+                            showConfirm(msg,
+                              () => addManualStop({ name: matchedFav.name, lat: matchedFav.lat, lng: matchedFav.lng, address: matchedFav.address, rating: matchedFav.googleRating, ratingCount: matchedFav.googleRatingCount, googlePlaceId: matchedFav.googlePlaceId, isFavorite: true }),
+                              { confirmLabel: currentLang === 'he' ? '⭐ כן, השתמש במועדף' : '⭐ Yes, use favorite', confirmColor: '#2563eb', cancelLabel: currentLang === 'he' ? 'לא, גוגל' : 'No, Google', onCancel: () => addManualStop(result) }
+                            );
+                            return;
+                          }
+                        }
+                        addManualStop(result);
+                      };
                       const renderRow = (result, idx, arr, isFav) => (
                         <button key={idx}
-                          onClick={() => addManualStop(result)}
+                          onClick={() => handleRowClick(result, isFav)}
                           style={{ width: '100%', textAlign: isRTL ? 'right' : 'left', padding: '8px 12px', cursor: 'pointer', background: 'none', border: 'none', borderBottom: idx < arr.length - 1 ? '1px solid #f5f3ff' : 'none', direction: isRTL ? 'rtl' : 'ltr', display: 'block' }}
                           onMouseEnter={e => e.currentTarget.style.background = '#f5f3ff'}
                           onMouseLeave={e => e.currentTarget.style.background = 'none'}>
