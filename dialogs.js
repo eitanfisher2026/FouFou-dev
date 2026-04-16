@@ -3537,7 +3537,8 @@
             const all = [cluster.loc, ...cluster.matches];
             return !all.every(p => p.dedupOk);
           }) || [];
-          return filtered.length > 0 && (
+          const approvedForDialog = customLocations.filter(l => l.dedupOk && l.status !== 'blacklist');
+          return (bulkDedupResults !== null && (filtered.length > 0 || approvedForDialog.length > 0)) && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'white', zIndex: 10000, display: 'flex', flexDirection: 'column' }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '2px solid #eab308', background: 'linear-gradient(135deg, #fefce8, #fef9c3)' }}>
@@ -3554,6 +3555,12 @@
             
             {/* Scrollable content */}
             <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px' }}>
+              {filtered.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '32px 16px', color: '#16a34a' }}>
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>✅</div>
+                  <div style={{ fontSize: '14px', fontWeight: '700' }}>{currentLang === 'he' ? 'לא נמצאו כפילויות פעילות' : 'No active duplicates found'}</div>
+                </div>
+              )}
               {filtered.map((cluster, ci) => {
                 const allPlaces = [cluster.loc, ...cluster.matches];
                 return (

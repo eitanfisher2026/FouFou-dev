@@ -2434,7 +2434,7 @@
               {isUnlocked && customLocations.length > 1 && (
                 <button onClick={() => scanAllDuplicates()}
                   style={{ padding: '4px 8px', fontSize: '10px', fontWeight: 'bold', background: 'linear-gradient(135deg, #f59e0b, #8b5cf6)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', flexShrink: 0 }}
-                  title={t('dedup.scanByInterest')}>🔍📐</button>
+                  title={t('dedup.scanByInterest')}>🔍📐 {currentLang === 'he' ? 'כפילויות' : 'Dupes'}</button>
               )}
               <div style={{ marginInlineStart: 'auto', display: 'flex', gap: '4px', alignItems: 'center', flexShrink: 0 }}>
                 {authUser && !authUser.isAnonymous && !isUnlocked && (() => {
