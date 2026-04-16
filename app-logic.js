@@ -9414,7 +9414,8 @@
   // Bulk dedup scan — find all suspected duplicate pairs
   const scanAllDuplicates = () => {
     const radius = sp.dedupRadiusMeters || 50;
-    const locs = customLocations.filter(l => l.lat && l.lng);
+    // Exclude places marked dedupOk — user explicitly approved their co-existence
+    const locs = customLocations.filter(l => l.lat && l.lng && !l.dedupOk);
     const clusters = [];
     const seen = new Set();
 
@@ -9477,11 +9478,13 @@
     }
 
     setBulkDedupResults(clusters);
-    if (clusters.length === 0) {
+    // Use same filter as the dialog — skip clusters where all places have dedupOk
+    const visibleClusters = clusters.filter(c => ![c.loc, ...c.matches].every(p => p.dedupOk));
+    if (visibleClusters.length === 0) {
       showToast('✅ ' + t('dedup.noDuplicates'), 'success');
     } else {
-      const placeIdCount = clusters.filter(c => c._matchType === 'placeId').length;
-      const proxCount = clusters.filter(c => c._matchType === 'proximity').length;
+      const placeIdCount = visibleClusters.filter(c => c._matchType === 'placeId').length;
+      const proxCount = visibleClusters.filter(c => c._matchType === 'proximity').length;
       const parts = [];
       if (placeIdCount > 0) parts.push(`🆔 ${placeIdCount}`);
       if (proxCount > 0) parts.push(`📐 ${proxCount}`);

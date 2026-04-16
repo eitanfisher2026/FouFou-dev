@@ -3611,6 +3611,44 @@
                 </div>
                 );
               })}
+              {/* ── Approved duplicates — collapsible section at bottom ── */}
+              {(() => {
+                const approved = customLocations.filter(l => l.dedupOk && l.status !== 'blacklist');
+                if (approved.length === 0) return null;
+                const isOpen = !!window._dedupApprovedOpen;
+                const toggle = () => { window._dedupApprovedOpen = !isOpen; setBulkDedupResults(prev => prev ? [...prev] : prev); };
+                const revoke = (loc) => {
+                  setCustomLocations(prev => prev.map(l => l.id === loc.id ? { ...l, dedupOk: false } : l));
+                  if (isFirebaseAvailable && database && loc.firebaseKey) {
+                    database.ref(`cities/${selectedCityId}/locations/${loc.firebaseKey}`).update({ dedupOk: false });
+                  }
+                };
+                return (
+                  <div style={{ marginTop: '16px', border: '1.5px solid #d1d5db', borderRadius: '12px', overflow: 'hidden' }}>
+                    <button onClick={toggle} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f9fafb', border: 'none', cursor: 'pointer' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '700', color: '#6b7280' }}>
+                        ✓ {currentLang === 'he' ? `כפילויות מאושרות (${approved.length})` : `Approved duplicates (${approved.length})`}
+                      </span>
+                      <span style={{ fontSize: '11px', color: '#9ca3af' }}>{isOpen ? '▲' : '▼'}</span>
+                    </button>
+                    {isOpen && (
+                      <div style={{ background: 'white', padding: '8px 12px' }}>
+                        {approved.map((loc, i) => (
+                          <div key={loc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: i < approved.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '12px', fontWeight: '600', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loc.name}</div>
+                              {loc.address && <div style={{ fontSize: '10px', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loc.address}</div>}
+                            </div>
+                            <button onClick={() => revoke(loc)} style={{ marginInlineStart: '8px', padding: '3px 10px', fontSize: '11px', fontWeight: '700', borderRadius: '6px', border: '1.5px solid #f59e0b', background: '#fffbeb', color: '#b45309', cursor: 'pointer', flexShrink: 0 }}>
+                              {currentLang === 'he' ? 'בטל ✕' : 'Revoke ✕'}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         );})()}
