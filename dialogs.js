@@ -3618,10 +3618,53 @@
                 </div>
                 );
               })}
-              {/* ── Approved duplicates — collapsible section at bottom ── */}
+              {/* ── Approved duplicates — cluster format, collapsible ── */}
               {(() => {
-                const approved = customLocations.filter(l => l.dedupOk && l.status !== 'blacklist');
-                if (approved.length === 0) return null;
+                const allActive = customLocations.filter(l => l.status !== 'blacklist' && l.lat && l.lng);
+                const dedupLocs = allActive.filter(l => l.dedupOk);
+                if (dedupLocs.length === 0) return null;
+
+                // Build clusters using same logic as scanAllDuplicates, but including dedupOk places
+                const aRadius = window.BKK.systemParams?.dedupRadiusMeters || 50;
+                const relMap = {};
+                for (const opt of allInterestOptions) {
+                  const rel = interestConfig[opt.id]?.dedupRelated || opt.dedupRelated || [];
+                  if (!relMap[opt.id]) relMap[opt.id] = new Set();
+                  rel.forEach(r => { relMap[opt.id].add(r); if (!relMap[r]) relMap[r] = new Set(); relMap[r].add(opt.id); });
+                }
+                const intOverlap = (a, b) => {
+                  if (!a?.length || !b?.length) return false;
+                  for (const ia of a) { if (b.includes(ia)) return true; const r = relMap[ia]; if (r && b.some(ib => r.has(ib))) return true; }
+                  return false;
+                };
+                const dist = (a, b) => Math.round(calcDistance(a.lat, a.lng, b.lat, b.lng));
+                const approvedClusters = [];
+                const used = new Set();
+
+                // Pass 1: same googlePlaceId
+                const byPid = {};
+                for (const l of allActive) { if (l.googlePlaceId) { if (!byPid[l.googlePlaceId]) byPid[l.googlePlaceId] = []; byPid[l.googlePlaceId].push(l); } }
+                for (const grp of Object.values(byPid)) {
+                  if (grp.length < 2 || !grp.some(l => l.dedupOk)) continue;
+                  const [f, ...rest] = grp;
+                  grp.forEach(l => used.add(l.id));
+                  approvedClusters.push({ loc: f, matches: rest.map(l => ({ ...l, _distance: dist(f, l) })), _matchType: 'placeId' });
+                }
+                // Pass 2: proximity for remaining dedupOk places
+                for (const dl of dedupLocs.filter(l => !used.has(l.id))) {
+                  const partners = allActive.filter(l =>
+                    !used.has(l.id) && l.id !== dl.id &&
+                    dist(dl, l) <= aRadius && intOverlap(dl.interests, l.interests)
+                  );
+                  used.add(dl.id);
+                  partners.forEach(l => used.add(l.id));
+                  approvedClusters.push({ loc: dl, matches: partners.map(l => ({ ...l, _distance: dist(dl, l) })), _matchType: 'proximity' });
+                }
+                // Pass 3: solo dedupOk (no partner found — show anyway for revoke)
+                for (const dl of dedupLocs.filter(l => !used.has(l.id))) {
+                  approvedClusters.push({ loc: dl, matches: [], _matchType: 'solo' });
+                }
+
                 const isOpen = !!window._dedupApprovedOpen;
                 const toggle = () => { window._dedupApprovedOpen = !isOpen; setBulkDedupResults(prev => prev ? [...prev] : prev); };
                 const revoke = (loc) => {
@@ -3630,27 +3673,63 @@
                     database.ref(`cities/${selectedCityId}/locations/${loc.firebaseKey}`).update({ dedupOk: false });
                   }
                 };
+
                 return (
                   <div style={{ marginTop: '16px', border: '1.5px solid #d1d5db', borderRadius: '12px', overflow: 'hidden' }}>
-                    <button onClick={toggle} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f9fafb', border: 'none', cursor: 'pointer' }}>
-                      <span style={{ fontSize: '13px', fontWeight: '700', color: '#6b7280' }}>
-                        ✓ {currentLang === 'he' ? `כפילויות מאושרות (${approved.length})` : `Approved duplicates (${approved.length})`}
+                    <button onClick={toggle} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f0fdf4', border: 'none', cursor: 'pointer' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '700', color: '#15803d' }}>
+                        ✓ {currentLang === 'he' ? `כפילויות מאושרות (${dedupLocs.length})` : `Approved duplicates (${dedupLocs.length})`}
                       </span>
                       <span style={{ fontSize: '11px', color: '#9ca3af' }}>{isOpen ? '▲' : '▼'}</span>
                     </button>
                     {isOpen && (
-                      <div style={{ background: 'white', padding: '8px 12px' }}>
-                        {approved.map((loc, i) => (
-                          <div key={loc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: i < approved.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: '12px', fontWeight: '600', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loc.name}</div>
-                              {loc.address && <div style={{ fontSize: '10px', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{loc.address}</div>}
+                      <div style={{ padding: '8px 12px', background: 'white' }}>
+                        {approvedClusters.map((cluster, ci) => {
+                          const allPlaces = [cluster.loc, ...cluster.matches];
+                          return (
+                            <div key={ci} style={{ marginBottom: '12px', padding: '10px', background: '#f0fdf4', border: '2px solid #86efac', borderRadius: '12px' }}>
+                              <div style={{ fontSize: '10px', color: '#15803d', fontWeight: 'bold', marginBottom: '6px', textAlign: 'center' }}>
+                                {cluster._matchType === 'placeId'
+                                  ? `🆔 ${currentLang === 'he' ? 'אותו Place ID' : 'Same Place ID'} · ${allPlaces.length} ${t('route.places')}`
+                                  : cluster._matchType === 'proximity'
+                                  ? `📐 ${allPlaces.length} ${t('route.places')} · ${cluster.matches[0]?._distance || 0}m`
+                                  : `✓ ${currentLang === 'he' ? 'אושר ידנית — לא נמצא שותף' : 'Manually approved — no partner found'}`}
+                              </div>
+                              {allPlaces.map((loc, li) => {
+                                const interest = allInterestOptions.find(o => loc.interests?.includes(o.id));
+                                const icon = interest?.icon?.startsWith?.('data:') ? '📍' : (interest?.icon || '📍');
+                                const mapsUrl = window.BKK.getGoogleMapsUrl(loc);
+                                return (
+                                  <div key={li} style={{ marginBottom: '4px', background: 'white', borderRadius: '8px', border: '1px solid #bbf7d0', overflow: 'hidden' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}>
+                                      <span style={{ fontSize: '18px' }}>{icon}</span>
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div onClick={() => { const fl = customLocations.find(cl => cl.id === loc.id); if (fl) handleEditLocation(fl); }}
+                                          style={{ fontSize: '13px', fontWeight: 'bold', color: '#2563eb', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>{loc.name}</div>
+                                        {loc.address && <div style={{ fontSize: '9px', color: '#6b7280', marginTop: '1px' }}>{loc.address}</div>}
+                                      </div>
+                                      {loc.dedupOk && (
+                                        <button onClick={() => revoke(loc)}
+                                          style={{ padding: '2px 8px', fontSize: '10px', fontWeight: '700', borderRadius: '6px', border: '1.5px solid #f59e0b', background: '#fffbeb', color: '#b45309', cursor: 'pointer', flexShrink: 0 }}>
+                                          {currentLang === 'he' ? 'בטל' : 'Revoke'}
+                                        </button>
+                                      )}
+                                    </div>
+                                    {mapsUrl && (
+                                      <div style={{ padding: '0 8px 6px', direction: 'ltr' }}>
+                                        <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+                                          style={{ padding: '3px 8px', fontSize: '9px', fontWeight: 'bold', background: '#22c55e', color: 'white', borderRadius: '5px', textDecoration: 'none' }}>
+                                          🗺️ Google Maps
+                                        </a>
+                                        {loc.lat && loc.lng && <span style={{ marginInlineStart: '6px', fontSize: '9px', color: '#9ca3af' }}>{loc.lat.toFixed(4)}, {loc.lng.toFixed(4)}</span>}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
-                            <button onClick={() => revoke(loc)} style={{ marginInlineStart: '8px', padding: '3px 10px', fontSize: '11px', fontWeight: '700', borderRadius: '6px', border: '1.5px solid #f59e0b', background: '#fffbeb', color: '#b45309', cursor: 'pointer', flexShrink: 0 }}>
-                              {currentLang === 'he' ? 'בטל ✕' : 'Revoke ✕'}
-                            </button>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
