@@ -9478,29 +9478,23 @@
     }
 
     setBulkDedupResults(clusters);
-    // Auto-clear dedupOk on places whose partner no longer exists
-    const usedInClusters = new Set();
-    clusters.forEach(c => { usedInClusters.add(c.loc.id); c.matches.forEach(m => usedInClusters.add(m.id)); });
-    const orphans = customLocations.filter(l => l.dedupOk && !usedInClusters.has(l.id) && l.status !== 'blacklist');
-    if (orphans.length > 0) {
-      setCustomLocations(prev => prev.map(l => orphans.some(o => o.id === l.id) ? { ...l, dedupOk: false } : l));
-      orphans.forEach(l => {
-        if (isFirebaseAvailable && database && l.firebaseKey)
-          database.ref(`cities/${selectedCityId}/locations/${l.firebaseKey}`).update({ dedupOk: false });
-      });
-      showToast(`🧹 ${orphans.length} ${currentLang === 'he' ? 'סימוני כפילות נוקו אוטומטית' : 'orphaned duplicate flags cleared'}`, 'info');
-    }
     // Use same filter as the dialog — skip clusters where all places have dedupOk
     const visibleClusters = clusters.filter(c => ![c.loc, ...c.matches].every(p => p.dedupOk));
     if (visibleClusters.length === 0) {
       showToast('✅ ' + t('dedup.noDuplicates'), 'success');
     } else {
+      const total = visibleClusters.reduce((sum, c) => sum + 1 + c.matches.length, 0);
       const placeIdCount = visibleClusters.filter(c => c._matchType === 'placeId').length;
       const proxCount = visibleClusters.filter(c => c._matchType === 'proximity').length;
       const parts = [];
-      if (placeIdCount > 0) parts.push(`🆔 ${placeIdCount}`);
-      if (proxCount > 0) parts.push(`📐 ${proxCount}`);
-      showToast(`${parts.join(' · ')} ${t('dedup.clustersFound')}`, 'info');
+      if (placeIdCount > 0) parts.push(`🆔 ${placeIdCount} ${currentLang === 'he' ? 'זהים' : 'identical'}`);
+      if (proxCount > 0) parts.push(`📐 ${proxCount} ${currentLang === 'he' ? 'קרובים' : 'nearby'}`);
+      showToast(
+        currentLang === 'he'
+          ? `נמצאו ${total} מקומות חשודים ככפולים (${parts.join(' · ')})`
+          : `Found ${total} suspected duplicates (${parts.join(' · ')})`,
+        'warning'
+      );
     }
   };
 
