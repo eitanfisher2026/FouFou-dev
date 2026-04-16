@@ -255,13 +255,7 @@
                     {isRecording && recordingField === 'location_name' && interimText && (
                       <div style={{ marginTop: '4px', padding: '4px 8px', background: '#fef3c7', borderRadius: '6px', fontSize: '12px', color: '#92400e', fontStyle: 'italic', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}>🎤 {interimText}</div>
                     )}
-                    {isUnlocked && showEditLocationDialog && (
-                      <button type="button"
-                        onClick={() => setNewLocation({...newLocation, dedupOk: !newLocation.dedupOk})}
-                        className={`mt-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${newLocation.dedupOk ? 'border-green-500 bg-green-500 text-white' : 'border-gray-300 bg-white text-gray-400'}`}
-                        title="Duplicate OK"
-                      >{newLocation.dedupOk ? '✓✓' : '✓'}</button>
-                    )}
+
                     {(() => {
                       const isOwnP = !editingLocation?.addedBy || editingLocation.addedBy === authUser?.uid;
                       const canSearchEdit = !showEditLocationDialog || isAdmin || isEditor || (isOwnP && !editingLocation?.locked);
@@ -622,14 +616,14 @@
                     );
                   })()}
 
-                  {/* Status toggle + Google Info — same row, below ratings */}
+                  {/* Status toggle + dedupOk — same row, below ratings */}
                   {showEditLocationDialog && (() => {
                     const canToggleStatus = isAdmin || isEditor ||
                       (authUser?.uid && (editingLocation?.userId === authUser?.uid || editingLocation?.addedBy === authUser?.uid));
-                    if (!canToggleStatus && !(isAdmin || isEditor)) return null;
+                    if (!canToggleStatus && !isUnlocked) return null;
                     const isApproved = !!newLocation.locked;
                     return (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingTop: '4px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingTop: '4px' }}>
                         <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600', flexShrink: 0 }}>
                           {currentLang === 'he' ? 'סטטוס:' : 'Status:'}
                         </span>
@@ -643,11 +637,12 @@
                             {isApproved ? (t('places.approved') || 'מאושר') : (t('places.draft') || 'טיוטה')}
                           </button>
                         )}
-                        {(isAdmin || isEditor) && (
-                          <button onClick={() => { setGooglePlaceInfo(null); fetchGooglePlaceInfo(newLocation); }}
-                            disabled={!newLocation.name?.trim() || loadingGoogleInfo}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '3px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: newLocation.name?.trim() && !loadingGoogleInfo ? 'pointer' : 'not-allowed', border: '1.5px solid #6366f1', background: newLocation.name?.trim() && !loadingGoogleInfo ? '#eef2ff' : '#f3f4f6', color: newLocation.name?.trim() && !loadingGoogleInfo ? '#4338ca' : '#9ca3af', transition: 'all 0.15s' }}
-                          >🔍 {loadingGoogleInfo ? '...' : (t('places.googleInfo') || 'בדוק ב-Google')}</button>
+                        {isUnlocked && (
+                          <button type="button"
+                            onClick={() => setNewLocation({...newLocation, dedupOk: !newLocation.dedupOk})}
+                            style={{ marginInlineStart: 'auto', display: 'inline-flex', alignItems: 'center', gap: '3px', padding: '3px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', border: newLocation.dedupOk ? '1.5px solid #16a34a' : '1.5px solid #d1d5db', background: newLocation.dedupOk ? '#f0fdf4' : '#f9fafb', color: newLocation.dedupOk ? '#15803d' : '#9ca3af' }}
+                            title={newLocation.dedupOk ? 'כפילות אושרה' : 'לא נבדק לכפילויות'}
+                          >{newLocation.dedupOk ? '✓ כפילות' : '✕ כפילות'}</button>
                         )}
                       </div>
                     );
@@ -721,7 +716,13 @@
                       {/* Edit-mode only: Google Info + Lock + Skip + Metadata */}
                       {showEditLocationDialog && (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 space-y-1.5" style={{ position: 'relative', zIndex: 15 }}>
-                          {/* Google Info result (button moved to status row) */}
+                          {/* Row 1: Google Info */}
+                          {(isAdmin || isEditor) && (
+                            <button onClick={() => { setGooglePlaceInfo(null); fetchGooglePlaceInfo(newLocation); }}
+                              disabled={!newLocation.name?.trim() || loadingGoogleInfo}
+                              className={`w-full py-1.5 rounded-lg text-xs font-bold ${newLocation.name?.trim() && !loadingGoogleInfo ? 'bg-indigo-500 text-white hover:bg-indigo-600' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}`}
+                            >🔍 {loadingGoogleInfo ? '...' : t('places.googleInfo')}</button>
+                          )}
                           {googlePlaceInfo && !googlePlaceInfo.notFound && (
                             <div className="text-xs space-y-1 bg-white rounded p-2 border border-indigo-200" style={{ direction: 'ltr' }}>
                               <div><span className="font-bold text-indigo-700">Found:</span><span className="ml-1">{googlePlaceInfo.name}</span></div>
