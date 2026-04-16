@@ -3646,6 +3646,12 @@
                   return false;
                 };
                 const dist = (a, b) => Math.round(calcDistance(a.lat, a.lng, b.lat, b.lng));
+                // Debug: log dedupOk places to console
+                if (isUnlocked) {
+                  console.log('[DEDUP-APPROVED] dedupOk places:', dedupLocs.map(l => ({ name: l.name, id: l.id, firebaseId: l.firebaseId, firebaseKey: l.firebaseKey, googlePlaceId: l.googlePlaceId, dedupOk: l.dedupOk })));
+                  console.log('[DEDUP-APPROVED] allActive sample:', allActive.slice(0,3).map(l => ({ name: l.name, id: l.id, firebaseId: l.firebaseId, firebaseKey: l.firebaseKey })));
+                }
+                const locKey = (l) => l.firebaseKey || l.firebaseId || l.id;
                 const approvedClusters = [];
                 const used = new Set();
 
@@ -3655,21 +3661,21 @@
                 for (const grp of Object.values(byPid)) {
                   if (grp.length < 2 || !grp.some(l => l.dedupOk)) continue;
                   const [f, ...rest] = grp;
-                  grp.forEach(l => used.add(l.id));
+                  grp.forEach(l => used.add(locKey(l)));
                   approvedClusters.push({ loc: f, matches: rest.map(l => ({ ...l, _distance: dist(f, l) })), _matchType: 'placeId' });
                 }
                 // Pass 2: proximity for remaining dedupOk places
-                for (const dl of dedupLocs.filter(l => !used.has(l.id))) {
+                for (const dl of dedupLocs.filter(l => !used.has(locKey(l)))) {
                   const partners = allActive.filter(l =>
-                    !used.has(l.id) && l.id !== dl.id &&
+                    !used.has(locKey(l)) && locKey(l) !== locKey(dl) &&
                     dist(dl, l) <= aRadius && intOverlap(dl.interests, l.interests)
                   );
-                  used.add(dl.id);
-                  partners.forEach(l => used.add(l.id));
+                  used.add(locKey(dl));
+                  partners.forEach(l => used.add(locKey(l)));
                   approvedClusters.push({ loc: dl, matches: partners.map(l => ({ ...l, _distance: dist(dl, l) })), _matchType: 'proximity' });
                 }
                 // Pass 3: solo dedupOk — partner was deleted, auto-clear the flag
-                for (const dl of dedupLocs.filter(l => !used.has(l.id))) {
+                for (const dl of dedupLocs.filter(l => !used.has(locKey(l)))) {
                   setCustomLocations(prev => prev.map(l => l.id === dl.id ? { ...l, dedupOk: false } : l));
                   if (isFirebaseAvailable && database && dl.firebaseKey) {
                     database.ref(`cities/${selectedCityId}/locations/${dl.firebaseKey}`).update({ dedupOk: false });
