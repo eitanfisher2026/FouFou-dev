@@ -262,18 +262,10 @@
                       return canSearchEdit ? (
                         <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
                           <button
-                            onClick={() => {
-                              // If placeId known and editor+ → fetch Place Details directly ($0.017 vs $0.032)
-                              if (isUnlocked && newLocation.googlePlaceId) {
-                                setGooglePlaceInfo(null);
-                                fetchGooglePlaceInfo(newLocation);
-                              } else {
-                                searchPlacesByName(newLocation.name);
-                              }
-                            }}
-                            disabled={!newLocation.name?.trim() || loadingGoogleInfo}
-                            className={`flex-1 py-1.5 rounded-lg text-xs font-bold ${newLocation.name?.trim() && !loadingGoogleInfo ? 'bg-purple-500 text-white hover:bg-purple-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                          >{loadingGoogleInfo ? `⏳ ...` : isUnlocked && newLocation.googlePlaceId ? `🔍 ${t('places.googleInfo') || 'Google Info'}` : `🔍 ${t('form.searchPlaceGoogle')}`}</button>
+                            onClick={() => searchPlacesByName(newLocation.name)}
+                            disabled={!newLocation.name?.trim()}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-bold ${newLocation.name?.trim() ? 'bg-purple-500 text-white hover:bg-purple-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                          >🔍 {t('form.searchPlaceGoogle')}</button>
                         </div>
                       ) : null;
                     })()}
@@ -3550,9 +3542,14 @@
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '2px solid #eab308', background: 'linear-gradient(135deg, #fefce8, #fef9c3)' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#92400e' }}>🔍 {t('dedup.title')} ({filtered.length})</h3>
-              <button onClick={() => setBulkDedupResults(null)} style={{ padding: '6px 14px', background: 'linear-gradient(135deg, #6b7280, #4b5563)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', color: 'white' }}>
-                {t('dedup.close')} ✕
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => { setBulkDedupResults(null); setTimeout(() => scanAllDuplicates(), 50); }} style={{ padding: '6px 14px', background: 'linear-gradient(135deg, #f59e0b, #8b5cf6)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', color: 'white' }}>
+                  🔄
+                </button>
+                <button onClick={() => setBulkDedupResults(null)} style={{ padding: '6px 14px', background: 'linear-gradient(135deg, #6b7280, #4b5563)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', color: 'white' }}>
+                  {t('dedup.close')} ✕
+                </button>
+              </div>
             </div>
             
             {/* Scrollable content */}
