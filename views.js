@@ -2448,11 +2448,22 @@
                     >{isFiltered ? '👤 אני' : '👤 הכל'}</button>
                   );
                 })()}
+                {isUnlocked && (
+                  <>
+                    {/* Google Takeout Import — for editors */}
+                    <input type="file" accept=".json" id="importTakeoutFav" className="hidden"
+                      onChange={(e) => { parseTakeoutFile(e.target.files?.[0]); e.target.value = ''; }} />
+                    <label htmlFor="importTakeoutFav"
+                      style={{ padding: '3px 8px', fontSize: '10px', fontWeight: 'bold', background: '#eef2ff', color: '#4338ca', border: '1px solid #a5b4fc', borderRadius: '8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                    >📥 <span>ייבא שמורים מגוגל</span></label>
+                  </>
+                )}
                 {isAdmin && (
                   <>
                     <input type="file" accept=".json" id="importDataFav" className="hidden"
                       onChange={(e) => { parseImportFile(e.target.files?.[0]); e.target.value = ''; }} />
                     <label htmlFor="importDataFav"
+                      title="Import from FouFou backup file"
                       style={{ padding: '3px 8px', fontSize: '10px', fontWeight: 'bold', background: '#f0fdf4', color: '#16a34a', border: '1px solid #86efac', borderRadius: '8px', cursor: 'pointer', display: 'inline-block' }}
                     >📥</label>
                   </>

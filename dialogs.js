@@ -4074,3 +4074,213 @@
       })()}
 
 
+
+      {/* ===================== GOOGLE TAKEOUT IMPORT DIALOG ===================== */}
+      {showTakeoutDialog && (() => {
+        const places = takeoutPlaces?.places || [];
+        const selectedCount = Object.values(takeoutImportSelections).filter(s => s.import).length;
+        const allInterests = (allInterestOptions || []).filter(opt => {
+          const aStatus = opt.adminStatus || 'active';
+          if (aStatus === 'hidden') return false;
+          if (aStatus === 'draft' && !isUnlocked) return false;
+          if (opt.scope === 'local' && opt.cityId && opt.cityId !== selectedCityId) return false;
+          return true;
+        });
+
+        const InterestPicker = ({ value, onChange, compact }) => (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+            {allInterests.map(opt => {
+              const sel = value.includes(opt.id);
+              const iconRaw = opt.icon || '';
+              const isImg = iconRaw.startsWith('data:');
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    const next = sel ? value.filter(id => id !== opt.id) : [...value, opt.id];
+                    onChange(next);
+                  }}
+                  style={{
+                    padding: compact ? '2px 6px' : '3px 8px',
+                    borderRadius: '8px',
+                    fontSize: compact ? '10px' : '11px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    border: sel ? '2px solid #6366f1' : '1px solid #e5e7eb',
+                    background: sel ? '#eef2ff' : 'white',
+                    color: sel ? '#4338ca' : '#6b7280',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                  }}
+                >
+                  {isImg ? <img src={iconRaw} alt="" style={{ width: '12px', height: '12px', objectFit: 'contain' }} /> : <span>{iconRaw}</span>}
+                  <span style={{ maxWidth: compact ? '60px' : '80px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt.labelEn || opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        );
+
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-60 z-[10300] flex flex-col" style={{ direction: 'ltr' }}>
+            {/* Header */}
+            <div style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div>
+                <div style={{ fontWeight: 'bold', fontSize: '15px' }}>📥 Google Maps Import</div>
+                <div style={{ fontSize: '11px', opacity: 0.8 }}>
+                  {places.length} places in city
+                  {takeoutPlaces?.filteredNoCoords > 0 && ` · ${takeoutPlaces.filteredNoCoords} no-coords skipped`}
+                  {takeoutPlaces?.filteredOutsideCity > 0 && ` · ${takeoutPlaces.filteredOutsideCity} outside city`}
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowTakeoutDialog(false); setTakeoutPlaces(null); setTakeoutSummary(null); }}
+                style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', color: 'white', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >✕</button>
+            </div>
+
+            {/* Summary */}
+            {takeoutSummary && (
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '10px 16px', flexShrink: 0 }}>
+                <div style={{ fontWeight: 'bold', color: '#15803d', fontSize: '13px', marginBottom: '4px' }}>✅ Import Complete</div>
+                <div style={{ fontSize: '12px', color: '#374151', display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
+                  <span>✅ <b>{takeoutSummary.added}</b> added as drafts</span>
+                  {takeoutSummary.skippedDup > 0 && <span>🔁 <b>{takeoutSummary.skippedDup}</b> duplicates skipped</span>}
+                  {takeoutSummary.skippedNoInterest > 0 && <span>🏷️ <b>{takeoutSummary.skippedNoInterest}</b> no interests — skipped</span>}
+                </div>
+              </div>
+            )}
+
+            {/* Bulk assign bar */}
+            <div style={{ background: '#f8faff', borderBottom: '1px solid #e0e7ff', padding: '8px 12px', flexShrink: 0 }}>
+              <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#4338ca', marginBottom: '5px' }}>
+                🏷️ Assign interests to all selected ({selectedCount}):
+              </div>
+              <InterestPicker value={takeoutBulkInterests} onChange={v => {
+                setTakeoutBulkInterests(v);
+              }} compact={false} />
+            </div>
+
+            {/* Places list */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
+              {places.map((place, i) => {
+                const sel = takeoutImportSelections[i] || { import: false, interests: [] };
+                const effectiveInterests = sel.interests.length > 0 ? sel.interests : takeoutBulkInterests;
+                const hasInterests = effectiveInterests.length > 0;
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      marginBottom: '6px',
+                      padding: '8px 10px',
+                      borderRadius: '10px',
+                      border: '1px solid',
+                      borderColor: place.alreadyExists ? '#d1d5db' : sel.import ? '#a5b4fc' : '#e5e7eb',
+                      background: place.alreadyExists ? '#f9fafb' : sel.import ? '#f5f3ff' : 'white',
+                      opacity: place.alreadyExists ? 0.7 : 1,
+                    }}
+                  >
+                    {/* Row 1: checkbox + name + status */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                      <input
+                        type="checkbox"
+                        checked={sel.import}
+                        onChange={e => setTakeoutImportSelections(prev => ({
+                          ...prev,
+                          [i]: { ...prev[i], import: e.target.checked }
+                        }))}
+                        style={{ marginTop: '3px', flexShrink: 0, width: '15px', height: '15px', cursor: 'pointer' }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <a
+                            href={place.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontWeight: 'bold', fontSize: '13px', color: '#2563eb', textDecoration: 'none' }}
+                          >
+                            {place.name} ↗
+                          </a>
+                          {place.alreadyExists ? (
+                            <span style={{ fontSize: '10px', background: '#dcfce7', color: '#15803d', padding: '1px 6px', borderRadius: '6px', fontWeight: 'bold' }}>✅ In FouFou</span>
+                          ) : (
+                            <span style={{ fontSize: '10px', background: '#ede9fe', color: '#6d28d9', padding: '1px 6px', borderRadius: '6px', fontWeight: 'bold' }}>🆕 New</span>
+                          )}
+                        </div>
+                        {place.address && (
+                          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {place.address}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Row 2: per-place interests (shown when checked and wants to override bulk) */}
+                    {sel.import && (
+                      <div style={{ marginTop: '6px', paddingLeft: '22px' }}>
+                        <div style={{ fontSize: '10px', color: '#9ca3af', marginBottom: '3px' }}>
+                          {sel.interests.length > 0 ? '🏷️ Custom interests for this place:' : '🏷️ Using bulk interests (click to override):'}
+                        </div>
+                        <InterestPicker
+                          value={sel.interests}
+                          onChange={v => setTakeoutImportSelections(prev => ({
+                            ...prev,
+                            [i]: { ...prev[i], interests: v }
+                          }))}
+                          compact={true}
+                        />
+                        {sel.interests.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setTakeoutImportSelections(prev => ({ ...prev, [i]: { ...prev[i], interests: [] } }))}
+                            style={{ marginTop: '3px', fontSize: '10px', color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                          >
+                            ✕ Clear (use bulk)
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer */}
+            <div style={{ borderTop: '1px solid #e5e7eb', padding: '10px 14px', background: 'white', flexShrink: 0, display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div style={{ flex: 1, fontSize: '11px', color: '#6b7280' }}>
+                {selectedCount} selected · {takeoutBulkInterests.length > 0 || Object.values(takeoutImportSelections).some(s => s.interests.length > 0) ? '✅ interests set' : '⚠️ Set interests above'}
+              </div>
+              <button
+                onClick={() => {
+                  const allChecked = Object.values(takeoutImportSelections).every(s => s.import);
+                  const newSel = {};
+                  places.forEach((_, i) => { newSel[i] = { ...takeoutImportSelections[i], import: !allChecked }; });
+                  setTakeoutImportSelections(newSel);
+                }}
+                style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white', fontSize: '12px', cursor: 'pointer', color: '#374151', whiteSpace: 'nowrap' }}
+              >
+                Toggle All
+              </button>
+              <button
+                onClick={executeTakeoutImport}
+                disabled={takeoutImporting || selectedCount === 0 || (takeoutBulkInterests.length === 0 && !Object.values(takeoutImportSelections).some(s => s.import && s.interests.length > 0))}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  fontWeight: 'bold',
+                  fontSize: '13px',
+                  cursor: takeoutImporting || selectedCount === 0 || (takeoutBulkInterests.length === 0 && !Object.values(takeoutImportSelections).some(s => s.import && s.interests.length > 0)) ? 'not-allowed' : 'pointer',
+                  background: takeoutImporting || selectedCount === 0 ? '#e5e7eb' : 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                  color: takeoutImporting || selectedCount === 0 ? '#9ca3af' : 'white',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {takeoutImporting ? '⏳ Importing...' : `Import Selected (${selectedCount})`}
+              </button>
+            </div>
+          </div>
+        );
+      })()}

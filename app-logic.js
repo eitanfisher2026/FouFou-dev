@@ -1739,7 +1739,198 @@
   const [addingPlaceIds, setAddingPlaceIds] = useState([]); // Track places being added
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importedData, setImportedData] = useState(null);
-  
+
+  // Google Takeout Import state
+  const [showTakeoutDialog, setShowTakeoutDialog] = useState(false);
+  const [takeoutPlaces, setTakeoutPlaces] = useState(null); // parsed + filtered places
+  const [takeoutImportSelections, setTakeoutImportSelections] = useState({}); // { idx: { import: bool, interests: [] } }
+  const [takeoutBulkInterests, setTakeoutBulkInterests] = useState([]); // bulk assign interests
+  const [takeoutImporting, setTakeoutImporting] = useState(false);
+  const [takeoutSummary, setTakeoutSummary] = useState(null); // { added, skipped, filtered }
+
+  const parseTakeoutFile = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!data.features || !Array.isArray(data.features)) {
+          showToast('Invalid file — expected Saved Places.json (GeoJSON format)', 'error');
+          return;
+        }
+        const cityData = window.BKK.activeCityData;
+        const cityCenter = cityData?.center;
+        const allCityRadius = (cityData?.allCityRadius || 15000) * (cityData?.boundaryFactor ?? 1.5);
+
+        const calcDist = (lat1, lng1, lat2, lng2) => {
+          const R = 6371000;
+          const r1 = lat1 * Math.PI / 180, r2 = lat2 * Math.PI / 180;
+          const dLat = (lat2 - lat1) * Math.PI / 180;
+          const dLng = (lng2 - lng1) * Math.PI / 180;
+          const a = Math.sin(dLat / 2) ** 2 + Math.cos(r1) * Math.cos(r2) * Math.sin(dLng / 2) ** 2;
+          return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        };
+
+        const parsed = [];
+        let filteredNoCoords = 0;
+        let filteredOutsideCity = 0;
+
+        for (const feature of data.features) {
+          const coords = feature.geometry?.coordinates;
+          const props = feature.properties || {};
+          const loc = props.location || {};
+
+          // Skip no-coords
+          if (!coords || coords[0] === 0 && coords[1] === 0 || !loc.name) {
+            filteredNoCoords++;
+            continue;
+          }
+
+          const lng = coords[0];
+          const lat = coords[1];
+
+          // Extract googlePlaceId from URL
+          const url = props.google_maps_url || '';
+          const cidMatch = url.match(/[?&]cid=(\d+)/);
+          const googlePlaceId = cidMatch ? cidMatch[1] : null;
+
+          // Check city boundary
+          if (cityCenter) {
+            const dist = calcDist(lat, lng, cityCenter.lat, cityCenter.lng);
+            if (dist > allCityRadius) {
+              filteredOutsideCity++;
+              continue;
+            }
+          }
+
+          // Check if already in FouFou
+          const existsByPlaceId = googlePlaceId && customLocations.find(cl => cl.googlePlaceId === googlePlaceId);
+          const existsByName = customLocations.find(cl => cl.name?.toLowerCase().trim() === loc.name.toLowerCase().trim());
+          const alreadyExists = existsByPlaceId || existsByName;
+
+          parsed.push({
+            name: loc.name,
+            address: loc.address || '',
+            lat,
+            lng,
+            googlePlaceId,
+            mapsUrl: url,
+            savedDate: props.date || '',
+            alreadyExists: !!alreadyExists,
+            existingLoc: alreadyExists || null,
+          });
+        }
+
+        if (parsed.length === 0) {
+          showToast(`No places found in city bounds. Filtered: ${filteredNoCoords} no-coords, ${filteredOutsideCity} outside city.`, 'warning');
+          return;
+        }
+
+        // Initialize selections: import=true for new, false for existing
+        const selections = {};
+        parsed.forEach((p, i) => {
+          selections[i] = { import: !p.alreadyExists, interests: [] };
+        });
+
+        setTakeoutPlaces({ places: parsed, filteredNoCoords, filteredOutsideCity });
+        setTakeoutImportSelections(selections);
+        setTakeoutBulkInterests([]);
+        setTakeoutSummary(null);
+        setShowTakeoutDialog(true);
+      } catch (err) {
+        console.error('[TAKEOUT] Parse error:', err);
+        showToast('Error reading file: ' + err.message, 'error');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const executeTakeoutImport = async () => {
+    if (!takeoutPlaces || takeoutImporting) return;
+    setTakeoutImporting(true);
+
+    const dedupRadius = sp.dedupRadiusMeters || 100;
+    let added = 0, skippedDup = 0, skippedNoInterest = 0;
+
+    const calcDist = (lat1, lng1, lat2, lng2) => {
+      const R = 6371000;
+      const r1 = lat1 * Math.PI / 180, r2 = lat2 * Math.PI / 180;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLng = (lng2 - lng1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(r1) * Math.cos(r2) * Math.sin(dLng / 2) ** 2;
+      return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    };
+
+    for (let i = 0; i < takeoutPlaces.places.length; i++) {
+      const sel = takeoutImportSelections[i];
+      if (!sel?.import) continue;
+
+      const interests = sel.interests && sel.interests.length > 0 ? sel.interests : takeoutBulkInterests;
+      if (!interests || interests.length === 0) {
+        skippedNoInterest++;
+        continue;
+      }
+
+      const place = takeoutPlaces.places[i];
+
+      // Dedup check: by googlePlaceId first
+      if (place.googlePlaceId) {
+        const dup = customLocations.find(cl => cl.googlePlaceId === place.googlePlaceId);
+        if (dup) { skippedDup++; continue; }
+      }
+
+      // Dedup fallback: proximity + name similarity
+      const nameMatch = customLocations.find(cl =>
+        cl.lat && cl.lng &&
+        calcDist(place.lat, place.lng, cl.lat, cl.lng) <= dedupRadius &&
+        cl.name?.toLowerCase().includes(place.name.slice(0, 6).toLowerCase())
+      );
+      if (nameMatch) { skippedDup++; continue; }
+
+      // Build location object
+      const detected = window.BKK.getAreasForCoordinates(place.lat, place.lng);
+      const bestArea = detected.length > 0 ? detected[0] : (window.BKK.getClosestArea(place.lat, place.lng) || (window.BKK.areaOptions?.[0]?.id || 'center'));
+
+      const newLoc = {
+        name: place.name,
+        description: '',
+        notes: '',
+        address: place.address || '',
+        area: bestArea,
+        areas: detected.length > 0 ? detected : [bestArea],
+        interests,
+        lat: place.lat,
+        lng: place.lng,
+        googlePlaceId: place.googlePlaceId || null,
+        mapsUrl: place.mapsUrl || '',
+        custom: true,
+        status: 'draft',
+        locked: false,
+        addedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        addedBy: authUser?.uid || null,
+        fromGoogle: true,
+        cityId: selectedCityId,
+      };
+      newLoc.mapsUrl = window.BKK.getGoogleMapsUrl(newLoc) || newLoc.mapsUrl;
+
+      if (isFirebaseAvailable && database) {
+        try {
+          await database.ref(`cities/${selectedCityId}/locations`).push(newLoc);
+          added++;
+        } catch (err) {
+          console.error('[TAKEOUT] Save error:', err);
+        }
+      } else {
+        setCustomLocations(prev => [...prev, { ...newLoc, id: Date.now() + Math.random() }]);
+        added++;
+      }
+    }
+
+    setTakeoutImporting(false);
+    setTakeoutSummary({ added, skippedDup, skippedNoInterest, filteredNoCoords: takeoutPlaces.filteredNoCoords, filteredOutsideCity: takeoutPlaces.filteredOutsideCity });
+  };
+
   // Access Log System (Admin Only)
   const [accessStats, setAccessStats] = useState(null); // { total, weekly: { '2026-W08': { IL: 3, TH: 12 } } }
   const isCurrentUserAdmin = isRealAdmin; // backward compat — uses real role, not impersonated
@@ -9417,12 +9608,6 @@
     const radius = sp.dedupRadiusMeters || 50;
     // Exclude places marked dedupOk — user explicitly approved their co-existence
     const locs = customLocations.filter(l => l.lat && l.lng && !l.dedupOk);
-    // Debug: always log dedupOk places when scan is triggered
-    if (isUnlocked) {
-      const dedupOkLocs = customLocations.filter(l => l.dedupOk && l.status !== 'blacklist');
-      console.log('[DEDUP-APPROVED] scan triggered — dedupOk places (' + dedupOkLocs.length + '):', dedupOkLocs.map(l => ({ name: l.name, id: l.id, firebaseKey: l.firebaseKey, googlePlaceId: l.googlePlaceId })));
-      console.log('[DEDUP-APPROVED] total customLocations:', customLocations.length, '| with coords:', locs.length);
-    }
     const clusters = [];
     const seen = new Set();
 

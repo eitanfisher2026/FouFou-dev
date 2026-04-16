@@ -7,7 +7,7 @@ https://eitanfisher2026.github.io/FouFou-dev/
 React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Places API, PWA
 
 ## Current Version
-**v3.22.75**
+**v3.22.79**
 
 ---
 
@@ -230,11 +230,59 @@ Order: **[מחק תחום] [צבע:] [color picker] [✕ auto] [🗺️]**
 ---
 
 ## Known Open Issues / Pending Tasks
-1. **Import favorites** (📥 button) — exists in UI (admin only) but not fully working. Kept for future fix.
+1. **Import favorites** (📥 button) — being replaced by full Google Takeout import (see below).
 2. **boundaryFactor** not exposed in systemParams UI — by design (per-city field).
 3. **showConfirm cancelLabel** — supported in `dialogs.js` (v3.22.33+).
 4. **GPS toast "מצא מיקום"** — verify sticky toast no longer appears on tab click (fixed v3.22.25).
 5. **dedupRelated relationships** — `pickDominantInterest` relies on `dedupRelated` being set correctly per interest. Review interest data to ensure parent-child relationships are defined (e.g. קפה בראנץ.dedupRelated includes קפה).
+
+---
+
+## 🔜 Planned Feature — Google Takeout Import (implement next session)
+
+### Goal
+Allow editors to import their Google Maps saved places into FouFou by uploading the JSON file from Google Takeout.
+
+### Files to change
+- `dialogs.js` — new `importGoogleTakeoutDialog` fullscreen dialog
+- `app-logic.js` — `importGoogleTakeout(file)` function + dedup logic
+- `views.js` — extend 📥 button from admin-only to `isEditor` (isUnlocked)
+
+### Google Takeout JSON schema
+Format: GeoJSON FeatureCollection
+```
+features[i].geometry.coordinates = [lng, lat]  ← NOTE: longitude first!
+features[i].properties.location.name           ← place name
+features[i].properties.location.address        ← address
+features[i].properties.google_maps_url         ← contains ?cid=XXX → googlePlaceId
+features[i].properties.date                    ← saved date (ISO)
+```
+Skip features where: `coords=[0,0]` OR missing `properties.location` field (these have `Comment: "אין מיקום זמין"` instead).
+
+Extract googlePlaceId: `url.match(/[?&]cid=(\d+)/)?.[1]` — only present in `?cid=` URLs, not `?q=` URLs.
+
+### Import flow
+1. **File upload** — `input type=file` accepts `Saved Places.json`
+2. **Parse + filter** — skip no-coords + filter to current city bounds (use `checkLocationBoundary()`)
+3. **Review dialog** (fullscreen) — table per place:
+   - Name (hyperlink to google_maps_url)
+   - Address
+   - Status badge: `✅ Already in FouFou` / `🆕 New`
+   - ☑ Import checkbox (default: checked for new, unchecked for existing)
+   - Interests multi-select dropdown (city's availableInterests) — required before import
+   - "Assign to all" bulk selector at top of table
+4. **Import button** — "Import Selected (N)"
+   - Dedup check: googlePlaceId first → fallback: proximity `sp.dedupRadiusMeters` + name similarity
+   - Each imported place: `status: 'draft'`, `addedBy: authUser.uid`, `locked: false`, `googlePlaceId` saved
+   - Save to Firebase (same path as regular favorites: `cities/${selectedCityId}/locations/`)
+5. **Summary toast/panel**: X added / Y skipped (duplicates) / Z filtered (no coords or outside city)
+
+### No "skip always" feature needed
+Imported places enter as draft — not visible to regular users. No need to persist skip decisions.
+
+### Key constraint
+- Interests selection is **mandatory** before import button is enabled
+- Use `sp.dedupRadiusMeters` (not hardcoded 50) for proximity dedup
 
 ---
 
