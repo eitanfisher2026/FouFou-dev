@@ -1024,6 +1024,7 @@
   const [locationSearchResults, setLocationSearchResults] = useState(null); // null=hidden, []=no results, [...]= results
   const [pointSearchResults, setPointSearchResults] = useState(null); // null=hidden, []=loading, [...]= results for step-2 point mode
   const [pointSearchQuery, setPointSearchQuery] = useState(''); // tracks input value for button enable/disable
+  const [manualSearchResults, setManualSearchResults] = useState(null); // null=hidden, []=loading, {favorites,google}=results for manual-add dialog
   const [editingCustomInterest, setEditingCustomInterest] = useState(null);
   const [showAddInterestDialog, setShowAddInterestDialog] = useState(false);
   const [interestDialogReadOnly, setInterestDialogReadOnly] = useState(false);
@@ -9980,26 +9981,30 @@
   };
 
   // Search places for radius-mode point selection in step 2
-  const searchPointForRadius = async (query) => {
+  // Shared core: favorites + Google Places search — single source of truth.
+  // Callers pass their own state setter so results land in the right place.
+  // Bug-fix: was hardcoded maxResultCount:5 in searchPointForRadius — now uses pointSearchMaxGoogle everywhere.
+  const _searchPlacesCore = async (query, setResults) => {
     if (!query || !query.trim()) return;
     try {
-      setPointSearchResults([]); // empty = loading
+      setResults([]); // empty = loading
       const q = query.toLowerCase().trim();
-      // Search favorites by name only — address search causes false matches (e.g. "Watthana" district)
+      // Favorites: name-only match (address search causes false positives, e.g. "Watthana" district)
       const favMatches = (customLocations || []).filter(cl => {
         if (!cl.lat || !cl.lng) return false;
-        const name = (cl.name || '').toLowerCase();
-        return name.includes(q);
+        return (cl.name || '').toLowerCase().includes(q);
       }).slice(0, window.BKK.systemParams?.pointSearchMaxFavorites || 5).map(cl => ({
         name: cl.name, lat: cl.lat, lng: cl.lng,
         address: cl.address || '', rating: cl.googleRating,
         ratingCount: cl.googleRatingCount, googlePlaceId: cl.googlePlaceId,
         isFavorite: true, favData: cl
       }));
-      // Search Google Places
+      // Google Places
       const cityForSearch = window.BKK.cityNameForSearch || 'Bangkok';
       const countryForSearch = window.BKK.selectedCity?.country || '';
-      const searchQuery = query.toLowerCase().includes(cityForSearch.toLowerCase()) ? query : `${query}, ${cityForSearch}${countryForSearch ? ', ' + countryForSearch : ''}`;
+      const searchQuery = query.toLowerCase().includes(cityForSearch.toLowerCase())
+        ? query
+        : `${query}, ${cityForSearch}${countryForSearch ? ', ' + countryForSearch : ''}`;
       const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
         method: 'POST',
         headers: {
@@ -10007,7 +10012,7 @@
           'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
           'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount'
         },
-        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: 5 })
+        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: window.BKK.systemParams?.pointSearchMaxGoogle || 10 })
       });
       const data = await response.json();
       const googleResults = data.places && data.places.length > 0
@@ -10017,25 +10022,24 @@
             address: p.formattedAddress || '', rating: p.rating,
             ratingCount: p.userRatingCount, googlePlaceId: p.id,
             isFavorite: false
-          })).filter(p => {
-            // Remove from Google list if already in favorites (by placeId or proximity)
-            return !favMatches.some(f =>
-              (f.googlePlaceId && p.googlePlaceId && f.googlePlaceId === p.googlePlaceId) ||
-              (f.lat && f.lng && Math.abs(f.lat - p.lat) < 0.0002 && Math.abs(f.lng - p.lng) < 0.0002)
-            );
-          })
+          })).filter(p => !favMatches.some(f =>
+            (f.googlePlaceId && p.googlePlaceId && f.googlePlaceId === p.googlePlaceId) ||
+            (f.lat && f.lng && Math.abs(f.lat - p.lat) < 0.0002 && Math.abs(f.lng - p.lng) < 0.0002)
+          ))
         : [];
       if (favMatches.length === 0 && googleResults.length === 0) {
-        setPointSearchResults([]);
+        setResults([]);
         showToast(t('places.noPlacesFound'), 'warning');
       } else {
-        setPointSearchResults({ favorites: favMatches, google: googleResults });
+        setResults({ favorites: favMatches, google: googleResults });
       }
     } catch (err) {
-      console.error('[POINT SEARCH] Error:', err);
-      setPointSearchResults(null);
+      console.error('[PLACE SEARCH] Error:', err);
+      setResults(null);
     }
   };
+  const searchPointForRadius  = (query) => _searchPlacesCore(query, setPointSearchResults);
+  const searchManualForDialog = (query) => _searchPlacesCore(query, setManualSearchResults);
 
   // Reverse geocode: get address from coordinates
   const reverseGeocode = async (lat, lng) => {
