@@ -4212,7 +4212,7 @@
             )}
 
             {/* Bulk assign bar */}
-            <div style={{ background: '#f8faff', borderBottom: '2px solid #e0e7ff', padding: '8px 12px', flexShrink: 0 }}>
+            <div style={{ background: '#f8faff', borderBottom: '1px solid #e0e7ff', padding: '8px 12px', flexShrink: 0 }}>
               <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#4338ca', marginBottom: '5px' }}>
                 🏷️ Assign interests to all selected ({selectedCount}):
               </div>
@@ -4221,6 +4221,26 @@
                 onChange={v => setTakeoutBulkInterests(v)}
                 placeholder="Select interests for all..."
               />
+            </div>
+
+            {/* Added By row */}
+            <div style={{ background: '#f8faff', borderBottom: '2px solid #e0e7ff', padding: '8px 12px', flexShrink: 0 }}>
+              <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#4338ca', marginBottom: '5px' }}>👤 Added by:</div>
+              {isAdmin ? (
+                <select
+                  value={takeoutAddedBy || authUser?.uid || ''}
+                  onChange={e => setTakeoutAddedBy(e.target.value)}
+                  style={{ width: '100%', padding: '5px 10px', borderRadius: '8px', fontSize: '12px', border: '1px solid #d1d5db', background: 'white' }}
+                >
+                  {allUsers.filter(u => (u.role || 0) >= 1).map(u => (
+                    <option key={u.uid} value={u.uid}>{u.name || u.displayName || u.email || u.uid}</option>
+                  ))}
+                </select>
+              ) : (
+                <div style={{ fontSize: '13px', color: '#374151', fontWeight: 'bold' }}>
+                  {authUser?.displayName || authUser?.email || ''}
+                </div>
+              )}
             </div>
 
             {/* Table header */}
@@ -4232,60 +4252,81 @@
 
             {/* Places list */}
             <div style={{ flex: 1, overflowY: 'auto' }}>
-              {places.map((place, i) => {
-                const sel = takeoutImportSelections[i] || { import: false, interests: [] };
-                const effectiveInterests = sel.interests.length > 0 ? sel.interests : takeoutBulkInterests;
+              {(() => {
+                const newPlaces = places.map((p, i) => ({ p, i })).filter(({ p }) => !p.alreadyExists);
+                const existingPlaces = places.map((p, i) => ({ p, i })).filter(({ p }) => p.alreadyExists);
                 return (
-                  <div
-                    key={i}
-                    style={{
-                      display: 'grid', gridTemplateColumns: '28px 1fr 180px', gap: '8px',
-                      alignItems: 'center', padding: '7px 12px',
-                      borderBottom: '1px solid #f1f5f9',
-                      background: place.alreadyExists ? '#f9fafb' : sel.import ? '#f5f3ff' : 'white',
-                      opacity: place.alreadyExists ? 0.65 : 1,
-                    }}
-                  >
-                    {/* Checkbox */}
-                    <input
-                      type="checkbox"
-                      checked={sel.import}
-                      onChange={e => setTakeoutImportSelections(prev => ({ ...prev, [i]: { ...prev[i], import: e.target.checked } }))}
-                      style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1' }}
-                    />
-
-                    {/* Name + address + status */}
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <a
-                          href={place.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ fontWeight: 'bold', fontSize: '12px', color: '#2563eb', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  <React.Fragment>
+                    {newPlaces.map(({ p: place, i }) => {
+                      const sel = takeoutImportSelections[i] || { import: false, interests: [] };
+                      const effectiveInterests = sel.interests.length > 0 ? sel.interests : takeoutBulkInterests;
+                      return (
+                        <div
+                          key={i}
+                          style={{
+                            display: 'grid', gridTemplateColumns: '28px 1fr 180px', gap: '8px',
+                            alignItems: 'center', padding: '7px 12px',
+                            borderBottom: '1px solid #f1f5f9',
+                            background: sel.import ? '#f5f3ff' : 'white',
+                          }}
                         >
-                          {place.name} ↗
-                        </a>
-                        {place.alreadyExists
-                          ? <span style={{ fontSize: '9px', background: '#dcfce7', color: '#15803d', padding: '1px 5px', borderRadius: '5px', fontWeight: 'bold', flexShrink: 0 }}>✅</span>
-                          : <span style={{ fontSize: '9px', background: '#ede9fe', color: '#6d28d9', padding: '1px 5px', borderRadius: '5px', fontWeight: 'bold', flexShrink: 0 }}>New</span>
-                        }
-                      </div>
-                      {place.address && (
-                        <div style={{ fontSize: '10px', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {place.address}
+                          <input
+                            type="checkbox"
+                            checked={sel.import}
+                            onChange={e => setTakeoutImportSelections(prev => ({ ...prev, [i]: { ...prev[i], import: e.target.checked } }))}
+                            style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1' }}
+                          />
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                              <a
+                                href={place.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ fontWeight: 'bold', fontSize: '12px', color: '#2563eb', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                              >
+                                {place.name} ↗
+                              </a>
+                              <span style={{ fontSize: '9px', background: '#ede9fe', color: '#6d28d9', padding: '1px 5px', borderRadius: '5px', fontWeight: 'bold', flexShrink: 0 }}>New</span>
+                            </div>
+                            {place.address && (
+                              <div style={{ fontSize: '10px', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.address}</div>
+                            )}
+                          </div>
+                          <InterestDropdown
+                            value={sel.interests}
+                            onChange={v => setTakeoutImportSelections(prev => ({ ...prev, [i]: { ...prev[i], interests: v } }))}
+                            placeholder={effectiveInterests.length > 0 ? `Bulk (${effectiveInterests.length})` : 'Override...'}
+                          />
                         </div>
-                      )}
-                    </div>
-
-                    {/* Per-place interest override dropdown */}
-                    <InterestDropdown
-                      value={sel.interests}
-                      onChange={v => setTakeoutImportSelections(prev => ({ ...prev, [i]: { ...prev[i], interests: v } }))}
-                      placeholder={effectiveInterests.length > 0 ? `Bulk (${effectiveInterests.length})` : 'Override...'}
-                    />
-                  </div>
+                      );
+                    })}
+                    {existingPlaces.length > 0 && (
+                      <div style={{ borderTop: '2px solid #e5e7eb', background: '#f9fafb' }}>
+                        <div style={{ padding: '7px 12px 4px', fontSize: '11px', fontWeight: 'bold', color: '#6b7280' }}>
+                          ✅ Already in FouFou ({existingPlaces.length})
+                        </div>
+                        {existingPlaces.map(({ p: place, i }) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', borderBottom: '1px solid #f1f5f9', opacity: 0.55 }}>
+                            <input type="checkbox" disabled style={{ width: '15px', height: '15px', flexShrink: 0 }} />
+                            <a
+                              href={place.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ fontWeight: 'bold', fontSize: '12px', color: '#2563eb', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}
+                            >
+                              {place.name} ↗
+                            </a>
+                            <span style={{ fontSize: '9px', background: '#dcfce7', color: '#15803d', padding: '1px 5px', borderRadius: '5px', fontWeight: 'bold', flexShrink: 0 }}>✅ In FouFou</span>
+                            {place.address && (
+                              <div style={{ fontSize: '10px', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '120px' }}>{place.address}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </React.Fragment>
                 );
-              })}
+              })()}
             </div>
 
             {/* Footer */}
@@ -4295,9 +4336,10 @@
               </div>
               <button
                 onClick={() => {
-                  const allChecked = Object.values(takeoutImportSelections).every(s => s.import);
-                  const newSel = {};
-                  places.forEach((_, i) => { newSel[i] = { ...takeoutImportSelections[i], import: !allChecked }; });
+                  const newIdxs = places.map((p, i) => ({ p, i })).filter(({ p }) => !p.alreadyExists).map(({ i }) => i);
+                  const allChecked = newIdxs.every(i => takeoutImportSelections[i]?.import);
+                  const newSel = { ...takeoutImportSelections };
+                  newIdxs.forEach(i => { newSel[i] = { ...newSel[i], import: !allChecked }; });
                   setTakeoutImportSelections(newSel);
                 }}
                 style={{ padding: '7px 12px', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white', fontSize: '12px', cursor: 'pointer', color: '#374151', whiteSpace: 'nowrap' }}

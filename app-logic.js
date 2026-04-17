@@ -1747,6 +1747,7 @@
   const [takeoutBulkInterests, setTakeoutBulkInterests] = useState([]); // bulk assign interests
   const [takeoutImporting, setTakeoutImporting] = useState(false);
   const [takeoutSummary, setTakeoutSummary] = useState(null); // { added, skipped, filtered }
+  const [takeoutAddedBy, setTakeoutAddedBy] = useState(null); // uid to use for addedBy (admin picks; editor = self)
 
   const parseTakeoutFile = (file) => {
     if (!file) return;
@@ -1906,6 +1907,9 @@
         setTakeoutImportSelections(selections);
         setTakeoutBulkInterests([]);
         setTakeoutSummary(null);
+        setTakeoutAddedBy(null); // reset to self on each open
+        // Admin: load all users so editor picker is populated
+        if (isRealAdmin && allUsers.length === 0) authLoadAllUsers();
         setShowTakeoutDialog(true);
       } catch (err) {
         console.error('[TAKEOUT] Parse error:', err);
@@ -1977,7 +1981,7 @@
         locked: false,
         addedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        addedBy: authUser?.uid || null,
+        addedBy: takeoutAddedBy || authUser?.uid || null,
         fromGoogle: true,
         cityId: selectedCityId,
       };
