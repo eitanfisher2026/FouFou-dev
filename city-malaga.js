@@ -1,4 +1,4 @@
-// City data: malaga
+// City data: Malaga
 window.BKK.cityData = window.BKK.cityData || {};
 window.BKK.cityData.malaga = {
   "id": "malaga",
@@ -12,10 +12,10 @@ window.BKK.cityData.malaga = {
   "dayStartHour": 8,
   "nightStartHour": 20,
   "center": {
-    "lat": 36.7178196,
-    "lng": -4.4255569999999995
+    "lat": 36.7282,
+    "lng": -4.4282
   },
-  "allCityRadius": 12185,
+  "allCityRadius": 6500,
   "areas": [
     {
       "id": "centro",
@@ -23,9 +23,9 @@ window.BKK.cityData.malaga = {
       "labelEn": "Centro",
       "desc": "Centro, Malaga, Spain",
       "descEn": "Centro, Malaga, Spain",
-      "lat": 36.7213,
-      "lng": -4.423,
-      "radius": 2500,
+      "lat": 36.7242,
+      "lng": -4.4177,
+      "radius": 2000,
       "size": "medium",
       "safety": "safe"
     },
@@ -35,57 +35,33 @@ window.BKK.cityData.malaga = {
       "labelEn": "Este",
       "desc": "",
       "descEn": "",
-      "lat": 36.7845,
-      "lng": -4.365,
-      "radius": 7000,
+      "lat": 36.7319,
+      "lng": -4.3786,
+      "radius": 2000,
       "size": "medium",
       "safety": "safe"
     },
     {
       "id": "ciudad_jard_n",
-      "label": "Ciudad Jardin",
-      "labelEn": "Ciudad Jardin",
+      "label": "צפון מלגה",
+      "labelEn": "Ciudad Jardin & Palma-Palmilla",
       "desc": "",
       "descEn": "",
-      "lat": 36.7653,
-      "lng": -4.4165,
-      "radius": 3800,
+      "lat": 36.7467,
+      "lng": -4.4124,
+      "radius": 1500,
       "size": "medium",
       "safety": "safe"
     },
     {
       "id": "bail_n_miraflores",
-      "label": "Bailen-Miraflores",
-      "labelEn": "Bailen-Miraflores",
+      "label": "מערב מלגה",
+      "labelEn": "Bailen-Miraflores & Cruz de Humilladero",
       "desc": "",
       "descEn": "",
-      "lat": 36.7226,
-      "lng": -4.4402,
-      "radius": 1000,
-      "size": "medium",
-      "safety": "safe"
-    },
-    {
-      "id": "palma_palmilla",
-      "label": "Palma-Palmilla",
-      "labelEn": "Palma-Palmilla",
-      "desc": "",
-      "descEn": "",
-      "lat": 36.7554,
-      "lng": -4.4618,
-      "radius": 2600,
-      "size": "medium",
-      "safety": "safe"
-    },
-    {
-      "id": "cruz_de_humilladero",
-      "label": "Cruz de Humilladero",
-      "labelEn": "Cruz de Humilladero",
-      "desc": "",
-      "descEn": "",
-      "lat": 36.7144,
-      "lng": -4.4584,
-      "radius": 2000,
+      "lat": 36.7191,
+      "lng": -4.4683,
+      "radius": 3000,
       "size": "medium",
       "safety": "safe"
     },
@@ -95,45 +71,9 @@ window.BKK.cityData.malaga = {
       "labelEn": "Carretera de Cadiz",
       "desc": "",
       "descEn": "",
-      "lat": 36.6866,
-      "lng": -4.4673,
+      "lat": 36.6907,
+      "lng": -4.4383,
       "radius": 2500,
-      "size": "medium",
-      "safety": "safe"
-    },
-    {
-      "id": "churriana",
-      "label": "Churriana",
-      "labelEn": "Churriana",
-      "desc": "",
-      "descEn": "",
-      "lat": 36.6359,
-      "lng": -4.5525,
-      "radius": 6700,
-      "size": "medium",
-      "safety": "safe"
-    },
-    {
-      "id": "campanillas",
-      "label": "Campanillas",
-      "labelEn": "Campanillas",
-      "desc": "",
-      "descEn": "",
-      "lat": 36.7207,
-      "lng": -4.5003,
-      "radius": 3600,
-      "size": "medium",
-      "safety": "safe"
-    },
-    {
-      "id": "puerto_de_la_torre",
-      "label": "Puerto de la Torre",
-      "labelEn": "Puerto de la Torre",
-      "desc": "",
-      "descEn": "",
-      "lat": 36.7433,
-      "lng": -4.5285,
-      "radius": 4800,
       "size": "medium",
       "safety": "safe"
     }
@@ -194,5 +134,6 @@ window.BKK.cityData.malaga = {
     "iconLeft": "🏖️",
     "iconRight": "🌞"
   },
-  "systemRoutes": []
+  "systemRoutes": [],
+  "boundaryFactor": 1.2
 };
