@@ -2448,16 +2448,7 @@
                     >{isFiltered ? '👤 אני' : '👤 הכל'}</button>
                   );
                 })()}
-                {isUnlocked && (
-                  <>
-                    {/* Google Takeout Import — accepts ZIP or JSON */}
-                    <input type="file" accept=".json,.zip" id="importTakeoutFav" className="hidden"
-                      onChange={(e) => { parseTakeoutFile(e.target.files?.[0]); e.target.value = ''; }} />
-                    <label htmlFor="importTakeoutFav"
-                      style={{ padding: '3px 8px', fontSize: '10px', fontWeight: 'bold', background: '#eef2ff', color: '#4338ca', border: '1px solid #a5b4fc', borderRadius: '8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
-                    >📥 <span>ייבא שמורים מגוגל</span></label>
-                  </>
-                )}
+
               </div>
             </div>
             {renderContextHint('hint_favorites')}
