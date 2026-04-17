@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.22.89
+// FouFou app-data.js v3.22.90
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -293,7 +293,6 @@ general: {
   import: 'ייבוא מועדפים',
   saveAndTransfer: 'שמור והעבר נתונים בין מכשירים',
   exportAll: 'ייצא הכל',
-  exportSchema: 'ייצא סכמה (עבור AI)',
   importFromFile: 'ייבא מקובץ',
   transferDevices: 'העברה בין Claude ל-GitHub',
   dataBackup: 'גיבוי נתונים',
@@ -884,7 +883,6 @@ settings: {
   deleteAllFeedback: 'למחוק את כל המשובים?',
   accessStats: 'סטטיסטיקות גישה',
   totalVisits: 'סה"כ ביקורים',
-  exportSchema: 'ייצא סכמה (ל-AI)',
   appDescription: 'Local picks + Google spots. Choose your vibe, follow the trail 🍜🏛️🎭',
   language: 'שפה',
   newUserDefaultLang: 'ברירת מחדל למשתמשים חדשים',
@@ -1405,7 +1403,6 @@ general: {
   import: 'Import favorites',
   saveAndTransfer: 'Save and transfer data between devices',
   exportAll: 'Export all',
-  exportSchema: 'Export Schema (for AI)',
   importFromFile: 'Import from file',
   transferDevices: 'Transfer between Claude and GitHub',
   dataBackup: 'Data backup',
@@ -1996,7 +1993,6 @@ settings: {
   deleteAllFeedback: 'Delete all feedback?',
   accessStats: 'Access statistics',
   totalVisits: 'Total visits',
-  exportSchema: 'Export schema (for AI)',
   appDescription: 'Local picks + Google spots. Choose your vibe, follow the trail 🍜🏛️🎭',
   language: 'Language',
   newUserDefaultLang: 'Default for new users',
@@ -3499,7 +3495,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.22.89';
+window.BKK.VERSION = '3.22.90';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -3736,52 +3732,6 @@ window.BKK.cleanupInProgress = function(database) {
     localStorage.setItem('cleanup_inprogress_done', 'true');
   }).catch(function(err) {
     console.error('[CLEANUP] inProgress removal error:', err);
-  });
-};
-
-/**
- * DISABLED — this function was incorrectly deleting valid interests.
- * It checked for types/textSearch on the interest object, but search config
- * is stored in settings/interestConfig/{id}, not on the interest itself.
- * Non-privateOnly interests were incorrectly flagged as orphans and deleted.
- */
-window.BKK.cleanupOrphanedInterests = function(database) {
-  return Promise.resolve();
-};
-
-/**
- * Admin utility: clean up stale _verify nodes and diagnose Firebase issues.
- */
-window.BKK.cleanupFirebase = function(database) {
-  if (!database) { console.log('[CLEANUP] No database'); return Promise.resolve(); }
-  var cleaned = 0;
-  return database.ref('_verify').once('value').then(function(snap) {
-    var data = snap.val();
-    if (!data) {
-      return;
-    }
-    cleaned = Object.keys(data).length;
-    return database.ref('_verify').remove();
-  }).then(function() {
-    if (cleaned > 0) console.log('[CLEANUP] Removed ' + cleaned + ' _verify nodes');
-    return Promise.all([
-      database.ref('accessLog').once('value').then(function(s) {
-        var d = s.val();
-        var count = d ? Object.keys(d).length : 0;
-        var size = d ? JSON.stringify(d).length : 0;
-        return { node: 'accessLog', count: count, sizeKB: Math.round(size/1024) };
-      }),
-      database.ref('feedback').once('value').then(function(s) {
-        var d = s.val();
-        var count = d ? Object.keys(d).length : 0;
-        var size = d ? JSON.stringify(d).length : 0;
-        return { node: 'feedback', count: count, sizeKB: Math.round(size/1024) };
-      })
-    ]);
-  }).then(function(results) {
-    return { verifyRemoved: cleaned, nodes: results };
-  }).catch(function(err) {
-    console.error('[CLEANUP] Error:', err);
   });
 };
 

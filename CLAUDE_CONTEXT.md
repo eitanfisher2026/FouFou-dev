@@ -7,7 +7,7 @@ https://eitanfisher2026.github.io/FouFou-dev/
 React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Places API, PWA
 
 ## Current Version
-**v3.22.89**
+**v3.22.90**
 
 ---
 
@@ -119,7 +119,7 @@ Only the **floating bubble** (`🔬 N entries` bottom-left) remains. The Debug t
 
 ### Removal history
 - **v3.22.86**: Google Takeout import feature removed (see `TAKEOUT_FULL_BACKUP.md` in an earlier backup if restoring)
-- **v3.22.89**: Debug tab + `addDebugLog` infrastructure removed (see `DEBUG_FULL_BACKUP.md`)
+- **v3.22.90**: Debug tab + `addDebugLog` infrastructure removed (see `DEBUG_FULL_BACKUP.md`)
 
 ---
 

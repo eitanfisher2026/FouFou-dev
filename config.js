@@ -57,7 +57,7 @@ window.BKK.mapConfig = {
 })();
 
 // App Version
-window.BKK.VERSION = '3.22.89';
+window.BKK.VERSION = '3.22.90';
 // Convert stop index (0-based) to letter label: 0→A, 1→B, ..., 25→Z, 26→AA
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
@@ -324,57 +324,7 @@ window.BKK.cleanupInProgress = function(database) {
   });
 };
 
-/**
- * DISABLED — this function was incorrectly deleting valid interests.
- * It checked for types/textSearch on the interest object, but search config
- * is stored in settings/interestConfig/{id}, not on the interest itself.
- * Non-privateOnly interests were incorrectly flagged as orphans and deleted.
- */
-window.BKK.cleanupOrphanedInterests = function(database) {
-  return Promise.resolve();
-};
 
-/**
- * Admin utility: clean up stale _verify nodes and diagnose Firebase issues.
- */
-window.BKK.cleanupFirebase = function(database) {
-  if (!database) { console.log('[CLEANUP] No database'); return Promise.resolve(); }
-  var cleaned = 0;
-  return database.ref('_verify').once('value').then(function(snap) {
-    var data = snap.val();
-    if (!data) {
-      console.log('[CLEANUP] No stale _verify nodes found');
-      return;
-    }
-    cleaned = Object.keys(data).length;
-    console.log('[CLEANUP] Removing ' + cleaned + ' stale _verify nodes...');
-    return database.ref('_verify').remove();
-  }).then(function() {
-    if (cleaned > 0) console.log('[CLEANUP] Removed ' + cleaned + ' _verify nodes');
-    // Check sizes of major nodes
-    return Promise.all([
-      database.ref('accessLog').once('value').then(function(s) {
-        var d = s.val();
-        var count = d ? Object.keys(d).length : 0;
-        var size = d ? JSON.stringify(d).length : 0;
-        console.log('[CLEANUP] accessLog: ' + count + ' entries, ~' + Math.round(size/1024) + 'KB');
-        return { node: 'accessLog', count: count, sizeKB: Math.round(size/1024) };
-      }),
-      database.ref('feedback').once('value').then(function(s) {
-        var d = s.val();
-        var count = d ? Object.keys(d).length : 0;
-        var size = d ? JSON.stringify(d).length : 0;
-        console.log('[CLEANUP] feedback: ' + count + ' entries, ~' + Math.round(size/1024) + 'KB');
-        return { node: 'feedback', count: count, sizeKB: Math.round(size/1024) };
-      })
-    ]);
-  }).then(function(results) {
-    console.log('[CLEANUP] Done. Results:', results);
-    return { verifyRemoved: cleaned, nodes: results };
-  }).catch(function(err) {
-    console.error('[CLEANUP] Error:', err);
-  });
-};
 
 /**
  * Select a city and populate all legacy window.BKK.* variables.

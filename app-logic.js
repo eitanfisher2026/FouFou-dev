@@ -1964,19 +1964,6 @@
     database.ref('settings/systemParams').set(defaults);
   };
 
-  // Bulk update (used in dedup/import operations in settings)
-  const saveBulkUpdate = async (batch) => {
-    if (!isFirebaseAvailable || !database) return;
-    if (Object.keys(batch).length === 0) return;
-    await database.ref().update(batch);
-  };
-
-  // Clear access log (admin)
-  const clearAccessLog = async () => {
-    if (!isFirebaseAvailable || !database) return;
-    await database.ref('accessLog').remove();
-  };
-
   // Fetch access stats — moved here from views.js to keep all Firebase reads in app-logic.js
   const fetchAccessStats = async (onResult) => {
     if (!isFirebaseAvailable || !database) { showToast('No database', 'error'); return; }
@@ -2668,10 +2655,6 @@
       window.BKK.migrateLocationsToPerCity(database);
       window.BKK.cleanupInProgress(database);
       window.BKK.seedSystemRoutes(database);
-      // NOTE: cleanupOrphanedInterests REMOVED — it was deleting valid interests!
-      // The function checked for types/textSearch on the interest object, but search config
-      // is stored separately in settings/interestConfig/{id}. So non-privateOnly interests
-      // were incorrectly flagged as orphans and deleted.
 
       // interests and interestConfig live entirely in Firebase — no hardcoded seeds or patches
 
