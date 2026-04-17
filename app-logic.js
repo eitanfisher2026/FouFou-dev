@@ -332,7 +332,6 @@
       localStorage.setItem(migKey, new Date().toISOString());
       if (total > 0) {
         console.log(`[MIGRATION] Stamped addedBy on ${total} locations`);
-        addDebugLog('MIGRATION', `addedBy stamped on ${total} locations`);
       }
     } catch (err) {
       console.error('[MIGRATION] addedBy failed:', err);
@@ -1788,17 +1787,6 @@
   const [debugMode, setDebugMode] = useState(() => {
     return localStorage.getItem('foufou_debug_mode') === 'true';
   });
-  const [debugCategories, setDebugCategories] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('foufou_debug_categories') || '["all"]'); } catch(e) { return ['all']; }
-  });
-  const toggleDebugCategory = (cat) => {
-    setDebugCategories(prev => {
-      if (cat === 'all') return ['all'];
-      const without = prev.filter(c => c !== 'all');
-      const next = without.includes(cat) ? without.filter(c => c !== cat) : [...without, cat];
-      return next.length === 0 ? ['all'] : next;
-    });
-  };
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [ratingsRefreshProgress, setRatingsRefreshProgress] = useState(null); // { current, total, updated }
   const [isDataLoaded, setIsDataLoaded] = useState(false); // Tracks initial Firebase/localStorage load
@@ -1907,67 +1895,15 @@
   const [passwordInput, setPasswordInput] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState(''); // For setting new password in admin panel
   
-  // Add debug log entry (console only, filtered by category)
-  const searchDebugLogRef = useRef([]);
-  const [searchDebugLog, setSearchDebugLog] = useState([]);
-  const urlDebugLogRef = useRef([]);
-  const [urlDebugLog, setUrlDebugLog] = useState([]);
-  const googleInfoDebugLogRef = useRef([]);
-  const [googleInfoDebugLog, setGoogleInfoDebugLog] = useState([]);
-
-  // Filter Log — per-search breakdown of passed/filtered places
+  // Filter Log — per-search breakdown of passed/filtered places (floating debug bubble)
   // Shape: [{ interestId, interestLabel, searchType, query, placeTypes, blacklist, passed: [...], filtered: [...] }]
   const filterLogRef = useRef([]);
   const [filterLog, setFilterLog] = useState([]);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [debugClaudeQ, setDebugClaudeQ] = useState('');
-  
-  // Debug sessions — accumulated across searches, persisted to localStorage
-  const [debugSessions, setDebugSessions] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('foufou_debug_sessions') || '[]'); } catch { return []; }
-  });
-  // Debug popup removed — using floating debug panel instead
-  const debugModeRef = useRef(localStorage.getItem('foufou_debug_mode') === 'true');
-  const debugCategoriesRef = useRef(debugCategories);
-  useEffect(() => { debugModeRef.current = debugMode; }, [debugMode]);
-  useEffect(() => { debugCategoriesRef.current = debugCategories; }, [debugCategories]);
-  const searchRunIdRef = React.useRef(null);
-  // URL debug: _urlDebug is activated only during explicit user clicks (onClick handlers)
-  // Setting it globally causes noise from every getGoogleMapsUrl render call
-  // Instead, expose a helper that onClick handlers call to log a single URL build
-  window.BKK._logUrlBuild = (name, stop) => {
-    if (!debugModeRef.current) return;
-    const cats = debugCategoriesRef.current;
-    if (!cats.includes('all') && !cats.includes('url')) return;
-    const buf = [];
-    window.BKK._urlDebug = buf;
-    const url = window.BKK.getGoogleMapsUrl(stop);
-    window.BKK._urlDebug = null;
-    const entry = { ts: Date.now(), category: 'url', message: `URL: ${name}`, data: {
-      name, url, steps: buf,
-      raw: { mapsUrl: stop.mapsUrl, googlePlaceId: stop.googlePlaceId || stop.placeId, lat: stop.lat, lng: stop.lng, address: stop.address }
-    }};
-    urlDebugLogRef.current = [entry, ...urlDebugLogRef.current.slice(0, 49)];
-    setUrlDebugLog([...urlDebugLogRef.current]);
-    console.log(`[URL] ${name}`, entry.data);
-  };
 
-  const addDebugLog = (category, message, data = null) => {
-    if (!debugModeRef.current) return;
-    const cat = category.toLowerCase();
-    const cats = debugCategoriesRef.current;
-    if (!cats.includes('all') && !cats.includes(cat)) return;
-    const entry = { ts: Date.now(), category, message, data, runId: searchRunIdRef.current };
-    console.log(`[${category}] ${message}`, data || '');
-    if (cat === 'api' || cat === 'search') {
-      searchDebugLogRef.current = [...searchDebugLogRef.current.slice(-100), entry];
-      setSearchDebugLog([...searchDebugLogRef.current]);
-    }
-    if (cat === 'url') {
-      urlDebugLogRef.current = [...urlDebugLogRef.current.slice(-50), entry];
-      setUrlDebugLog([...urlDebugLogRef.current]);
-    }
-  };
+  const debugModeRef = useRef(localStorage.getItem('foufou_debug_mode') === 'true');
+  useEffect(() => { debugModeRef.current = debugMode; }, [debugMode]);
+  const searchRunIdRef = React.useRef(null);
 
   // Add a filter-log entry for one interest's search results
   // Called once per interest after all filtering layers complete
@@ -2016,262 +1952,12 @@
     setFilterLog([...filterLogRef.current]);
   };
 
-  // Build a structured context string from current debug sessions for Claude
-  const buildClaudeContext = () => {
-    const lines = [];
-    lines.push('# FouFou Debug Context');
-    lines.push('App: FouFou v' + (window.BKK?.VERSION || '?') + ' | City: ' + selectedCityId + ' | ' + new Date().toLocaleString('he-IL'));
-    lines.push('');
-    debugSessions.forEach((s, si) => {
-      lines.push('='.repeat(60));
-      lines.push('SESSION ' + (si + 1) + ' — ' + s.time);
-      lines.push('City: ' + s.city + ' | Area: ' + (s.areaName || s.area) + ' | Mode: ' + s.searchMode + (s.radiusMeters ? ' ' + s.radiusMeters + 'm' : ''));
-      lines.push('Interests: ' + s.interests.map(i => i.label).join(', '));
-      if (s.stats) {
-        lines.push('Stats: custom=' + s.stats.custom + ' fetched=' + s.stats.fetched + ' total=' + s.stats.total + ' maxStops=' + s.stats.maxStops);
-        if (s.stats.interestResults) {
-          lines.push('Per-interest: ' + Object.entries(s.stats.interestResults).map(([k,v]) => k + '(g:' + (v.google ?? v.fetched) + ' c:' + v.custom + ' t:' + v.total + ')').join(' | '));
-        }
-      }
-      lines.push('');
-      (s.stops || []).forEach((st, i) => {
-        const d = st._debug;
-        lines.push('  ' + (i + 1) + '. ' + (st.custom ? '📌' : '🌐') + ' ' + st.name);
-        lines.push('     Rating: ⭐' + (st.rating || '?') + ' (' + (st.ratingCount || '?') + ' reviews)');
-        if (st.address) lines.push('     Address: ' + st.address);
-        if (d) {
-          lines.push('     Interest: ' + d.interestLabel + ' | Search: ' + (d.searchType || '-') + (d.query ? ' "' + d.query + '"' : ''));
-          if (d.placeTypes?.length) lines.push('     Types: ' + d.placeTypes.join(', '));
-          if (d.googleTypes?.length) lines.push('     Google types: ' + d.googleTypes.join(', '));
-          if (d.primaryType) lines.push('     Primary: ' + d.primaryType);
-          if (d.rank) lines.push('     Rank: #' + d.rank + '/' + d.totalFromGoogle);
-          if (d.blacklist?.length) lines.push('     Blacklist: ' + d.blacklist.join(', '));
-        }
-        lines.push('');
-      });
-      const sessLogs = searchDebugLogRef.current.filter(e => e.runId && e.runId === s.runId);
-      if (sessLogs.length > 0) {
-        lines.push('  --- API Log ---');
-        sessLogs.forEach(e => {
-          lines.push('  [' + e.category + '] ' + e.message);
-          if (e.data?.total !== undefined) lines.push('    Google:' + e.data.total + ' → Kept:' + e.data.kept + ' BL:-' + (e.data.blacklistFiltered || 0) + ' Type:-' + (e.data.typeFiltered || 0));
-        });
-        lines.push('');
-      }
-    });
-    return lines.join('\n');
-  };
-
-  // Open claude.ai with context + question pre-filled
-  const askClaude = (question) => {
-    const ctx = buildClaudeContext();
-    const fullText = ctx + '\n\n' + '='.repeat(60) + '\n\nSHALOM FROM FOUFOU:\n' + question;
-    const encoded = encodeURIComponent(fullText);
-    if (encoded.length < 7500) {
-      window.open('https://claude.ai/new?q=' + encoded, '_blank');
-    } else {
-      navigator.clipboard?.writeText(fullText).then(() => {
-        showToast('📋 Context copied — paste in claude.ai', 'info');
-        window.open('https://claude.ai/new', '_blank');
-      }).catch(() => showToast('Context too large — use export instead', 'info'));
-    }
-  };
-
-  // Save debug preferences
   useEffect(() => {
     localStorage.setItem('foufou_debug_mode', debugMode.toString());
   }, [debugMode]);
-  useEffect(() => {
-    localStorage.setItem('foufou_debug_categories', JSON.stringify(debugCategories));
-  }, [debugCategories]);
   
-  // Persist debug sessions (keep last 20 sessions)
-  useEffect(() => {
-    try { localStorage.setItem('foufou_debug_sessions', JSON.stringify(debugSessions.slice(-20))); } catch(e) {}
-  }, [debugSessions]);
   
-  // Save a debug session after route generation
-  const saveDebugSession = (routeObj) => {
-    if (!debugModeRef.current) return;
-    const session = {
-      id: Date.now(),
-      runId: searchRunIdRef.current,
-      time: new Date().toLocaleString('he-IL'),
-      city: selectedCityId,
-      area: formData.area,
-      areaName: routeObj.areaName,
-      searchMode: formData.searchMode,
-      radiusMeters: formData.searchMode === 'radius' ? formData.radiusMeters : null,
-      interests: formData.interests.map(id => {
-        const opt = allInterestOptions.find(o => o.id === id);
-        return { id, label: tLabel(opt) || id };
-      }),
-      stats: routeObj.stats || null,
-      stops: (routeObj.stops || []).map(s => ({
-        name: s.name,
-        rating: s.rating,
-        ratingCount: s.ratingCount,
-        address: s.address,
-        custom: !!s.custom,
-        _debug: s._debug || null
-      }))
-    };
-    setDebugSessions(prev => [...prev, session]);
-  };
   
-  // Export all debug sessions as text
-  const exportDebugSessions = () => {
-    if (debugSessions.length === 0) return;
-    const lines = [];
-    debugSessions.forEach((s, si) => {
-      lines.push(`\n${'='.repeat(60)}`);
-      lines.push(`SESSION ${si + 1} — ${s.time} — ${s.city} / ${s.areaName || s.area} (${s.searchMode}${s.radiusMeters ? ' ' + s.radiusMeters + 'm' : ''})`);
-      lines.push(`Interests: ${s.interests.map(i => i.label).join(', ')}`);
-      if (s.stats) {
-        lines.push(`Stats: custom=${s.stats.custom} | fetched=${s.stats.fetched} | total=${s.stats.total} | maxStops=${s.stats.maxStops}`);
-        if (s.stats.interestLimits) {
-          lines.push(`Limits: ${Object.entries(s.stats.interestLimits).map(([k,v])=>`${k}=${v}`).join(', ')}`);
-        }
-        if (s.stats.interestResults) {
-          lines.push(`Results: ${Object.entries(s.stats.interestResults).map(([k,v])=>`${k}: custom=${v.custom}, google=${v.google??v.fetched}, total=${v.total}, limit=${v.limit??'?'}`).join(' | ')}`);
-        }
-      }
-      lines.push(`${'='.repeat(60)}`);
-      (s.stops || []).forEach((st, i) => {
-        const d = st._debug;
-        lines.push(`  ${i+1}. ${st.name} ${st.custom ? '📌' : '🌐'} ⭐${st.rating || '?'} (${st.ratingCount || '?'})`);
-        if (d) {
-          lines.push(`     Interest: ${d.interestLabel} | Source: ${d.source} | Search: ${d.searchType || '-'}`);
-          if (d.query) lines.push(`     Query: "${d.query}"`);
-          if (d.placeTypes) lines.push(`     Types: ${d.placeTypes.join(', ')}`);
-          if (d.blacklist && d.blacklist.length) lines.push(`     Blacklist: ${d.blacklist.join(', ')}`);
-          if (d.googleTypes) lines.push(`     Google types: ${d.googleTypes.join(', ')}`);
-          if (d.primaryType) lines.push(`     Primary: ${d.primaryType}`);
-          if (d.rank) lines.push(`     Rank: ${d.rank}/${d.totalFromGoogle}`);
-          lines.push(`     Area: ${d.area} | Center: ${d.center || '-'} | Radius: ${d.radius || '-'}m`);
-        }
-        if (st.address) lines.push(`     Address: ${st.address}`);
-      });
-    });
-    // Append Google Info debug
-    if (googleInfoDebugLogRef.current.length > 0) {
-      lines.push('\n' + '='.repeat(60));
-      lines.push('GOOGLE INFO DEBUG');
-      lines.push('='.repeat(60));
-      googleInfoDebugLogRef.current.forEach((e, i) => {
-        lines.push(`\n[${i+1}] ${e.locationName}`);
-        lines.push(`  Query: ${e.searchQuery}`);
-        lines.push(`  PlaceID: ${e.rawFromGoogle.placeId || '(none)'} ${e.rawFromGoogle.placeId ? (e.rawFromGoogle.placeIdValid ? '✅ valid' : '❌ INVALID') : ''}`);
-        lines.push(`  Name from Google: ${e.rawFromGoogle.name || '(none)'}`);
-        lines.push(`  Rating: ${e.rawFromGoogle.rating ? `${e.rawFromGoogle.rating} (${e.rawFromGoogle.ratingCount})` : '(none)'}`);
-        lines.push(`  Coords: ${e.rawFromGoogle.lat},${e.rawFromGoogle.lng}`);
-        lines.push(`  Primary type: ${e.rawFromGoogle.primaryType || '(none)'}`);
-        lines.push(`  Existing mapsUrl: ${e.existingMapsUrl || '(none)'}`);
-        lines.push(`  Built URL: ${e.builtUrl || '(none)'}`);
-      });
-    }
-
-    // Append URL debug
-    if (urlDebugLogRef.current.length > 0) {
-      lines.push('\n' + '='.repeat(60));
-      lines.push('URL BUILD DEBUG');
-      lines.push('='.repeat(60));
-      urlDebugLogRef.current.forEach((e, i) => {
-        const msg = e.message || '(no message)';
-        lines.push(`\n[${i+1}] ${msg}`);
-        const d = e.data;
-        if (d) {
-          lines.push(`  Name: ${d.name || '(none)'}`);
-          lines.push(`  mapsUrl: ${d.raw?.mapsUrl || d.mapsUrl || '(none)'}`);
-          lines.push(`  placeId: ${d.raw?.googlePlaceId || d.placeId || '(none)'}`);
-          lines.push(`  lat/lng: ${d.raw?.lat || d.lat},${d.raw?.lng || d.lng}`);
-          (d.steps || []).forEach(s => lines.push(`  → ${s.step || s}${s.url ? ': ' + s.url : ''}`));
-          lines.push(`  Final URL: ${d.url || '#'}`);
-        }
-      });
-    }
-
-    const text = lines.join('\n');
-    // On mobile: try clipboard; on desktop: always download file (more reliable)
-    const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
-    const filename = `foufou-debug-${new Date().toISOString().slice(0,16).replace('T','-')}.txt`;
-    if (isMobile && navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(text).then(() => {
-        showToast('📋 Debug copied to clipboard!', 'success');
-      }).catch(() => {
-        const blob = new Blob([text], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = filename;
-        a.click(); URL.revokeObjectURL(url);
-        showToast('📥 Debug file downloaded', 'success');
-      });
-    } else {
-      const blob = new Blob([text], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = filename;
-      a.click(); URL.revokeObjectURL(url);
-      showToast('📥 Debug file downloaded', 'success');
-    }
-  };
-  
-  // Share debug as file (mobile: Web Share API → WhatsApp/etc; desktop: download)
-
-  // Clear debug sessions
-  const clearDebugSessions = () => {
-    setDebugSessions([]);
-    searchDebugLogRef.current = [];
-    setSearchDebugLog([]);
-    urlDebugLogRef.current = [];
-    setUrlDebugLog([]);
-    googleInfoDebugLogRef.current = [];
-    setGoogleInfoDebugLog([]);
-    filterLogRef.current = [];
-    setFilterLog([]);
-    setDebugFlagged(new Set());
-    showToast('🗑️ Debug cleared', 'info');
-  };
-  
-  // Flagged stops for investigation
-  const [debugFlagged, setDebugFlagged] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('foufou_debug_flagged') || '[]')); } catch(e) { return new Set(); }
-  });
-  useEffect(() => {
-    try { localStorage.setItem('foufou_debug_flagged', JSON.stringify([...debugFlagged])); } catch(e) {}
-  }, [debugFlagged]);
-  const toggleDebugFlag = (key) => {
-    setDebugFlagged(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
-  };
-  const exportFlaggedStops = () => {
-    const lines = ['=== 🚩 FLAGGED STOPS ===', ''];
-    debugSessions.forEach((sess) => {
-      const flaggedInSess = (sess.stops || []).map((st, i) => ({ st, i, key: `${sess.id}:${i}` })).filter(x => debugFlagged.has(x.key));
-      if (flaggedInSess.length === 0) return;
-      lines.push(`--- ${sess.time} | ${sess.areaName || sess.area} (${sess.searchMode}) | ${sess.interests.map(i => i.label).join(', ')} ---`);
-      flaggedInSess.forEach(({ st, i }) => {
-        const d = st._debug;
-        lines.push(`  🚩 ${i + 1}. ${st.name} — ⭐${st.rating || '?'} (${st.ratingCount || '?'})`);
-        if (d) {
-          lines.push(`     Interest: ${d.interestLabel} | Search: ${d.searchType}${d.query ? ` "${d.query}"` : ''}`);
-          if (d.placeTypes) lines.push(`     Search types: ${d.placeTypes.join(', ')}`);
-          lines.push(`     Google types: ${(d.googleTypes || []).join(', ')}`);
-          lines.push(`     Primary: ${d.primaryType || '-'} | Rank: #${d.rank}/${d.totalFromGoogle}`);
-          if (d.blacklist?.length) lines.push(`     Blacklist: ${d.blacklist.join(', ')}`);
-        }
-        if (st.address) lines.push(`     Address: ${st.address}`);
-        lines.push('');
-      });
-    });
-    if (lines.length <= 2) { showToast('No flagged stops', 'info'); return; }
-    const text = lines.join('\n');
-    try { navigator.clipboard.writeText(text); showToast(`📋 ${lines.filter(l => l.includes('🚩')).length} flagged stops copied`, 'success'); }
-    catch(e) { const blob = new Blob([text], {type:'text/plain'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'flagged-stops.txt'; a.click(); }
-  };
   
   // Help content - merge Firebase overrides over i18n defaults
   const helpContentBase = window.BKK.helpContent;
@@ -2297,10 +1983,8 @@
   // Must live here (app-logic.js, ~115KB) not in views.js (>500KB in bundle)
   const handleCityIconUpload = async (file, cityId, field, maxSize) => {
     if (!file) return;
-    addDebugLog('firebase', `[CITY-ICON] handleCityIconUpload called`, { cityId, field, fileName: file.name, fileSize: file.size });
     try {
       const compressed = await window.BKK.compressIcon(file, maxSize || 80);
-      addDebugLog('firebase', `[CITY-ICON] compressIcon result`, { hasResult: !!compressed, length: compressed?.length });
       if (!compressed) {
         showToast('❌ Failed to compress icon', 'error');
         return;
@@ -2320,7 +2004,6 @@
       // Save to Firebase
       saveCityGeneralField(cityId, field, compressed);
     } catch (e) {
-      addDebugLog('firebase', `[CITY-ICON] ❌ error`, { error: e.message });
       showToast('❌ Icon upload error: ' + e.message, 'error');
     }
   };
@@ -2331,22 +2014,17 @@
   const saveCityGeneralField = (cityId, field, value) => {
     if (!isFirebaseAvailable || !database) {
       showToast('❌ Firebase not available', 'error');
-      addDebugLog('firebase', `[CITY-SAVE] BLOCKED — Firebase not available`, { cityId, field });
       return;
     }
     if (!isUnlocked) {
       showToast('❌ No permission to save', 'error');
-      addDebugLog('firebase', `[CITY-SAVE] BLOCKED — isUnlocked=false`, { cityId, field, isUnlocked, isEditor });
       return;
     }
-    addDebugLog('firebase', `[CITY-SAVE] Saving cities/${cityId}/general/${field}`, { cityId, field, valueType: typeof value, valueLength: value?.length });
     database.ref(`cities/${cityId}/general/${field}`).set(value)
       .then(() => {
-        addDebugLog('firebase', `[CITY-SAVE] ✅ Saved cities/${cityId}/general/${field}`);
         setCityEditCounter(c => c + 1);
       })
       .catch(e => {
-        addDebugLog('firebase', `[CITY-SAVE] ❌ Error saving cities/${cityId}/general/${field}`, { error: e.message, code: e.code });
         showToast('❌ שגיאת שמירה: ' + e.message, 'error');
       });
   };
@@ -2354,21 +2032,18 @@
   // Save speech rate to Firebase systemParams
   const saveSpeechRate = (rate) => {
     if (!isFirebaseAvailable || !database) return;
-    addDebugLog('firebase', `[SETTINGS-SAVE] speechRate → ${rate}`);
     database.ref('settings/systemParams/speechRate').set(rate);
   };
 
   // Lock/unlock a location
   const saveLocationLocked = (cityId, firebaseId, locked) => {
     if (!isFirebaseAvailable || !database) return;
-    addDebugLog('firebase', `[SETTINGS-SAVE] location locked=${locked}`, { cityId, firebaseId });
     database.ref(`cities/${cityId}/locations/${firebaseId}/locked`).set(locked);
   };
 
   // Set interest adminStatus
   const saveInterestAdminStatus = (interestId, status) => {
     if (!isFirebaseAvailable || !database) return;
-    addDebugLog('firebase', `[SETTINGS-SAVE] interestConfig/${interestId}/adminStatus → ${status}`);
     database.ref(`settings/interestConfig/${interestId}/adminStatus`).set(status).catch(() => {});
     database.ref('settings/cacheVersion').set(Date.now()).catch(() => {});
   };
@@ -2376,14 +2051,12 @@
   // Save a single system param
   const saveSystemParam = (key, value) => {
     if (!isFirebaseAvailable || !database) return;
-    addDebugLog('firebase', `[SETTINGS-SAVE] systemParams/${key} → ${value}`);
     database.ref(`settings/systemParams/${key}`).set(value);
   };
 
   // Reset all system params to defaults
   const resetSystemParams = (defaults) => {
     if (!isFirebaseAvailable || !database) return;
-    addDebugLog('firebase', `[SETTINGS-SAVE] systemParams RESET`, { keys: Object.keys(defaults) });
     database.ref('settings/systemParams').set(defaults);
   };
 
@@ -2391,14 +2064,12 @@
   const saveBulkUpdate = async (batch) => {
     if (!isFirebaseAvailable || !database) return;
     if (Object.keys(batch).length === 0) return;
-    addDebugLog('firebase', `[SETTINGS-SAVE] bulkUpdate ${Object.keys(batch).length} keys`);
     await database.ref().update(batch);
   };
 
   // Clear access log (admin)
   const clearAccessLog = async () => {
     if (!isFirebaseAvailable || !database) return;
-    addDebugLog('firebase', `[SETTINGS-SAVE] accessLog.remove()`);
     await database.ref('accessLog').remove();
   };
 
@@ -2416,14 +2087,12 @@
   // Remove a location's googlePlaceId field
   const removeLocationGooglePlaceId = (cityId, firebaseId) => {
     if (!isFirebaseAvailable || !database) return;
-    addDebugLog('firebase', `[DIALOG-SAVE] remove googlePlaceId`, { cityId, firebaseId });
     database.ref(`cities/${cityId}/locations/${firebaseId}/googlePlaceId`).remove();
   };
 
   // Toggle city visibility for an interest (cityHiddenInterests)
   const saveCityHiddenInterests = (cityId, arr) => {
     if (!isFirebaseAvailable || !database) return;
-    addDebugLog('firebase', `[DIALOG-SAVE] cityHiddenInterests/${cityId}`, { count: arr.length });
     database.ref(`settings/cityHiddenInterests/${cityId}`).set(arr.length > 0 ? arr : null)
       .catch(e => console.error('[CITY] toggle error:', e));
   };
@@ -2431,28 +2100,24 @@
   // Set interest adminStatus (cycled in interest dialog)
   const saveInterestAdminStatusAsync = async (interestId, status) => {
     if (!isFirebaseAvailable || !database) return;
-    addDebugLog('firebase', `[DIALOG-SAVE] interestConfig/${interestId}/adminStatus → ${status}`);
     try { await database.ref(`settings/interestConfig/${interestId}/adminStatus`).set(status); } catch(e) {}
   };
 
   // Save interest counter
   const saveInterestCounter = (cityId, interestId, counter) => {
     if (!isFirebaseAvailable || !database) return;
-    addDebugLog('firebase', `[DIALOG-SAVE] interestCounters/${interestId} → ${counter}`);
     database.ref(`cities/${cityId}/interestCounters/${interestId}`).set(counter);
   };
 
   // Remove interest config (for built-in interest reset)
   const removeInterestConfig = (interestId) => {
     if (!isFirebaseAvailable || !database) return;
-    addDebugLog('firebase', `[DIALOG-SAVE] remove interestConfig/${interestId}`);
     database.ref(`settings/interestConfig/${interestId}`).remove();
   };
 
   // Save interest config
   const saveInterestConfig = (interestId, configData) => {
     if (!isFirebaseAvailable || !database) return;
-    addDebugLog('firebase', `[DIALOG-SAVE] interestConfig/${interestId}`, { keys: Object.keys(configData) });
     database.ref(`settings/interestConfig/${interestId}`).set(configData);
     database.ref('settings/cacheVersion').set(Date.now());
   };
@@ -2476,19 +2141,17 @@
   // Save/update customInterest + config in one operation
   const saveCustomInterestAndConfig = (firebaseId, interestId, updatedInterest, mergedConfig) => {
     if (!isFirebaseAvailable || !database) return;
-    addDebugLog('firebase', `[DIALOG-SAVE] customInterest+config`, { firebaseId, interestId });
     const batch = {};
     batch[`customInterests/${firebaseId || interestId}`] = updatedInterest;
     if (mergedConfig) batch[`settings/interestConfig/${interestId}`] = mergedConfig;
     batch['settings/cacheVersion'] = Date.now();
-    database.ref().update(batch).catch(e => addDebugLog('firebase', '[DIALOG-SAVE] saveCustomInterestAndConfig failed', { error: e.message }));
+    database.ref().update(batch).catch(() => {});
   };
 
   // Create new interest (customInterests + cityHiddenInterests + interestStatus + interestConfig)
   // OPTIMIZED: single batched write instead of 4+ separate calls
   const saveNewInterest = (interestId, newInterestData, hiddenCityIds, userId, searchConfig) => {
     if (!isFirebaseAvailable || !database) return;
-    addDebugLog('firebase', `[DIALOG-SAVE] new interest ${interestId}`, { hiddenCities: hiddenCityIds.length });
     const batch = {};
     batch[`customInterests/${interestId}`] = newInterestData;
     batch[`settings/interestStatus/${interestId}`] = true;
@@ -2499,14 +2162,13 @@
       batch[`settings/cityHiddenInterests/${cid}`] = [...cur];
     });
     batch['settings/cacheVersion'] = Date.now();
-    database.ref().update(batch).catch(e => addDebugLog('firebase', `[DIALOG-SAVE] saveNewInterest failed`, { error: e.message }));
+    database.ref().update(batch).catch(() => {});
     if (userId) database.ref(`users/${userId}/interestStatus/${interestId}`).set(true).catch(() => {});
   };
 
   // Delete feedback list
   const clearFeedbackList = () => {
     if (!isFirebaseAvailable || !database) return;
-    addDebugLog('firebase', `[DIALOG-SAVE] feedback.remove()`);
     database.ref('feedback').remove().then(() => {
       setFeedbackList([]);
       showToast(t('toast.allFeedbackDeleted'), 'success');
@@ -2516,7 +2178,6 @@
   // Delete a user (admin)
   const deleteUser = async (uid) => {
     if (!isFirebaseAvailable || !database) return;
-    addDebugLog('firebase', `[DIALOG-SAVE] users/${uid}.remove()`);
     await database.ref(`users/${uid}`).remove();
   };
 
@@ -2530,7 +2191,6 @@
   // Save new customInterest to Firebase with verification read-back
   const saveNewCustomInterest = (interestId, newInterestData, onSuccess, onError) => {
     if (!isFirebaseAvailable || !database) return false;
-    addDebugLog('firebase', `[DIALOG-SAVE] new customInterest ${interestId}`);
     database.ref(`customInterests/${interestId}`).set(newInterestData)
       .then(() => {
         // Verify: read back to confirm server persisted it
@@ -2543,7 +2203,6 @@
         if (onSuccess) onSuccess();
       })
       .catch(e => {
-        addDebugLog('firebase', `[DIALOG-SAVE] ❌ customInterest FAILED ${interestId}`, { error: e.message });
         if (onError) onError(e);
       });
     return true;
@@ -2567,7 +2226,6 @@
   const translateText = async (text, targetLang) => {
     const langPair = targetLang === 'he' ? 'en|he' : 'he|en';
     const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${langPair}`;
-    addDebugLog('api', `[TRANSLATE] ${langPair}: "${text.substring(0, 40)}..."`);
     const res = await fetch(url);
     if (!res.ok) throw new Error('Translation API error: ' + res.status);
     const data = await res.json();
@@ -3891,7 +3549,6 @@
       // Load city general data (icon/iconLeft/iconRight/name/color/hours) from Firebase
       database.ref(`cities/${selectedCityId}/general`).once('value').then(s => {
         const g = s.val();
-        addDebugLog('firebase', `[CITY-LOAD] cities/${selectedCityId}/general`, { hasData: !!g, icon: g?.icon?.substring(0,20) });
         if (!window.BKK.cities[selectedCityId] || !g) return;
         const city = window.BKK.cities[selectedCityId];
         const regKey = Object.keys(window.BKK.cityRegistry || {}).find(k => window.BKK.cityRegistry[k].id === selectedCityId) || selectedCityId;
@@ -3904,7 +3561,6 @@
         if (g.dayStartHour != null) { city.dayStartHour = g.dayStartHour; window.BKK.dayStartHour = g.dayStartHour; }
         if (g.nightStartHour != null) { city.nightStartHour = g.nightStartHour; window.BKK.nightStartHour = g.nightStartHour; }
         if (g.boundaryFactor != null) city.boundaryFactor = g.boundaryFactor;
-        addDebugLog('firebase', `[CITY-LOAD] Applied`, { cityIcon: city.icon?.substring(0,20), sameRef: city === window.BKK.selectedCity });
         setCityEditCounter(c => c + 1);
       }).catch(() => {});
 
@@ -4686,7 +4342,6 @@
     if (!lat || !lng || !interests?.length) return null;
     const radius = sp.dedupRadiusMeters || 50;
     const results = { google: [], custom: [], lat, lng, interests };
-    addDebugLog('DEDUP', `[DEDUP] Start — lat:${lat?.toFixed(5)} lng:${lng?.toFixed(5)} radius:${radius}m interests:[${interests.join(', ')}]`);
     
     // Expand interests with dedupRelated (ONE level only, bidirectional)
     const expandedInterests = new Set(interests);
@@ -4768,7 +4423,6 @@
         // 2a. Nearby Search for type-based interests
         if (uniqueTypes.length > 0) {
           const nearbyBody = { locationRestriction: { circle: { center: { latitude: lat, longitude: lng }, radius: searchRadius } }, includedTypes: uniqueTypes, maxResultCount: 5 };
-          addDebugLog('DEDUP', `[DEDUP] Nearby Search → types: [${uniqueTypes.join(', ')}] radius: ${searchRadius}m`, { body: nearbyBody });
           const response = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY, 'X-Goog-FieldMask': fieldMask },
@@ -4780,10 +4434,6 @@
             const afterBlacklist = applyBlacklist(all);
             const kept = afterBlacklist.map(mapPlace);
             const filtered = all.filter(p => !afterBlacklist.includes(p));
-            addDebugLog('DEDUP', `[DEDUP] Nearby → ${all.length} from Google, ${filtered.length} blacklisted, ${kept.length} kept`, {
-              kept: kept.map(p => `✅ ${p.name} ${p._distance}m ⭐${p.rating}`),
-              blacklisted: filtered.map(p => `❌ ${p.displayName?.text}`)
-            });
             results.google.push(...kept);
           }
         }
@@ -4792,7 +4442,6 @@
         if (uniqueTextQueries.length > 0) {
           await Promise.all(uniqueTextQueries.map(async (query) => {
             const textBody = { textQuery: query, locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: searchRadius } }, maxResultCount: 5 };
-            addDebugLog('DEDUP', `[DEDUP] Text Search → query: "${query}" radius: ${searchRadius}m`, { body: textBody });
             const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY, 'X-Goog-FieldMask': fieldMask },
@@ -4804,10 +4453,6 @@
               const afterBlacklist = applyBlacklist(all).map(mapPlace);
               const nearby = afterBlacklist.filter(p => p._distance <= radius);
               const tooFar = afterBlacklist.filter(p => p._distance > radius);
-              addDebugLog('DEDUP', `[DEDUP] Text "${query}" → ${all.length} from Google, ${nearby.length} within ${radius}m, ${tooFar.length} too far`, {
-                kept: nearby.map(p => `✅ ${p.name} ${p._distance}m ⭐${p.rating}`),
-                tooFar: tooFar.map(p => `📏 ${p.name} ${p._distance}m`)
-              });
               results.google.push(...nearby);
             }
           }));
@@ -4826,13 +4471,8 @@
     
     const total = results.google.length + results.custom.length;
     if (total > 0) {
-      addDebugLog('DEDUP', `[DEDUP] ✅ Found ${results.google.length} Google + ${results.custom.length} custom within ${radius}m`, {
-        google: results.google.map(p => `${p.name} ${p._distance}m`),
-        custom: results.custom.map(p => `${p.name}`)
-      });
       return results;
     }
-    addDebugLog('DEDUP', `[DEDUP] ❌ No matches found within ${radius}m`, { lat, lng, interests: [...expandedInterests] });
     return null;
   };
 
@@ -4862,7 +4502,6 @@
     } else {
       const areaCenter = areaCoordinates[area];
       if (!areaCenter) {
-        addDebugLog('API', `No coordinates for area: ${area}`);
         console.error('[DYNAMIC] No coordinates for area:', area);
         return [];
       }
@@ -4874,7 +4513,6 @@
     const validInterests = interests.filter(id => isInterestValid(id));
     if (validInterests.length === 0) {
       const names = interests.map(id => allInterestOptions.find(o => o.id === id)).filter(Boolean).map(o => tLabel(o) || o?.id || id).join(', ');
-      addDebugLog('API', `No valid config for: ${names}`);
       console.warn('[DYNAMIC] No valid interests - all are missing search config:', names);
       return [];
     }
@@ -4882,7 +4520,6 @@
     if (validInterests.length < interests.length) {
       const skipped = interests.filter(id => !isInterestValid(id));
       const skippedNames = skipped.map(id => allInterestOptions.find(o => o.id === id)).filter(Boolean).map(o => tLabel(o) || o?.id || id).join(', ');
-      addDebugLog('API', `Skipped interests without config: ${skippedNames}`);
       console.warn('[DYNAMIC] Skipped invalid interests:', skippedNames);
     }
 
@@ -4932,16 +4569,6 @@
         const searchQuery = textSearchQuery.trim();
         
         const interestLabel = allInterestOptions.find(o => o.id === validInterests[0]);
-        addDebugLog('API', `🔍 TEXT SEARCH`, { 
-          interest: tLabel(interestLabel) || validInterests[0],
-          interestId: validInterests[0],
-          query: searchQuery,
-          textSearch: textSearchQuery,
-          blacklist: blacklistWords,
-          area: area || 'GPS',
-          center: `${center.lat.toFixed(4)},${center.lng.toFixed(4)}`,
-          radius: searchRadius + 'm'
-        });
         
         // Text Search API: locationRestriction only supports rectangle (NOT circle).
         // locationBias supports circle. So:
@@ -4993,15 +4620,6 @@
         )];
 
         const interestLabel = allInterestOptions.find(o => o.id === validInterests[0]);
-        addDebugLog('API', `🔍 CATEGORY SEARCH`, { 
-          interest: tLabel(interestLabel) || validInterests[0],
-          interestId: validInterests[0],
-          placeTypes: placeTypes,
-          blacklist: blacklistWords,
-          area: area || 'GPS',
-          center: `${center.lat.toFixed(4)},${center.lng.toFixed(4)}`,
-          radius: searchRadius + 'm'
-        });
 
         const useRestrictionTypes = (window.BKK.systemParams?.googleLocationMode || 'restriction') === 'restriction';
         const locationParamTypes = useRestrictionTypes ? 'locationRestriction' : 'locationBias';
@@ -5074,7 +4692,6 @@
                 }
               } else {
                 const interestNames = validInterests.map(id => allInterestOptions.find(o => o.id === id)).filter(Boolean).map(o => tLabel(o) || o?.id || id).join(', ');
-                addDebugLog('API', `Type "${singleType}" not supported by Google (${interestNames})`);
                 console.warn(`[DYNAMIC] Type "${singleType}" not supported, skipping`);
               }
             } catch (retryErr) {
@@ -5119,7 +4736,6 @@
               };
             }).filter(place => place.lat !== 0 && place.lng !== 0);
             
-            addDebugLog('API', `Got ${places.length} results from retry`, { names: places.slice(0, 5).map(p => p.name) });
             const filteredPlaces = blacklistWords.length === 0 ? places : places.filter(place => {
               const placeName = place.name.toLowerCase();
               const placeTypeList = (place.googleTypes || []).map(t => t.toLowerCase().replace(/_/g, ' '));
@@ -5128,11 +4744,6 @@
             return filteredPlaces;
           }
           const interestLabelRetry = allInterestOptions.find(o => o.id === validInterests[0]);
-          addDebugLog('API', `❌ ZERO RESULTS: ${tLabel(interestLabelRetry) || validInterests[0]} — all types returned nothing`, {
-            tried: placeTypes,
-            blacklist: blacklistWords,
-            area: area || 'GPS',
-          });
           addToFilterLog({
             interestId: validInterests[0],
             interestLabel: tLabel(interestLabelRetry) || validInterests[0],
@@ -5411,18 +5022,7 @@
       // Log detailed debug results for in-app viewer
       const interestLabel = allInterestOptions.find(o => o.id === validInterests[0]);
       const zeroResults = transformed.length === 0;
-      addDebugLog('API', `${zeroResults ? '❌ ZERO RESULTS' : '📊 RESULTS'}: ${tLabel(interestLabel) || validInterests[0]}`, {
-        total: data.places.length,
-        kept: transformed.length,
-        blacklistFiltered: blacklistFilteredCount,
-        typeFiltered: typeFilteredCount,
-        relevanceFiltered: relevanceFilteredCount,
-        places: debugPlaceResults  // always include all filtered entries
-      });
       if (zeroResults) {
-        addDebugLog('API', `❌ All ${data.places.length} places were filtered out — blacklist:${blacklistFilteredCount} type:${typeFilteredCount} relevance:${relevanceFilteredCount}`, {
-          filteredOut: debugPlaceResults.map(p => `${p.status} ${p.name} — ${p.reason || ''}`)
-        });
       }
       // Readable console log of all places with status
       console.log(`[API] 📊 ${tLabel(interestLabel) || validInterests[0]} — ${data.places.length} from Google, ${transformed.length} kept:`);
@@ -5438,7 +5038,6 @@
       const distanceFiltered = transformed.filter(place => {
         const dist = calcDistance(center.lat, center.lng, place.lat, place.lng);
         if (dist > maxDistance) {
-          addDebugLog('API', `❌ TOO FAR: ${place.name} (${Math.round(dist)}m > ${Math.round(maxDistance)}m)`);
           debugPlaceResults.push({
             name: place.name,
             rating: place.rating?.toFixed?.(1) || place.rating || 'N/A',
@@ -5465,7 +5064,6 @@
         const count = place.ratingCount || 0;
         if (count < minCount) {
           ratingCountFiltered++;
-          addDebugLog('API', `❌ TOO FEW RATINGS: ${place.name} (${count} < ${minCount})`);
           debugPlaceResults.push({
             name: place.name,
             rating: place.rating?.toFixed?.(1) || place.rating || 'N/A',
@@ -5484,17 +5082,8 @@
       });
 
       if (ratingCountFiltered > 0) {
-        addDebugLog('API', `❌ Filtered ${ratingCountFiltered} places with < ${minCount} ratings`);
       }
 
-      addDebugLog('API', `✅ FINAL: ${tLabel(allInterestOptions.find(o => o.id === validInterests[0])) || validInterests[0]} → ${ratingFiltered.length} places`, {
-        fromGoogle: data.places.length,
-        afterFilters: transformed.length,
-        afterDistance: distanceFiltered.length,
-        afterRatingCount: ratingFiltered.length,
-        removed: { blacklist: blacklistFilteredCount, type: typeFilteredCount, relevance: relevanceFilteredCount, distance: transformed.length - distanceFiltered.length, lowRatingCount: ratingCountFiltered },
-        finalPlaces: ratingFiltered.map(p => `${p.name} ⭐${p.rating} (${p.ratingCount})${p.lowRatingCount ? ' ⚠️low' : ''}`)
-      });
 
       // Update filter log with complete picture for this interest
       addToFilterLog({
@@ -5631,41 +5220,7 @@
         // Rating refresh handled by dedicated button — not auto-saved here
       }
       
-      addDebugLog('API', 'Fetched Google Place Info', { name: placeInfo.name, types: placeInfo.types });
 
-      // Google Info debug log — always record when debug mode active
-      if (debugModeRef.current) {
-        const isValidGooglePlaceId = (pid) => {
-          if (!pid || typeof pid !== 'string' || pid.length < 15) return false;
-          if (/^(ChIJ|EiI|GhIJ)/.test(pid)) return true;
-          if (pid.length > 25 && /^[A-Za-z0-9_-]+$/.test(pid) && !pid.startsWith('-')) return true;
-          return false;
-        };
-        const builtUrl = placeInfo.googlePlaceId
-          ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeInfo.name || location.name)}&query_place_id=${placeInfo.googlePlaceId}`
-          : null;
-        const entry = {
-          ts: Date.now(),
-          locationName: location.name,
-          searchQuery: location.name + ' Bangkok',
-          rawFromGoogle: {
-            placeId: placeInfo.googlePlaceId,
-            placeIdValid: isValidGooglePlaceId(placeInfo.googlePlaceId),
-            name: placeInfo.name,
-            address: placeInfo.address,
-            rating: placeInfo.rating,
-            ratingCount: placeInfo.ratingCount,
-            lat: placeInfo.location?.latitude,
-            lng: placeInfo.location?.longitude,
-            types: placeInfo.types,
-            primaryType: placeInfo.primaryType,
-          },
-          builtUrl,
-          existingMapsUrl: location.mapsUrl || null,
-        };
-        googleInfoDebugLogRef.current = [entry, ...googleInfoDebugLogRef.current.slice(0, 19)];
-        setGoogleInfoDebugLog([...googleInfoDebugLogRef.current]);
-      }
       
       return placeInfo;
     } catch (error) {
@@ -5891,20 +5446,6 @@
     });
   }, [interestOptions, interestConfig, interestGroups, currentLang]);
 
-  // Debug: log custom interests in allInterestOptions (only when debug mode is on)
-  useEffect(() => {
-    if (!debugMode) return;
-    addDebugLog('INTEREST', `allInterestOptions.length=${allInterestOptions.length} cityCustomInterests.length=${(cityCustomInterests||[]).length} customInterests.length=${(customInterests||[]).length}`);
-    addDebugLog('INTEREST', `allInterestOptions IDs: ${allInterestOptions.map(o=>o.id).join(', ')}`);
-    const customs = allInterestOptions.filter(o => o.id?.startsWith?.('custom_') || o.custom);
-    if (customs.length > 0) {
-      addDebugLog('INTEREST', `${customs.length} custom found in allInterestOptions:`);
-      customs.forEach(c => addDebugLog('INTEREST', `  - ${c.id}: "${c.label}" scope=${c.scope||'?'} privateOnly=${c.privateOnly} valid=${isInterestValid?.(c.id)}`));
-    } else if ((customInterests||[]).length > 0) {
-      addDebugLog('INTEREST', 'BUG: customInterests exist but NOT in allInterestOptions!');
-      addDebugLog('INTEREST', 'cityCustomInterests: ' + JSON.stringify((cityCustomInterests||[]).map(c=>({id:c.id,label:c.label}))));
-    }
-  }, [customInterests, cityCustomInterests, allInterestOptions, debugMode]);
   useEffect(() => {
     // Don't save if data hasn't loaded yet - prevents overwriting saved interests with empty state
     if (!isDataLoaded) return;
@@ -6379,7 +5920,6 @@
             const bt = getStopBestTime(stop);
             if (bt === 'anytime') return true;
             if (bt !== effectiveFilter) {
-              addDebugLog('SMART', `⏰ Hard-filtered: ${stop.name} bestTime=${bt} effectiveFilter=${effectiveFilter}`);
               return false;
             }
             return true;
@@ -6887,20 +6427,12 @@
       // Use activeInterests for the rest of this generation
       const searchInterests = activeInterests;
       
-      addDebugLog('ROUTE', 'Starting route generation', { 
-        mode: formData.searchMode, 
-        area: formData.area, 
-        radius: isRadiusMode ? formData.radiusMeters : null,
-        interests: searchInterests, 
-        maxStops: formData.maxStops 
-      });
       console.log('[ROUTE] Starting route generation', isRadiusMode ? 'RADIUS mode' : 'AREA mode');
       console.log('[ROUTE] Selected interests:', JSON.stringify(searchInterests));
       console.log('[ROUTE] Area:', formData.area, '| SearchMode:', formData.searchMode);
       
       // Get custom locations (always included)
       const customStops = getStopsForInterests();
-      addDebugLog('ROUTE', `Found ${customStops.length} custom stops`);
       console.log('[ROUTE] Custom stops:', customStops.length, customStops.map(s => `${s.name} [${(s.interests||[]).join(',')}]`));
       
       // Calculate stops needed per interest — single source of truth via buildInterestLimits
@@ -7046,7 +6578,6 @@
           });
           const removed = beforeFilter - fetchedPlaces.length;
           if (removed > 0) {
-            addDebugLog('RADIUS', `Filtered ${removed} places beyond ${formData.radiusMeters}m radius`);
             console.log(`[RADIUS] Filtered ${removed}/${beforeFilter} places beyond radius`);
           }
         }
@@ -7459,7 +6990,6 @@
       })();
 
       // Save debug session for field debugging
-      saveDebugSession(newRoute);
       
       // Load review averages for all custom places
       const customNames = newRoute.stops
@@ -8116,7 +7646,6 @@
               showToast(msg, 'success');
               // Bump cacheVersion so all users get fresh data on next session
               database.ref('settings/cacheVersion').set(Date.now()).catch(() => {});
-              addDebugLog('firebase', `[DELETE-INTEREST] ${interestId} — cleaned ${totalCount} locs in ${affectedCities.length} cities`);
             } catch (error) {
               console.error('[FIREBASE] Error deleting interest:', error);
               setCustomInterests(prev => [...prev, interestToDelete]);
@@ -8747,7 +8276,6 @@
         // Don't do optimistic update here — Firebase listener will refresh the list
         // (optimistic update + debounce caused duplicates to appear)
         setRouteListKey(k => k + 1);
-        addDebugLog('ADD', `QuickAdd "${enriched.name}" saved to Firebase`);
       } catch (error) {
         saveToPending(enriched);
         saved = enriched;

@@ -3026,14 +3026,6 @@
                   settingsTab === 'sysparams' ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >🔧 פרמטרים</button>
-              {debugMode && (
-              <button
-                onClick={() => setSettingsTab('debug')}
-                className={`flex-1 py-2 rounded-lg font-bold text-xs transition ${
-                  settingsTab === 'debug' ? 'bg-gray-800 text-yellow-300' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >🐛 {debugSessions.length > 0 ? `דיבאג (${debugSessions.length})` : 'דיבאג'}</button>
-              )}
             </div>
 
             {/* ===== CITIES & AREAS TAB ===== */}
@@ -4421,7 +4413,6 @@
             </div>)}
 
             {/* ===== INTERESTS TAB ===== */}
-            {settingsTab === 'interests' && (() => { if(debugMode){addDebugLog('INTEREST',`Settings/Interests tab: customInterests.length=${customInterests.length}`);} return null; })()}
             {settingsTab === 'interests' && (() => {
                             const renderInterestSettingsRow = (i, allCities, getAStatus, openFn) => {
                 const icon = i.icon?.startsWith?.('data:') ? <img src={i.icon} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} /> : <span style={{ fontSize: '18px' }}>{i.icon || '📍'}</span>;
@@ -4969,23 +4960,6 @@
 
 
 
-            {/* ===== DEBUG TAB ===== */}
-            {settingsTab === 'debug' && debugMode && (
-              <DebugTab
-                debugSessions={debugSessions}
-                searchDebugLog={searchDebugLog}
-                debugFlagged={debugFlagged}
-                debugCategories={debugCategories}
-                debugClaudeQ={debugClaudeQ}
-                setDebugClaudeQ={setDebugClaudeQ}
-                toggleDebugCategory={toggleDebugCategory}
-                toggleDebugFlag={toggleDebugFlag}
-                exportDebugSessions={exportDebugSessions}
-                clearDebugSessions={clearDebugSessions}
-                exportFlaggedStops={exportFlaggedStops}
-                askClaude={askClaude}
-              />
-            )}
             
           </div>
         )}
