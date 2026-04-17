@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.22.87
+// FouFou app-data.js v3.22.89
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -905,12 +905,6 @@ settings: {
   radiusDescription: 'רדיוס חיפוש מסביב למיקום נוכחי (מטרים)',
   refreshData: 'רענון נתונים',
   refreshDescription: 'טען מחדש את כל הנתונים מ-Firebase: תחומים, מקומות, מסלולים והגדרות',
-  voiceSelect: 'קול השמעה',
-  defaultVoice: 'ברירת מחדל',
-  otherVoices: 'קולות נוספים',
-  noVoices: 'לא נמצאו קולות במערכת',
-  speechRate: 'קצב דיבור',
-  voiceHint: 'בחר קול ושמע דוגמה. ☁️ = קול ענן (איכות גבוהה יותר)',
   translating: 'מתרגם לאנגלית...',
   translated: 'תורגם ונשמר באנגלית!',
   translateBtn: '🌐 תרגם לעברית',
@@ -2021,12 +2015,6 @@ settings: {
   radiusDescription: 'Search radius around current location (meters)',
   refreshData: 'Refresh data',
   refreshDescription: 'Reload all data from Firebase: interests, places, routes and settings',
-  voiceSelect: 'Voice',
-  defaultVoice: 'Default',
-  otherVoices: 'Other voices',
-  noVoices: 'No voices found on this device',
-  speechRate: 'Speech rate',
-  voiceHint: 'Choose a voice and hear a preview. ☁️ = cloud voice (higher quality)',
   translating: 'Translating to English...',
   translated: 'Translated and saved in English!',
   translateBtn: '🌐 Translate to English',
@@ -3511,7 +3499,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.22.87';
+window.BKK.VERSION = '3.22.89';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));

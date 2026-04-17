@@ -46,16 +46,12 @@
   const authUserRef = React.useRef(null); // ref to always read current auth state (avoids stale closure in requireSignIn)
   const [authLoading, setAuthLoading] = useState(true); // true until onAuthStateChanged fires
   const [userRole, setUserRole] = useState(0); // 0=regular, 1=editor, 2=admin (real role from Firebase)
-  const [userProfile, setUserProfile] = useState(null); // { name, email, photo, role, cities }
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [showUserManagement, setShowUserManagement] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
   const [aboutEditing, setAboutEditing] = useState(false);
   const [aboutLocalText, setAboutLocalText] = useState('');
   const [allUsers, setAllUsers] = useState([]); // admin only: list of users
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [loginMode, setLoginMode] = useState('login'); // 'login' | 'register'
   const [loginError, setLoginError] = useState('');
   const [roleOverride, setRoleOverride] = useState(null); // null = no override, 0/1/2 = impersonate
 
@@ -103,7 +99,6 @@
         // Anonymous users: no Firebase profile. State lives in localStorage only.
         // This prevents accumulation of empty user records in Firebase.
         if (user.isAnonymous) {
-          setUserProfile(null);
           setUserRole(0);
           window.BKK._isAdmin = false;
           setAuthLoading(false);
@@ -140,7 +135,6 @@
               database.ref(`users/${user.uid}/email`).set(user.email);
             }
           }
-          setUserProfile(profile);
           setUserRole(profile.role || 0);
           window.BKK._isAdmin = (profile.role || 0) >= 2;
 
@@ -156,7 +150,6 @@
         }
       } else {
         console.log('[AUTH] Signed out');
-        setUserProfile(null);
         setUserRole(0);
         window.BKK._isAdmin = false;
       }
@@ -184,42 +177,6 @@
     }
   };
 
-  const authSignInMicrosoft = async () => {
-    if (!auth) return;
-    setLoginError('');
-    try {
-      const provider = new firebase.auth.OAuthProvider('microsoft.com');
-      provider.setCustomParameters({ prompt: 'select_account' });
-      await auth.signInWithPopup(provider);
-      setShowLoginDialog(false);
-    } catch (err) {
-      console.error('[AUTH] Microsoft sign-in error:', err);
-      if (err.code === 'auth/popup-blocked') {
-        try { await auth.signInWithRedirect(new firebase.auth.OAuthProvider('microsoft.com')); } catch (e2) { setLoginError(e2.message); }
-      } else {
-        setLoginError(err.message);
-      }
-    }
-  };
-
-  const authSignInApple = async () => {
-    if (!auth) return;
-    setLoginError('');
-    try {
-      const provider = new firebase.auth.OAuthProvider('apple.com');
-      provider.addScope('email');
-      provider.addScope('name');
-      await auth.signInWithPopup(provider);
-      setShowLoginDialog(false);
-    } catch (err) {
-      console.error('[AUTH] Apple sign-in error:', err);
-      if (err.code === 'auth/popup-blocked') {
-        try { await auth.signInWithRedirect(new firebase.auth.OAuthProvider('apple.com')); } catch (e2) { setLoginError(e2.message); }
-      } else {
-        setLoginError(err.message);
-      }
-    }
-  };
 
   const authSignInAnonymous = async () => {
     if (!auth) return;
@@ -953,7 +910,6 @@
       includeDrafts: true,
       // Speech recording
       speechMaxSeconds: 15,
-      speechRate: 1.0,
       // Toast display duration (ms)
       toastDuration: 4000,
       // Point search (מסביב למקום dropdown)
@@ -1019,7 +975,6 @@
     return counters;
   }, [customLocations]);
   const [googlePlaceInfo, setGooglePlaceInfo] = useState(null);
-  const [loadingGoogleInfo, setLoadingGoogleInfo] = useState(false);
   const [locationSearchResults, setLocationSearchResults] = useState(null); // null=hidden, []=no results, [...]= results
   const [pointSearchResults, setPointSearchResults] = useState(null); // null=hidden, []=loading, [...]= results for step-2 point mode
   const [pointSearchQuery, setPointSearchQuery] = useState(''); // tracks input value for button enable/disable
@@ -1034,39 +989,6 @@
   const [editingLocation, setEditingLocation] = useState(null);
   const [editNavList, setEditNavList] = useState(null);
   const [reviewDialog, setReviewDialog] = useState(null); // { place, reviews: [], myRating, myText }
-  const [reviewRecording, setReviewRecording] = useState(false);
-  const [reviewInterimText, setReviewInterimText] = useState('');
-  const reviewStopRecRef = React.useRef(null);
-
-  const startReviewDictation = () => {
-    if (reviewRecording) {
-      if (reviewStopRecRef.current) { reviewStopRecRef.current(); reviewStopRecRef.current = null; }
-      setReviewRecording(false);
-      setReviewInterimText('');
-      return;
-    }
-    setReviewRecording(true);
-    const stop = window.BKK.startSpeechToText({
-      maxDuration: (window.BKK.systemParams?.speechMaxSeconds || 15) * 1000,
-      onResult: (text, isFinal) => {
-        if (isFinal) {
-          setReviewDialog(prev => ({ ...prev, myText: (prev.myText ? prev.myText + ' ' : '') + text, hasChanges: true }));
-          setReviewInterimText('');
-        } else {
-          setReviewInterimText(text);
-        }
-      },
-      onEnd: () => { setReviewRecording(false); setReviewInterimText(''); reviewStopRecRef.current = null; },
-      onError: () => { setReviewRecording(false); setReviewInterimText(''); reviewStopRecRef.current = null; }
-    });
-    reviewStopRecRef.current = stop;
-  };
-
-  const stopReviewDictation = () => {
-    if (reviewStopRecRef.current) { reviewStopRecRef.current(); reviewStopRecRef.current = null; }
-    setReviewRecording(false);
-    setReviewInterimText('');
-  };
   const [reviewAverages, setReviewAverages] = useState({}); // { placeKey: { avg: 4.2, count: 3 } }
   const [userNamesMap, setUserNamesMap] = useState({}); // { uid: displayName }
   const [showImageModal, setShowImageModal] = useState(false);
@@ -1728,12 +1650,6 @@
   const [modalDescDraft, setModalDescDraft] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [placeSearchQuery, setPlaceSearchQuery] = useState(() => {
-    try {
-      const prefs = JSON.parse(localStorage.getItem('foufou_preferences'));
-      return prefs?.radiusPlaceName || '';
-    } catch(e) { return ''; }
-  });
   const [searchResults, setSearchResults] = useState([]);
   const [addingPlaceIds, setAddingPlaceIds] = useState([]); // Track places being added
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -1746,7 +1662,6 @@
 
   // Feedback System
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
-  const [editingMyFeedback, setEditingMyFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState(() => {
     try { const d = JSON.parse(localStorage.getItem('feedback_draft') || '{}'); return d.text || ''; } catch(e) { return ''; }
   });
@@ -1845,7 +1760,6 @@
       // Network error on version check — safe to ignore, use local cache as-is
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const [isLocating, setIsLocating] = useState(false);
   const [rightColWidth, setRightColWidth] = useState(() => {
     try {
       const saved = parseInt(localStorage.getItem('foufou_right_col_width'));
@@ -1856,7 +1770,6 @@
   // Admin System - legacy state kept for backward compat during transition
   const [adminPassword, setAdminPassword] = useState(''); // legacy, will be removed
   const [adminUsers, setAdminUsers] = useState([]);
-  const [showPasswordDialog, setShowPasswordDialog] = useState(false); // legacy
   
   // Refs for current values (needed by map closures to avoid stale state)
   const routeTypeRef = React.useRef(routeType);
@@ -1878,7 +1791,6 @@
       }
     }
   }, [startPointCoords]);
-  const [showVersionPasswordDialog, setShowVersionPasswordDialog] = useState(false); // legacy
   const [showAddCityDialog, setShowAddCityDialog] = useState(false);
   const [addCityInput, setAddCityInput] = useState('');
   const [addCitySearchStatus, setAddCitySearchStatus] = useState(''); // '', 'searching', 'found', 'error', 'generating', 'done'
@@ -1892,8 +1804,6 @@
   const [mapEditMode, setMapEditMode] = useState(false);
   const mapMarkersRef = React.useRef([]);
   const mapOriginalPositions = React.useRef({});
-  const [passwordInput, setPasswordInput] = useState('');
-  const [newAdminPassword, setNewAdminPassword] = useState(''); // For setting new password in admin panel
   
   // Filter Log — per-search breakdown of passed/filtered places (floating debug bubble)
   // Shape: [{ interestId, interestLabel, searchType, query, placeTypes, blacklist, passed: [...], filtered: [...] }]
@@ -2029,12 +1939,6 @@
       });
   };
 
-  // Save speech rate to Firebase systemParams
-  const saveSpeechRate = (rate) => {
-    if (!isFirebaseAvailable || !database) return;
-    database.ref('settings/systemParams/speechRate').set(rate);
-  };
-
   // Lock/unlock a location
   const saveLocationLocked = (cityId, firebaseId, locked) => {
     if (!isFirebaseAvailable || !database) return;
@@ -2148,23 +2052,6 @@
     database.ref().update(batch).catch(() => {});
   };
 
-  // Create new interest (customInterests + cityHiddenInterests + interestStatus + interestConfig)
-  // OPTIMIZED: single batched write instead of 4+ separate calls
-  const saveNewInterest = (interestId, newInterestData, hiddenCityIds, userId, searchConfig) => {
-    if (!isFirebaseAvailable || !database) return;
-    const batch = {};
-    batch[`customInterests/${interestId}`] = newInterestData;
-    batch[`settings/interestStatus/${interestId}`] = true;
-    if (searchConfig) batch[`settings/interestConfig/${interestId}`] = searchConfig;
-    hiddenCityIds.forEach(cid => {
-      const cur = new Set(cityHiddenInterests[cid] || []);
-      cur.add(interestId);
-      batch[`settings/cityHiddenInterests/${cid}`] = [...cur];
-    });
-    batch['settings/cacheVersion'] = Date.now();
-    database.ref().update(batch).catch(() => {});
-    if (userId) database.ref(`users/${userId}/interestStatus/${interestId}`).set(true).catch(() => {});
-  };
 
   // Delete feedback list
   const clearFeedbackList = () => {
@@ -2294,34 +2181,10 @@
     showToast('💾 ' + (t('general.saved') || 'נשמר'), 'success');
   };
 
-  // TTS
+  // Audio playback state (used by hint audio recordings — see playHint/pauseResumeHint/stopHintPlayback)
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [ttsVoices, setTtsVoices] = useState([]);
-  const [selectedVoice, setSelectedVoice] = useState(localStorage.getItem('foufou_tts_voice') || '');
   const [adminDefaultLang, setAdminDefaultLang] = useState(localStorage.getItem('foufou_admin_default_lang') || 'en');
-  React.useEffect(() => {
-    const load = () => setTtsVoices(window.speechSynthesis ? window.speechSynthesis.getVoices() : []);
-    load();
-    if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = load;
-  }, []);
-
-  const speakHelp = (text) => {
-    if (!window.speechSynthesis) return;
-    if (isSpeaking && !isPaused) { window.speechSynthesis.pause(); setIsPaused(true); return; }
-    if (isPaused) { window.speechSynthesis.resume(); setIsPaused(false); return; }
-    window.speechSynthesis.cancel();
-    const clean = text.replace(/\*\*/g, '').replace(/[•#]/g, '').replace(/\n+/g, '. ');
-    const u = new SpeechSynthesisUtterance(clean);
-    u.lang = window.BKK.i18n.currentLang === 'en' ? 'en-US' : 'he-IL';
-    u.rate = window.BKK.systemParams?.speechRate || 1.0;
-    if (selectedVoice) { const v = ttsVoices.find(function(v) { return v.name === selectedVoice; }); if (v) u.voice = v; }
-    u.onstart = () => { setIsSpeaking(true); setIsPaused(false); };
-    u.onend = () => { setIsSpeaking(false); setIsPaused(false); };
-    u.onerror = () => { setIsSpeaking(false); setIsPaused(false); };
-    window.speechSynthesis.speak(u);
-  };
-  const stopSpeaking = () => { if (window.speechSynthesis) window.speechSynthesis.cancel(); setIsSpeaking(false); setIsPaused(false); };
 
   // Hint visit tracking
   const getHintVisits = (id) => parseInt(localStorage.getItem('foufou_hint_' + id) || '0');
@@ -2450,47 +2313,32 @@
     setHintAudioRecording(false);
   };
 
-  // Play hint: audio recording > TTS
+  // Play hint audio recording (if exists)
   const playHint = (hintId, text) => {
-    // Always cancel any ongoing TTS first
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
     if (window._hintAudio) { window._hintAudio.pause(); window._hintAudio = null; }
-    
+
     const lang = window.BKK.i18n.currentLang || 'he';
     const audioUrl = hintAudioUrls[hintId + '_' + lang];
-    if (audioUrl) {
-      window.BKK.logEvent?.('hint_audio_played', { hint_id: hintId, lang });
-      const audio = new Audio(audioUrl);
-      window._hintAudio = audio;
-      audio.onended = () => { setIsSpeaking(false); setIsPaused(false); setPlayingHintLabel(''); window._hintAudio = null; };
-      setIsSpeaking(true); setIsPaused(false);
-      setPlayingHintLabel(text?.slice(0, 40) || hintId);
-      audio.play();
-      return;
-    }
-    speakHelp(text);
+    if (!audioUrl) return;
+    window.BKK.logEvent?.('hint_audio_played', { hint_id: hintId, lang });
+    const audio = new Audio(audioUrl);
+    window._hintAudio = audio;
+    audio.onended = () => { setIsSpeaking(false); setIsPaused(false); window._hintAudio = null; };
+    setIsSpeaking(true); setIsPaused(false);
+    audio.play();
   };
   const pauseResumeHint = () => {
-    if (window._hintAudio) {
-      if (window._hintAudio.paused) { window._hintAudio.play(); setIsPaused(false); }
-      else { window._hintAudio.pause(); setIsPaused(true); }
-      return;
-    }
-    // TTS pause/resume
-    if (window.speechSynthesis) {
-      if (isPaused) { window.speechSynthesis.resume(); setIsPaused(false); }
-      else { window.speechSynthesis.pause(); setIsPaused(true); }
-    }
+    if (!window._hintAudio) return;
+    if (window._hintAudio.paused) { window._hintAudio.play(); setIsPaused(false); }
+    else { window._hintAudio.pause(); setIsPaused(true); }
   };
   const stopHintPlayback = () => {
     if (window._hintAudio) { window._hintAudio.pause(); window._hintAudio = null; }
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
-    setIsSpeaking(false); setIsPaused(false); setPlayingHintLabel('');
+    setIsSpeaking(false); setIsPaused(false);
   };
 
   // Render a context-sensitive hint bar
   const [openHintPopup, setOpenHintPopup] = useState(null);
-  const [playingHintLabel, setPlayingHintLabel] = useState(''); // label shown in floating player
   const [hintDragPos, setHintDragPos] = React.useState({ x: 0, y: 0 });
   const hintDragRef = React.useRef({ x: 0, y: 0, startX: 0, startY: 0, dragging: false });
   const closeHintPopup = () => { setOpenHintPopup(null); /* audio continues — stops only via floating player */ };
@@ -2610,10 +2458,10 @@
                 ) : null; })()}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <button onClick={() => isSpeaking ? pauseResumeHint() : playHint(hintId, txt)}
+                {hasAudio && <button onClick={() => isSpeaking ? pauseResumeHint() : playHint(hintId, txt)}
                   style={{ ...btnStyle, color: 'white', fontSize: '18px', opacity: 0.9 }}>
-                  {isSpeaking ? (isPaused ? '▶️' : '⏸️') : (hasAudio ? '🔊' : '🔈')}
-                </button>
+                  {isSpeaking ? (isPaused ? '▶️' : '⏸️') : '🔊'}
+                </button>}
                 {isSpeaking && <button onClick={stopHintPlayback} style={{ ...btnStyle, color: 'white', fontSize: '16px' }}>⏹️</button>}
                 <button onClick={closeHintPopup}
                   style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '50%', width: '26px', height: '26px', cursor: 'pointer', fontSize: '14px', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 'bold' }}>✕</button>
@@ -4164,7 +4012,6 @@
             showToast(t('toast.feedbackThanks'), 'success');
             setFeedbackText(''); setFeedbackImages([]); setFeedbackSubject(''); setFeedbackSenderName(''); setFeedbackSenderEmail(''); try { localStorage.removeItem('feedback_draft'); } catch(e) {}
             setFeedbackCategory('general');
-            setEditingMyFeedback(false);
             setShowFeedbackDialog(false);
           })
           .catch((err) => {
@@ -4178,7 +4025,6 @@
             setMyFeedbackList(prev => [{ ...feedbackEntry, firebaseId: ref.key }, ...prev].slice(0, 10));
             setFeedbackText(''); setFeedbackImages([]); setFeedbackSubject(''); setFeedbackSenderName(''); setFeedbackSenderEmail(''); try { localStorage.removeItem('feedback_draft'); } catch(e) {}
             setFeedbackCategory('general');
-            setEditingMyFeedback(false);
             setShowFeedbackDialog(false);
           })
           .catch((err) => {
@@ -5125,116 +4971,7 @@
     }
   };
 
-  // Function to fetch Google Place info for a location
-  const fetchGooglePlaceInfo = async (location) => {
-    if (!location || (!location.lat && !location.name)) {
-      showToast(t('places.notEnoughInfo'), 'error');
-      return null;
-    }
-    
-    setLoadingGoogleInfo(true);
-    
-    try {
-      let bestMatch = null;
 
-      // Prefer Place Details GET ($0.017) over Text Search ($0.032) when placeId known
-      if (location.googlePlaceId) {
-        const resp = await fetch(
-          `https://places.googleapis.com/v1/places/${location.googlePlaceId}`,
-          { method: 'GET', headers: {
-            'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-            'X-Goog-FieldMask': 'id,displayName,formattedAddress,location,rating,userRatingCount,types,primaryType,primaryTypeDisplayName,currentOpeningHours'
-          }}
-        );
-        if (resp.ok) {
-          const d = await resp.json();
-          bestMatch = { ...d, id: d.id || location.googlePlaceId };
-        }
-      }
-
-      // Fallback: Text Search by name (when no placeId or Place Details failed)
-      if (!bestMatch) {
-        const searchQuery = location.name + ' ' + (window.BKK.cityNameForSearch || 'Bangkok');
-        const response = await fetch(GOOGLE_PLACES_TEXT_SEARCH_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType,places.primaryTypeDisplayName,places.currentOpeningHours'
-          },
-          body: JSON.stringify({
-            textQuery: searchQuery,
-            maxResultCount: 5,
-            locationBias: location.lat && location.lng ? {
-              circle: { center: { latitude: location.lat, longitude: location.lng }, radius: 1000.0 }
-            } : undefined
-          })
-        });
-        if (!response.ok) throw new Error('Google API error');
-        const data = await response.json();
-        if (!data.places || data.places.length === 0) {
-          setGooglePlaceInfo({ notFound: true, searchQuery });
-          showToast(t('places.placeNotOnGoogle'), 'warning');
-          setLoadingGoogleInfo(false);
-          return null;
-        }
-        // Pick closest result
-        let pick = data.places[0];
-        if (location.lat && location.lng && data.places.length > 1) {
-          const dist = p => Math.sqrt(Math.pow((p.location?.latitude||0) - location.lat, 2) + Math.pow((p.location?.longitude||0) - location.lng, 2));
-          pick = data.places.reduce((b, p) => dist(p) < dist(b) ? p : b);
-        }
-        bestMatch = { ...pick, id: pick.id };
-      }
-      
-      // Normalize: Place Details returns flat fields; Text Search wraps them the same way
-      const placeInfo = {
-        name: bestMatch.displayName?.text || bestMatch.displayName,
-        address: bestMatch.formattedAddress,
-        types: bestMatch.types || [],
-        primaryType: bestMatch.primaryType,
-        primaryTypeDisplayName: bestMatch.primaryTypeDisplayName?.text || bestMatch.primaryTypeDisplayName,
-        rating: bestMatch.rating,
-        ratingCount: bestMatch.userRatingCount,
-        location: bestMatch.location,
-        googlePlaceId: bestMatch.id || null
-      };
-      
-      setGooglePlaceInfo(placeInfo);
-      
-      // Auto-apply googlePlaceId and rating to the location being edited
-      if (placeInfo.googlePlaceId) {
-        setNewLocation(prev => {
-          // Do NOT touch mapsUrl — getGoogleMapsUrl handles legacy URLs on-the-fly
-          // Only update data fields: placeId, rating, address
-          return {
-            ...prev,
-            googlePlaceId: placeInfo.googlePlaceId,
-            googlePlace: true,
-            ...(placeInfo.address && !prev.address ? { address: placeInfo.address } : {}),
-            ...(placeInfo.rating ? { googleRating: placeInfo.rating, googleRatingCount: placeInfo.ratingCount || 0 } : {})
-          };
-        });
-
-
-        // Rating refresh handled by dedicated button — not auto-saved here
-      }
-      
-
-      
-      return placeInfo;
-    } catch (error) {
-      console.error('Error fetching Google place info:', error);
-      showToast(t('toast.googleInfoError'), 'error');
-      return null;
-    } finally {
-      setLoadingGoogleInfo(false);
-    }
-  };
-
-  // Batch refresh Google ratings for all favorites with Google presence
-  // Bulk audit & fix URLs and googlePlaceId for all favorites
-  const [urlAuditResult, setUrlAuditResult] = useState(null);
 
   // Refresh Google rating for a single place — used by the rating button in edit dialog
   const refreshSingleGoogleRating = async (loc, inPlaceCallback = null) => {

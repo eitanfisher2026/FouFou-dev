@@ -3759,56 +3759,6 @@
               </div>
             </div>
 
-            {/* Voice & Speech Rate */}
-            <div className="mb-3">
-              <div className="bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-200 rounded-lg p-2">
-                <h3 className="text-sm font-bold text-gray-800 mb-2">{`🔊 ${t('settings.voiceSelect')}`}</h3>
-                {ttsVoices.length > 0 && (
-                <select
-                  value={selectedVoice}
-                  onChange={(e) => {
-                    setSelectedVoice(e.target.value);
-                    localStorage.setItem('foufou_tts_voice', e.target.value);
-                    if (window.speechSynthesis) {
-                      window.speechSynthesis.cancel();
-                      const u = new SpeechSynthesisUtterance(window.BKK.i18n.currentLang === 'en' ? 'Hello, this is FouFou' : 'שלום, זה פופו');
-                      const voice = ttsVoices.find(v => v.name === e.target.value);
-                      if (voice) u.voice = voice;
-                      u.lang = window.BKK.i18n.currentLang === 'en' ? 'en-US' : 'he-IL';
-                      u.rate = systemParams.speechRate || 1.0;
-                      window.speechSynthesis.speak(u);
-                    }
-                  }}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '12px', direction: 'ltr', marginBottom: '8px' }}
-                >
-                  <option value="">{t('settings.defaultVoice')}</option>
-                  {ttsVoices.filter(v => v.lang === 'he-IL' || v.lang === 'en-US' || v.lang === 'en-GB').map(v => (
-                    <option key={v.name} value={v.name}>{v.name} {v.localService ? '' : '☁️'}</option>
-                  ))}
-                </select>
-                )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                  <span className="text-xs font-bold text-gray-600">{`⏩ ${t('settings.speechRate')}:`}</span>
-                  {[0.7, 0.85, 1.0, 1.2, 1.5].map(rate => (
-                    <button key={rate}
-                      onClick={() => {
-                        const updated = { ...systemParams, speechRate: rate };
-                        window.BKK.systemParams = updated;
-                        setSystemParams(updated);
-                        saveSpeechRate(rate);
-                      }}
-                      style={{
-                        padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer',
-                        border: (systemParams.speechRate || 1.0) === rate ? '2px solid #7c3aed' : '1px solid #d1d5db',
-                        background: (systemParams.speechRate || 1.0) === rate ? '#ede9fe' : 'white',
-                        color: (systemParams.speechRate || 1.0) === rate ? '#7c3aed' : '#6b7280'
-                      }}
-                    >{rate}x</button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
             
             {/* Refresh Data Button */}
             <div className="mb-3">

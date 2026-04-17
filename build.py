@@ -114,7 +114,9 @@ def build():
     import datetime
     if os.path.exists('CLAUDE_CONTEXT.md'):
         ctx = open('CLAUDE_CONTEXT.md', encoding='utf-8').read()
-        # Update version line
+        # Update version line (English format: **vX.Y.Z** under "## Current Version")
+        ctx = re.sub(r'\*\*v[\d.]+\*\*', f'**v{ver}**', ctx, count=1)
+        # Legacy Hebrew format (if anyone still uses it)
         ctx = re.sub(r'- \*\*גרסה:\*\* `[\d.]+`.*', f'- **גרסה:** `{ver}` ({datetime.date.today().strftime("%b %d, %Y")})', ctx)
         # Update footer date line
         ctx = re.sub(r'\*עדכון אחרון:.*\*', f'*עדכון אחרון: {datetime.date.today().strftime("%d/%m/%Y")} — v{ver}*', ctx)

@@ -7,7 +7,7 @@ https://eitanfisher2026.github.io/FouFou-dev/
 React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Places API, PWA
 
 ## Current Version
-**v3.22.84**
+**v3.22.89**
 
 ---
 
@@ -56,7 +56,7 @@ python3 build.py
 node compile.js app-code.js
 # bump version (see above)
 zip -q github-upload-dev-vX_YY_ZZ.zip \
-  CLAUDE_CONTEXT.md CLAUDE_DEV_RULES.md README.md _app-code-template.js _source-template.html \
+  CLAUDE_CONTEXT.md DEBUG_FULL_BACKUP.md README.md _app-code-template.js _source-template.html \
   app-code.js app-data.js app-logic.js build.py \
   city-bangkok.js city-gushdan.js city-malaga.js city-singapore.js city-telaviv.js \
   compile.js config.js dialogs.js favicon.ico firebase-rules.json i18n.js \
@@ -75,7 +75,6 @@ zip -q github-upload-dev-vX_YY_ZZ.zip \
 - All Firebase writes → `app-logic.js` only
 - Never `React.useState`/`React.useRef` inside `.map()`, IIFEs, or callbacks
 - Never `{(() => { ... })()}` in JSX ternary — use `? (() => { ... })()`
-- Full rules → `CLAUDE_DEV_RULES.md`
 
 ---
 
@@ -111,12 +110,16 @@ zip -q github-upload-dev-vX_YY_ZZ.zip \
 3. `localStorage foufou_admin_default_lang`
 4. Fallback: `'en'`
 
-### Google Takeout Import (v3.22.84)
-- State in `app-logic.js`: `takeoutPlaces`, `takeoutImportSelections`, `takeoutBulkInterests`, `takeoutAddedBy`
-- Dialog in `dialogs.js`: fullscreen, `showTakeoutDialog`
-- `addedBy`: admin picks from editor dropdown (`allUsers` filtered role≥1); editor sees own name only
-- Existing places: checkbox disabled, shown in separate bottom section
-- `executeTakeoutImport` → saves to `cities/${selectedCityId}/locations/`
+### Debug system (v3.22.87 — simplified)
+Only the **floating bubble** (`🔬 N entries` bottom-left) remains. The Debug tab in Settings was fully removed in v3.22.87.
+- State: `filterLog`, `filterLogRef`, `showFilterPanel`, `setShowFilterPanel`
+- Fill function: `addToFilterLog` in `app-logic.js` (called from route generation)
+- Toggle: `debugMode` in Settings → General (localStorage: `foufou_debug_mode`)
+- If ever needed back: see `DEBUG_FULL_BACKUP.md` for full restoration instructions
+
+### Removal history
+- **v3.22.86**: Google Takeout import feature removed (see `TAKEOUT_FULL_BACKUP.md` in an earlier backup if restoring)
+- **v3.22.89**: Debug tab + `addDebugLog` infrastructure removed (see `DEBUG_FULL_BACKUP.md`)
 
 ---
 

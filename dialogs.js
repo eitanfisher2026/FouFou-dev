@@ -2472,16 +2472,10 @@
                 {(section && section.title) || t('general.help')}
               </h3>
               <div className="flex items-center gap-1">
-                <button onClick={() => speakHelp(content)}
-                  className="hover:bg-white hover:bg-opacity-20 rounded-full w-7 h-7 flex items-center justify-center text-sm"
-                >{isSpeaking ? (isPaused ? '▶️' : '⏸️') : '🔊'}</button>
-                {isSpeaking && <button onClick={stopSpeaking}
-                  className="hover:bg-white hover:bg-opacity-20 rounded-full w-7 h-7 flex items-center justify-center text-sm"
-                >⏹️</button>}
                 {isAdmin && <button onClick={() => { if (!helpEditing) { setHelpEditText(content); setHelpEditing(true); } else { setHelpEditing(false); } }}
                   className="hover:bg-white hover:bg-opacity-20 rounded-full w-7 h-7 flex items-center justify-center text-sm"
                 >{helpEditing ? '👁️' : '✏️'}</button>}
-                <button onClick={() => { setShowHelp(false); stopSpeaking(); }}
+                <button onClick={() => setShowHelp(false)}
                   className="text-xl hover:bg-white hover:bg-opacity-20 rounded-full w-7 h-7 flex items-center justify-center"
                 >✕</button>
               </div>
@@ -2522,7 +2516,7 @@
                   >{t('general.cancel') || 'ביטול'}</button>
                 </>
               ) : (
-                <button onClick={() => { setShowHelp(false); stopSpeaking(); }}
+                <button onClick={() => setShowHelp(false)}
                   className="w-full py-2 rounded-lg bg-blue-500 text-white font-bold hover:bg-blue-600 text-sm"
                 >{t('general.close')} ✓</button>
               )}
