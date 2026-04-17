@@ -4187,10 +4187,21 @@
             <div style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: 'white', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div>
                 <div style={{ fontWeight: 'bold', fontSize: '15px' }}>📥 Google Maps Import</div>
-                <div style={{ fontSize: '11px', opacity: 0.8 }}>
-                  {places.length} places in city
-                  {takeoutPlaces?.filteredNoCoords > 0 && ` · ${takeoutPlaces.filteredNoCoords} no-coords skipped`}
-                  {takeoutPlaces?.filteredOutsideCity > 0 && ` · ${takeoutPlaces.filteredOutsideCity} outside city`}
+                <div style={{ fontSize: '11px', opacity: 0.9 }}>
+                  {(() => {
+                    const sc = takeoutPlaces?.sourceCounts || {};
+                    const parts = [];
+                    if (sc.saved > 0) parts.push(`📌 ${sc.saved} saved`);
+                    if (sc.reviews > 0) parts.push(`📝 ${sc.reviews} reviewed`);
+                    if (sc.other > 0) parts.push(`📋 ${sc.other} other`);
+                    const sourceText = parts.length > 0 ? parts.join(' · ') + ' · ' : '';
+                    return (
+                      <span>
+                        {sourceText}{places.length} in city
+                        {takeoutPlaces?.filteredOutsideCity > 0 && ` · ${takeoutPlaces.filteredOutsideCity} outside city`}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
               <button
@@ -4253,59 +4264,94 @@
             {/* Places list */}
             <div style={{ flex: 1, overflowY: 'auto' }}>
               {(() => {
-                const newPlaces = places.map((p, i) => ({ p, i })).filter(({ p }) => !p.alreadyExists);
-                const existingPlaces = places.map((p, i) => ({ p, i })).filter(({ p }) => p.alreadyExists);
+                const renderNewPlaceRow = ({ p: place, i }) => {
+                  const sel = takeoutImportSelections[i] || { import: false, interests: [] };
+                  const effectiveInterests = sel.interests.length > 0 ? sel.interests : takeoutBulkInterests;
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        display: 'grid', gridTemplateColumns: '28px 1fr 180px', gap: '8px',
+                        alignItems: 'center', padding: '7px 12px',
+                        borderBottom: '1px solid #f1f5f9',
+                        background: sel.import ? '#f5f3ff' : 'white',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={sel.import}
+                        onChange={e => setTakeoutImportSelections(prev => ({ ...prev, [i]: { ...prev[i], import: e.target.checked } }))}
+                        style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1' }}
+                      />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                          <a
+                            href={place.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ fontWeight: 'bold', fontSize: '12px', color: '#2563eb', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                          >
+                            {place.name} ↗
+                          </a>
+                          <span style={{ fontSize: '9px', background: '#ede9fe', color: '#6d28d9', padding: '1px 5px', borderRadius: '5px', fontWeight: 'bold', flexShrink: 0 }}>New</span>
+                          {place.source === 'reviews' && place.reviewStars && (
+                            <span style={{ fontSize: '9px', color: '#f59e0b', flexShrink: 0 }} title={`${place.reviewStars}-star review`}>
+                              {'★'.repeat(place.reviewStars)}
+                            </span>
+                          )}
+                        </div>
+                        {place.address && (
+                          <div style={{ fontSize: '10px', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.address}</div>
+                        )}
+                        {place.reviewText && (
+                          <div style={{ fontSize: '10px', color: '#6b7280', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={place.reviewText}>
+                            "{place.reviewText}"
+                          </div>
+                        )}
+                      </div>
+                      <InterestDropdown
+                        value={sel.interests}
+                        onChange={v => setTakeoutImportSelections(prev => ({ ...prev, [i]: { ...prev[i], interests: v } }))}
+                        placeholder={effectiveInterests.length > 0 ? `Bulk (${effectiveInterests.length})` : 'Override...'}
+                      />
+                    </div>
+                  );
+                };
+
+                // Split by: New (group by source) + Existing (at bottom)
+                const newItems = places.map((p, i) => ({ p, i })).filter(({ p }) => !p.alreadyExists);
+                const existingItems = places.map((p, i) => ({ p, i })).filter(({ p }) => p.alreadyExists);
+
+                // Group new items by source — maintain fixed order: saved → reviews → other
+                const groups = [
+                  { key: 'saved', icon: '📌', title: 'Saved places', items: newItems.filter(({ p }) => p.source === 'saved') },
+                  { key: 'reviews', icon: '📝', title: 'Places you reviewed', items: newItems.filter(({ p }) => p.source === 'reviews') },
+                  { key: 'other', icon: '📋', title: 'Other', items: newItems.filter(({ p }) => p.source !== 'saved' && p.source !== 'reviews') },
+                ].filter(g => g.items.length > 0);
+
                 return (
                   <React.Fragment>
-                    {newPlaces.map(({ p: place, i }) => {
-                      const sel = takeoutImportSelections[i] || { import: false, interests: [] };
-                      const effectiveInterests = sel.interests.length > 0 ? sel.interests : takeoutBulkInterests;
-                      return (
-                        <div
-                          key={i}
-                          style={{
-                            display: 'grid', gridTemplateColumns: '28px 1fr 180px', gap: '8px',
-                            alignItems: 'center', padding: '7px 12px',
-                            borderBottom: '1px solid #f1f5f9',
-                            background: sel.import ? '#f5f3ff' : 'white',
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={sel.import}
-                            onChange={e => setTakeoutImportSelections(prev => ({ ...prev, [i]: { ...prev[i], import: e.target.checked } }))}
-                            style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#6366f1' }}
-                          />
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                              <a
-                                href={place.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ fontWeight: 'bold', fontSize: '12px', color: '#2563eb', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                              >
-                                {place.name} ↗
-                              </a>
-                              <span style={{ fontSize: '9px', background: '#ede9fe', color: '#6d28d9', padding: '1px 5px', borderRadius: '5px', fontWeight: 'bold', flexShrink: 0 }}>New</span>
-                            </div>
-                            {place.address && (
-                              <div style={{ fontSize: '10px', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.address}</div>
-                            )}
-                          </div>
-                          <InterestDropdown
-                            value={sel.interests}
-                            onChange={v => setTakeoutImportSelections(prev => ({ ...prev, [i]: { ...prev[i], interests: v } }))}
-                            placeholder={effectiveInterests.length > 0 ? `Bulk (${effectiveInterests.length})` : 'Override...'}
-                          />
+                    {/* Help hint: how to export correctly — shown only when there are results */}
+                    <div style={{ background: '#fefce8', border: '1px solid #fde68a', padding: '7px 12px', fontSize: '10px', color: '#854d0e', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                      <span style={{ flexShrink: 0 }}>💡</span>
+                      <span>
+                        <b>Missing places?</b> Google Takeout exports are split across categories. In <a href="https://takeout.google.com/" target="_blank" rel="noopener noreferrer" style={{ color: '#854d0e', textDecoration: 'underline', fontWeight: 'bold' }}>takeout.google.com</a> select <b>both</b> "Maps (your places)" — for Saved Places &amp; Reviews — and "Saved" — for Favorites, Want to go, Starred, and custom lists. Places without coordinates are silently skipped (Google can't resolve them).
+                      </span>
+                    </div>
+                    {groups.map(g => (
+                      <React.Fragment key={g.key}>
+                        <div style={{ padding: '8px 12px 5px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontSize: '11px', fontWeight: 'bold', color: '#475569', position: 'sticky', top: 0, zIndex: 2 }}>
+                          {g.icon} {g.title} ({g.items.length})
                         </div>
-                      );
-                    })}
-                    {existingPlaces.length > 0 && (
+                        {g.items.map(renderNewPlaceRow)}
+                      </React.Fragment>
+                    ))}
+                    {existingItems.length > 0 && (
                       <div style={{ borderTop: '2px solid #e5e7eb', background: '#f9fafb' }}>
                         <div style={{ padding: '7px 12px 4px', fontSize: '11px', fontWeight: 'bold', color: '#6b7280' }}>
-                          ✅ Already in FouFou ({existingPlaces.length})
+                          ✅ Already in FouFou ({existingItems.length})
                         </div>
-                        {existingPlaces.map(({ p: place, i }) => (
+                        {existingItems.map(({ p: place, i }) => (
                           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', borderBottom: '1px solid #f1f5f9', opacity: 0.55 }}>
                             <input type="checkbox" disabled style={{ width: '15px', height: '15px', flexShrink: 0 }} />
                             <a

@@ -1752,14 +1752,24 @@
   const parseTakeoutFile = (file) => {
     if (!file) return;
 
-    const processJsonText = (text) => {
+    // Detect source type from filename/path. Returns 'reviews', 'saved', or 'other'.
+    const detectSource = (path) => {
+      const p = (path || '').toLowerCase();
+      // Reviews: Hebrew "ביקורות" or English "reviews"
+      if (p.match(/reviews|ביקורות/i) || path.includes('\u05d1\u05d9\u05e7\u05d5\u05e8\u05d5\u05ea')) return 'reviews';
+      // Saved places: Hebrew "מקומות שמורים" (must contain שמור word) or English "saved places"
+      if (p.match(/saved\s*places|saved\.json|שמורים|שמור/i) || path.includes('\u05e9\u05de\u05d5\u05e8')) return 'saved';
+      return 'other';
+    };
+
+    const processJsonText = (text, source) => {
       try {
         const data = JSON.parse(text);
         if (!data.features || !Array.isArray(data.features)) {
-          showToast('Invalid file — expected Saved Places.json (GeoJSON format)', 'error');
+          showToast('Invalid file — expected GeoJSON format (from Google Takeout)', 'error');
           return;
         }
-        processTakeoutData(data);
+        processTakeoutData([{ data, source: source || 'saved' }]);
       } catch (err) {
         showToast('Error reading file: ' + err.message, 'error');
       }
@@ -1780,9 +1790,10 @@
       return;
     }
 
-    // Handle JSON file
+    // Handle single JSON file — infer source from filename
+    const source = detectSource(file.name);
     const reader = new FileReader();
-    reader.onload = (e) => processJsonText(e.target.result);
+    reader.onload = (e) => processJsonText(e.target.result, source);
     reader.readAsText(file);
 
     function extractFromZip(zipFile) {
@@ -1790,32 +1801,32 @@
       reader.onload = async (e) => {
         try {
           const zip = await window.JSZip.loadAsync(e.target.result);
-          // Find the GeoJSON places file — try by name first, then by content
-          let targetFile = null;
+          // Collect ALL JSON files with "features" array (GeoJSON). Tag each with its source.
           const jsonFiles = [];
           zip.forEach((path, f) => {
-            if (!f.dir && path.match(/\.json$/i)) {
-              // Prefer files with "saved" or "places" or "שמור" in path
-              if (path.match(/saved|places|שמור|מקומות/i)) targetFile = f;
-              else jsonFiles.push(f);
-            }
+            if (!f.dir && path.match(/\.json$/i)) jsonFiles.push({ path, f });
           });
-          // Fallback: try all JSON files, pick the one with "features" array
-          if (!targetFile) {
-            for (const f of jsonFiles) {
-              const sample = await f.async('text');
-              if (sample.includes('"features"') && sample.includes('"geometry"')) {
-                targetFile = f;
-                break;
-              }
+          if (jsonFiles.length === 0) {
+            showToast('No JSON files found inside the ZIP', 'error');
+            return;
+          }
+          const datasets = [];
+          for (const { path, f } of jsonFiles) {
+            try {
+              const text = await f.async('text');
+              if (!text.includes('"features"') || !text.includes('"geometry"')) continue;
+              const data = JSON.parse(text);
+              if (!data.features || !Array.isArray(data.features)) continue;
+              datasets.push({ data, source: detectSource(path), path });
+            } catch (err) {
+              console.warn('[TAKEOUT] Skipping file', path, err);
             }
           }
-          if (!targetFile) {
+          if (datasets.length === 0) {
             showToast('Could not find places file inside the ZIP', 'error');
             return;
           }
-          const text = await targetFile.async('text');
-          processJsonText(text);
+          processTakeoutData(datasets);
         } catch (err) {
           showToast('Error reading ZIP: ' + err.message, 'error');
         }
@@ -1823,10 +1834,11 @@
       reader.readAsArrayBuffer(zipFile);
     }
 
-    function processTakeoutData(data) {
+    function processTakeoutData(datasets) {
       try {
-        if (!data.features || !Array.isArray(data.features)) {
-          showToast('Invalid file — expected Saved Places.json (GeoJSON format)', 'error');
+        // datasets: [{ data, source, path? }, ...]
+        if (!Array.isArray(datasets) || datasets.length === 0) {
+          showToast('Invalid data — no features found', 'error');
           return;
         }
         const cityData = window.BKK.activeCityData;
@@ -1843,53 +1855,67 @@
         };
 
         const parsed = [];
+        const seenCids = new Set(); // for cross-file dedup (same place in Saved + Reviews)
         let filteredNoCoords = 0;
         let filteredOutsideCity = 0;
+        const sourceCounts = { saved: 0, reviews: 0, other: 0 };
 
-        for (const feature of data.features) {
-          const coords = feature.geometry?.coordinates;
-          const props = feature.properties || {};
-          const loc = props.location || {};
+        for (const { data, source } of datasets) {
+          if (!data.features || !Array.isArray(data.features)) continue;
+          for (const feature of data.features) {
+            const coords = feature.geometry?.coordinates;
+            const props = feature.properties || {};
+            const loc = props.location || {};
 
-          // Skip no-coords
-          if (!coords || coords[0] === 0 && coords[1] === 0 || !loc.name) {
-            filteredNoCoords++;
-            continue;
-          }
-
-          const lng = coords[0];
-          const lat = coords[1];
-
-          // Extract googlePlaceId from URL
-          const url = props.google_maps_url || '';
-          const cidMatch = url.match(/[?&]cid=(\d+)/);
-          const googlePlaceId = cidMatch ? cidMatch[1] : null;
-
-          // Check city boundary
-          if (cityCenter) {
-            const dist = calcDist(lat, lng, cityCenter.lat, cityCenter.lng);
-            if (dist > allCityRadius) {
-              filteredOutsideCity++;
+            // Skip no-coords entries (Google exports these as [0,0] when it can't resolve location)
+            if (!coords || (coords[0] === 0 && coords[1] === 0) || !loc.name) {
+              filteredNoCoords++;
               continue;
             }
+
+            const lng = coords[0];
+            const lat = coords[1];
+
+            // Extract googlePlaceId from URL
+            const url = props.google_maps_url || '';
+            const cidMatch = url.match(/[?&]cid=(\d+)/);
+            const googlePlaceId = cidMatch ? cidMatch[1] : null;
+
+            // Cross-file dedup: same CID appearing in both Saved and Reviews
+            if (googlePlaceId && seenCids.has(googlePlaceId)) continue;
+            if (googlePlaceId) seenCids.add(googlePlaceId);
+
+            // Check city boundary
+            if (cityCenter) {
+              const dist = calcDist(lat, lng, cityCenter.lat, cityCenter.lng);
+              if (dist > allCityRadius) {
+                filteredOutsideCity++;
+                continue;
+              }
+            }
+
+            // Check if already in FouFou
+            const existsByPlaceId = googlePlaceId && customLocations.find(cl => cl.googlePlaceId === googlePlaceId);
+            const existsByName = customLocations.find(cl => cl.name?.toLowerCase().trim() === loc.name.toLowerCase().trim());
+            const alreadyExists = existsByPlaceId || existsByName;
+
+            sourceCounts[source] = (sourceCounts[source] || 0) + 1;
+
+            parsed.push({
+              name: loc.name,
+              address: loc.address || '',
+              lat,
+              lng,
+              googlePlaceId,
+              mapsUrl: url,
+              savedDate: props.date || '',
+              source, // 'saved' | 'reviews' | 'other'
+              reviewText: props.review_text_published || null,
+              reviewStars: props.five_star_rating_published || null,
+              alreadyExists: !!alreadyExists,
+              existingLoc: alreadyExists || null,
+            });
           }
-
-          // Check if already in FouFou
-          const existsByPlaceId = googlePlaceId && customLocations.find(cl => cl.googlePlaceId === googlePlaceId);
-          const existsByName = customLocations.find(cl => cl.name?.toLowerCase().trim() === loc.name.toLowerCase().trim());
-          const alreadyExists = existsByPlaceId || existsByName;
-
-          parsed.push({
-            name: loc.name,
-            address: loc.address || '',
-            lat,
-            lng,
-            googlePlaceId,
-            mapsUrl: url,
-            savedDate: props.date || '',
-            alreadyExists: !!alreadyExists,
-            existingLoc: alreadyExists || null,
-          });
         }
 
         if (parsed.length === 0) {
@@ -1903,7 +1929,7 @@
           selections[i] = { import: !p.alreadyExists, interests: [] };
         });
 
-        setTakeoutPlaces({ places: parsed, filteredNoCoords, filteredOutsideCity });
+        setTakeoutPlaces({ places: parsed, filteredNoCoords, filteredOutsideCity, sourceCounts, fileCount: datasets.length });
         setTakeoutImportSelections(selections);
         setTakeoutBulkInterests([]);
         setTakeoutSummary(null);
