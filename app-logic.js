@@ -1767,10 +1767,6 @@
     } catch(e) { return 130; }
   });
   
-  // Admin System - legacy state kept for backward compat during transition
-  const [adminPassword, setAdminPassword] = useState(''); // legacy, will be removed
-  const [adminUsers, setAdminUsers] = useState([]);
-  
   // Refs for current values (needed by map closures to avoid stale state)
   const routeTypeRef = React.useRef(routeType);
   React.useEffect(() => { routeTypeRef.current = routeType; }, [routeType]);
@@ -3750,13 +3746,6 @@
             });
           }
           
-          // Legacy admin data (kept for reference, auth is now Firebase Auth)
-          setAdminPassword(s.adminPassword || '');
-          const usersData = s.adminUsers || {};
-          const usersList = Object.entries(usersData).map(([oderId, data]) => ({ oderId, ...data }));
-          setAdminUsers(usersList);
-          // Role is now determined by Firebase Auth → users/{uid}/role
-          
           // App settings
           if (s.googleMaxWaypoints != null) setGoogleMaxWaypoints(s.googleMaxWaypoints);
           const updates = {};
@@ -3834,13 +3823,6 @@
     const settingsRef = database.ref('settings');
     settingsRef.on('value', (snap) => {
       const s = snap.val() || {};
-      
-      // Legacy admin data (auth is now via Firebase Auth)
-      setAdminPassword(s.adminPassword || '');
-      const usersData = s.adminUsers || {};
-      const usersList = Object.entries(usersData).map(([oderId, data]) => ({ oderId, ...data }));
-      setAdminUsers(usersList);
-      // Role is now determined by Firebase Auth → users/{uid}/role
       
       // App settings — prefer systemParams, fallback to top-level keys for backward compatibility
       if (s.googleMaxWaypoints != null) setGoogleMaxWaypoints(s.googleMaxWaypoints);
