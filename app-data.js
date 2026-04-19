@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.22.99
+// FouFou app-data.js v3.22.100
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -3434,7 +3434,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.22.99';
+window.BKK.VERSION = '3.22.100';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -4333,8 +4333,11 @@ window.BKK.buildGoogleMapsUrls = (stops, origin, isCircular, maxPoints) => {
   
   const buildPointsList = (stopsSlice, originCoord, circular) => {
     const points = [];
-    points.push('');
-    if (originCoord) points.push(originCoord);
+    if (originCoord) {
+      points.push(originCoord);
+    } else {
+      points.push('');
+    }
     stopsSlice.forEach(s => points.push(`${s.lat},${s.lng}`));
     if (circular && originCoord) points.push(originCoord);
     return points;
@@ -4364,8 +4367,11 @@ window.BKK.buildGoogleMapsUrls = (stops, origin, isCircular, maxPoints) => {
     const points = [];
     
     if (isFirst) {
-      points.push(''); // "Your location"
-      if (currentOrigin) points.push(currentOrigin);
+      if (currentOrigin) {
+        points.push(currentOrigin);
+      } else {
+        points.push('');
+      }
     } else {
       points.push(currentOrigin);
     }

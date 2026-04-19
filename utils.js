@@ -696,10 +696,18 @@ window.BKK.buildGoogleMapsUrls = (stops, origin, isCircular, maxPoints) => {
   // Build ordered list of all points: origin → stops → (origin if circular)
   const buildPointsList = (stopsSlice, originCoord, circular) => {
     const points = [];
-    // Empty string = "Your location" as starting point
-    points.push('');
-    // Add origin as first waypoint if it exists
-    if (originCoord) points.push(originCoord);
+    // Origin handling:
+    // - If origin is explicitly set (user chose a start point OR defaulted to first stop),
+    //   use it as the starting point — do NOT prepend "Your location".
+    //   When the user taps "Start" in Google Maps, Google will route from their
+    //   current location to the first point anyway. Prepending "" caused the regression
+    //   where Google drew a path from the current device location to the start point.
+    // - If no origin, fall back to "Your location" (empty first segment).
+    if (originCoord) {
+      points.push(originCoord);
+    } else {
+      points.push('');
+    }
     // Add all stops
     stopsSlice.forEach(s => points.push(`${s.lat},${s.lng}`));
     // For circular: return to origin
@@ -733,8 +741,13 @@ window.BKK.buildGoogleMapsUrls = (stops, origin, isCircular, maxPoints) => {
     const points = [];
     
     if (isFirst) {
-      points.push(''); // "Your location"
-      if (currentOrigin) points.push(currentOrigin);
+      // First segment: start from origin if we have one, else from "Your location"
+      // (see buildPointsList comment above for rationale)
+      if (currentOrigin) {
+        points.push(currentOrigin);
+      } else {
+        points.push('');
+      }
     } else {
       points.push(currentOrigin);
     }
