@@ -469,9 +469,12 @@
     // Step 5: Optional actions
     if (startTrail) startActiveTrail(optimized, formData.interests, formData.area);
     if (openMap && autoStart) {
+      const userLoc = (formData.currentLat && formData.currentLng)
+        ? { lat: formData.currentLat, lng: formData.currentLng }
+        : null;
       const urls = window.BKK.buildGoogleMapsUrls(
         optimized.map(s => ({ lat: s.lat, lng: s.lng, name: s.name })),
-        `${autoStart.lat},${autoStart.lng}`, isCircular, window.BKK.googleMaxWaypoints || 12
+        `${autoStart.lat},${autoStart.lng}`, isCircular, window.BKK.googleMaxWaypoints || 12, userLoc
       );
       if (urls.length > 0) {
         window.open(urls[0].url, 'city_explorer_map');
@@ -1177,7 +1180,10 @@
                 remaining.push(firstStop);
               }
 
-              const urls = window.BKK.buildGoogleMapsUrls(remaining, origin, false, window.BKK.googleMaxWaypoints || 12);
+              const userLoc = (formData.currentLat && formData.currentLng)
+                ? { lat: formData.currentLat, lng: formData.currentLng }
+                : null;
+              const urls = window.BKK.buildGoogleMapsUrls(remaining, origin, false, window.BKK.googleMaxWaypoints || 12, userLoc);
               map.closePopup();
               if (urls.length > 0) {
                 window.open(urls[0].url, 'city_explorer_map');

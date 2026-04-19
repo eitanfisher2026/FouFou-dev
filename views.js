@@ -2120,8 +2120,11 @@
                       ? activeStops.filter(s => !isOverlapStart(s))
                       : activeStops.slice(1);
                     const isCircular = routeType === 'circular';
+                    const userLoc = (formData.currentLat && formData.currentLng)
+                      ? { lat: formData.currentLat, lng: formData.currentLng }
+                      : null;
                     const urls = route?.optimized && activeStops.length > 0
-                      ? window.BKK.buildGoogleMapsUrls(stopsForUrls, origin, isCircular, googleMaxWaypoints)
+                      ? window.BKK.buildGoogleMapsUrls(stopsForUrls, origin, isCircular, googleMaxWaypoints, userLoc)
                       : [];
 
                     return urls.length <= 1 ? (

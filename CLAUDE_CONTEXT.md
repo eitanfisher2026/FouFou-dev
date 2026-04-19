@@ -7,9 +7,9 @@ https://eitanfisher2026.github.io/FouFou-dev/
 React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Places API, PWA
 
 ## Current Version
-**v3.22.100**
+**v3.22.101**
 
-## Recent Changes (v3.22.87 → v3.22.100)
+## Recent Changes (v3.22.87 → v3.22.101)
 - **v3.22.87**: Debug tab + `addDebugLog` infrastructure removed
 - **v3.22.88**: TTS (הקראה) system removed — kept: recording playback + speech-to-text dictation
 - **v3.22.89**: Dead code cleanup (adminPassword state, setter-only useStates)
@@ -20,7 +20,8 @@ React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Pla
 - **v3.22.95**: UI polish — anon users see no filter row; pencil→eye icon for approved places
 - **v3.22.95** (next): rate button CTA styling + login z-index fix + Google ratings refresh gating
 - **v3.22.99**: Dedup "already exists" button now opens the FouFou place info popup (open-and-rate flow); admin favorites filter rebuilt as three modes: הכל / אני / dropdown of other contributors (robust to missing `userNamesMap` entries)
-- **v3.22.100**: Fixed regression in Google Maps route URL — when a startPoint is set (explicitly by user OR defaulted to first stop), the URL no longer prepends `''` ("Your location"). Google Maps now shows the actual route (startPoint → stops), and when the user taps "Start" in Google Maps, Google natively navigates from their current location to the first point. Fix in `utils.js buildGoogleMapsUrls`.
+- **v3.22.100**: First attempt to fix Google Maps URL — dropped `''` unconditionally. Introduced regression: Start button replaced with Preview because Google needs a device-close point to show Start.
+- **v3.22.101**: Proper fix — `buildGoogleMapsUrls(stops, origin, isCircular, maxPoints, userLoc)` now takes optional `userLoc`. Prepends `''` ("Your location") **only when both userLoc AND origin are inside the currently selected city's bounds** (`window.BKK.selectedCity.center` + `allCityRadius`). In-city routes get Start; cross-city routes fall back to Preview with the correct route drawn. Callers updated in `views.js` (main open button), `app-logic.js` (auto-open after wizard + continue-from on active trail); share-route button intentionally does NOT pass userLoc (recipient's location is unknown).
 
 ## ⚠️ CONTEXT WINDOW NOTE
 Project is large (~2MB JS source). Memory fills up after 3-5 rounds of major changes.

@@ -680,8 +680,15 @@ window.BKK.getGoogleViewUrl = (place) => {
 
 // Build Google Maps direction URLs, splitting into multiple if exceeding maxPoints limit
 // maxPoints = total points including origin + destination (default 12 = 10 waypoints + origin + dest)
+// userLoc = { lat, lng } — optional current device location; used to decide whether to prepend
+//           "Your location" as the first point. Google Maps only shows the "Start" button when
+//           the URL's starting point is close to the device. Prepending "" enables Start, BUT
+//           if the user is far from origin (different city), Google draws a gigantic walking path
+//           from device → origin. We therefore prepend "" only when BOTH userLoc AND origin fall
+//           inside the currently selected city's bounds (`window.BKK.selectedCity.center` +
+//           `allCityRadius`). In-city routes get Start; cross-city routes get Preview (correct).
 // Returns array of { url, fromIndex, toIndex, label } objects
-window.BKK.buildGoogleMapsUrls = (stops, origin, isCircular, maxPoints) => {
+window.BKK.buildGoogleMapsUrls = (stops, origin, isCircular, maxPoints, userLoc) => {
   maxPoints = maxPoints || 12;
   
   if (stops.length === 0) return [];
@@ -692,20 +699,55 @@ window.BKK.buildGoogleMapsUrls = (stops, origin, isCircular, maxPoints) => {
   // Empty first segment = "Your location"
   
   const walkingData = 'data=!4m2!4m1!3e2';
+
+  // Decide whether to prepend "" ("Your location") as the first point.
+  // Google Maps only shows the "Start" (turn-by-turn) button when the URL's starting
+  // point is close to the device. Prepending "" enables Start, BUT if the user is far
+  // from the route's origin (different city), Google draws a gigantic walking path from
+  // device → origin (e.g. Bangkok → Singapore = 17 days). If we skip "", Google only
+  // offers Preview (no Start) but the route displays correctly.
+  //
+  // Decision: prepend "" only when BOTH origin AND userLoc fall inside the currently
+  // selected city's bounds (center + allCityRadius). This ensures Start is available for
+  // in-city routes, and Preview is shown for anything cross-city without long bogus paths.
+  const originCoords = (() => {
+    if (!origin) return null;
+    const m = String(origin).match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+    if (!m) return null;
+    return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  })();
+  const distMeters = (a, b) => {
+    if (typeof window.BKK.calcDistance === 'function') {
+      return window.BKK.calcDistance(a.lat, a.lng, b.lat, b.lng);
+    }
+    const toRad = d => d * Math.PI / 180;
+    const R = 6371000;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const v = Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng/2)**2;
+    return 2 * R * Math.asin(Math.sqrt(v));
+  };
+  const shouldPrependYourLoc = (() => {
+    if (!originCoords) return false;
+    if (!userLoc || typeof userLoc.lat !== 'number' || typeof userLoc.lng !== 'number') return false;
+    const city = window.BKK.selectedCity || window.BKK.activeCityData;
+    const center = city && city.center;
+    const radius = city && city.allCityRadius;
+    if (!center || !radius) return false;
+    const userInCity = distMeters(userLoc, center) <= radius;
+    const originInCity = distMeters(originCoords, center) <= radius;
+    return userInCity && originInCity;
+  })();
   
-  // Build ordered list of all points: origin → stops → (origin if circular)
+  // Build ordered list of all points: [userLoc?] → origin → stops → (origin if circular)
   const buildPointsList = (stopsSlice, originCoord, circular) => {
     const points = [];
-    // Origin handling:
-    // - If origin is explicitly set (user chose a start point OR defaulted to first stop),
-    //   use it as the starting point — do NOT prepend "Your location".
-    //   When the user taps "Start" in Google Maps, Google will route from their
-    //   current location to the first point anyway. Prepending "" caused the regression
-    //   where Google drew a path from the current device location to the start point.
-    // - If no origin, fall back to "Your location" (empty first segment).
+    // Prepend "" ("Your location") only when userLoc is close to origin (see comment above)
     if (originCoord) {
+      if (shouldPrependYourLoc) points.push('');
       points.push(originCoord);
     } else {
+      // No origin at all — fall back to "Your location" as the sole starting point
       points.push('');
     }
     // Add all stops
@@ -741,9 +783,9 @@ window.BKK.buildGoogleMapsUrls = (stops, origin, isCircular, maxPoints) => {
     const points = [];
     
     if (isFirst) {
-      // First segment: start from origin if we have one, else from "Your location"
-      // (see buildPointsList comment above for rationale)
+      // First segment: prepend "" only if userLoc is close to origin (see above)
       if (currentOrigin) {
+        if (shouldPrependYourLoc) points.push('');
         points.push(currentOrigin);
       } else {
         points.push('');

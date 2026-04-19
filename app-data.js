@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.22.100
+// FouFou app-data.js v3.22.101
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -3434,7 +3434,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.22.100';
+window.BKK.VERSION = '3.22.101';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -4324,16 +4324,46 @@ window.BKK.getGoogleViewUrl = (place) => {
   return null;
 };
 
-window.BKK.buildGoogleMapsUrls = (stops, origin, isCircular, maxPoints) => {
+window.BKK.buildGoogleMapsUrls = (stops, origin, isCircular, maxPoints, userLoc) => {
   maxPoints = maxPoints || 12;
   
   if (stops.length === 0) return [];
   
   const walkingData = 'data=!4m2!4m1!3e2';
+
+  const originCoords = (() => {
+    if (!origin) return null;
+    const m = String(origin).match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+    if (!m) return null;
+    return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  })();
+  const distMeters = (a, b) => {
+    if (typeof window.BKK.calcDistance === 'function') {
+      return window.BKK.calcDistance(a.lat, a.lng, b.lat, b.lng);
+    }
+    const toRad = d => d * Math.PI / 180;
+    const R = 6371000;
+    const dLat = toRad(b.lat - a.lat);
+    const dLng = toRad(b.lng - a.lng);
+    const v = Math.sin(dLat/2)**2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng/2)**2;
+    return 2 * R * Math.asin(Math.sqrt(v));
+  };
+  const shouldPrependYourLoc = (() => {
+    if (!originCoords) return false;
+    if (!userLoc || typeof userLoc.lat !== 'number' || typeof userLoc.lng !== 'number') return false;
+    const city = window.BKK.selectedCity || window.BKK.activeCityData;
+    const center = city && city.center;
+    const radius = city && city.allCityRadius;
+    if (!center || !radius) return false;
+    const userInCity = distMeters(userLoc, center) <= radius;
+    const originInCity = distMeters(originCoords, center) <= radius;
+    return userInCity && originInCity;
+  })();
   
   const buildPointsList = (stopsSlice, originCoord, circular) => {
     const points = [];
     if (originCoord) {
+      if (shouldPrependYourLoc) points.push('');
       points.push(originCoord);
     } else {
       points.push('');
@@ -4368,6 +4398,7 @@ window.BKK.buildGoogleMapsUrls = (stops, origin, isCircular, maxPoints) => {
     
     if (isFirst) {
       if (currentOrigin) {
+        if (shouldPrependYourLoc) points.push('');
         points.push(currentOrigin);
       } else {
         points.push('');
