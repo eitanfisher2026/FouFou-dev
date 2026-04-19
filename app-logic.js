@@ -330,6 +330,20 @@
   const [routeListKey, setRouteListKey] = useState(0); // incremented to force re-render of route stop list after favorites change
   const [isGenerating, setIsGenerating] = useState(false);
   const [waitingForGps, setWaitingForGps] = useState(false); // true while "open in Google Maps" is waiting on GPS
+
+  // Proactive GPS prefetch: when the user reaches wizard step 3 (the route preview
+  // screen where "Open in Google Maps" lives), kick off a background GPS fetch if
+  // we don't already have one cached. This fills `window.BKK.lastKnownGPS` while
+  // the user is still looking at the route, so by the time they tap the button
+  // the URL can include "" ("Your location") without making them wait.
+  // Silent: no spinner, no errors surfaced — it's a best-effort prime-the-cache.
+  React.useEffect(() => {
+    if (wizardStep !== 3) return;
+    if (window.BKK.lastKnownGPS) return; // already cached
+    if (typeof window.BKK.getUserGPS !== 'function') return;
+    // Fire and forget — never throws, resolves to null on failure.
+    window.BKK.getUserGPS(8000).catch(() => {});
+  }, [wizardStep]);
   const [disabledStops, setDisabledStops] = useState([]); // Track disabled stop IDs
   const disabledStopsRef = React.useRef(disabledStops);
   React.useEffect(() => { disabledStopsRef.current = disabledStops; }, [disabledStops]);

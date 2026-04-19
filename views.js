@@ -2145,21 +2145,21 @@
                           if (!route?.optimized) { showToast(t('route.calcRoutePrevious'), 'warning'); return; }
                           if (activeStops.length === 0) { showToast(t('places.noPlacesWithCoords'), 'warning'); return; }
 
-                          // Ensure we have a GPS reading before opening Google Maps so the URL
-                          // can include "" ("Your location") and give us the Start button when
-                          // the user is in the city. getUserGPS() returns cached value instantly
-                          // if available; otherwise it requests with a 3 s timeout. Either way
-                          // resolves to {lat,lng} or null — never throws.
+                          // Most of the time the background prefetch (triggered when we entered
+                          // wizard step 3) has already populated lastKnownGPS — so this branch
+                          // is a no-op and the click feels instant. Only if the prefetch is still
+                          // in-flight OR permission hasn't been granted yet will we await here.
+                          // getUserGPS is a cached-first, never-throws helper with an 8 s timeout.
                           let liveUserLoc = userLoc;
                           if (!liveUserLoc && !window.BKK.lastKnownGPS) {
                             setWaitingForGps(true);
-                            liveUserLoc = await window.BKK.getUserGPS(3000);
+                            liveUserLoc = await window.BKK.getUserGPS(8000);
                             setWaitingForGps(false);
                           }
                           // Rebuild URLs with the (possibly newly-acquired) userLoc. If we still
-                          // have none, buildGoogleMapsUrls will check its internal cache and
-                          // fall back to "no prepend" (Preview) — which is correct when we
-                          // genuinely can't confirm the user is in the city.
+                          // have none, buildGoogleMapsUrls will consult its internal cache and
+                          // fall back to "no prepend" (Preview) — correct when we can't confirm
+                          // the user is in the city.
                           const liveUrls = window.BKK.buildGoogleMapsUrls(stopsForUrls, origin, isCircular, googleMaxWaypoints, liveUserLoc);
                           const mapUrl = liveUrls.length === 1
                             ? liveUrls[0].url

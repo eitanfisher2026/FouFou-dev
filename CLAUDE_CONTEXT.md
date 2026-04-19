@@ -7,24 +7,29 @@ https://eitanfisher2026.github.io/FouFou-dev/
 React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Places API, PWA
 
 ## Current Version
-**v3.23.2**
+**v3.23.3**
 
-## Recent Changes (v3.22.87 → v3.23.2)
+## Recent Changes (v3.22.87 → v3.23.3)
 - **v3.22.87**: Debug tab + `addDebugLog` infrastructure removed
 - **v3.22.88**: TTS (הקראה) system removed — kept: recording playback + speech-to-text dictation
 - **v3.22.89**: Dead code cleanup (adminPassword state, setter-only useStates)
 - **v3.22.90**: Admin Tools section removed (5 tools + supporting functions)
 - **v3.22.91**: Malaga city map updated
 - **v3.22.92**: `adminPassword`/`adminUsers` removed + `places.noChanges` i18n added + `DEBUG_FULL_BACKUP.md` removed from zip
-- **v3.22.93**: Place permissions overhaul (see below)
+- **v3.22.93**: Place permissions overhaul
 - **v3.22.95**: UI polish — anon users see no filter row; pencil→eye icon for approved places
 - **v3.22.95** (next): rate button CTA styling + login z-index fix + Google ratings refresh gating
 - **v3.22.99**: Dedup "already exists" button opens FouFou place popup; admin favorites filter with 3 modes
 - **v3.22.100**: First attempt — regression (Preview instead of Start)
 - **v3.22.101**: `buildGoogleMapsUrls(userLoc)` — prepend "" only when both userLoc + origin in-city
-- **v3.23.0**: Dead code removal — `window.BKK.buildMapsUrl` (19 lines, no callers)
-- **v3.23.1**: Optimistic prepend when userLoc absent (turned out to be wrong heuristic — could re-trigger 17-day bug for users planning from abroad)
-- **v3.23.2**: Proper GPS-aware fix. Added `window.BKK.lastKnownGPS` session cache + `getUserGPS(timeoutMs)` async helper (cached-first, 3 s timeout, never throws). `getValidatedGps` now populates the cache on every successful read — all existing GPS flows feed it silently. `buildGoogleMapsUrls` consults the cache when no `userLoc` is passed, and safely falls back to **no prepend** (Preview) when we truly have no GPS info — protecting remote route planners from the 17-day-walk bug. The "Open in Google Maps" button now awaits `getUserGPS(3000)` on click when no cache exists, shows an inline spinner on the button, and rebuilds the URL with fresh coordinates. Net effect: first click in a session may have a brief spinner; all subsequent clicks instant; user never gets a surprising Preview vs. Start flip.
+- **v3.23.0**: Dead code removal — `window.BKK.buildMapsUrl`
+- **v3.23.1**: Optimistic prepend when userLoc absent (wrong heuristic — could reintroduce 17-day bug)
+- **v3.23.2**: GPS cache + async helper + spinner on button click
+- **v3.23.3**: Fixed the Preview-vs-Start-on-first-click issue properly. Two complementary fixes:
+  1. **Proactive GPS prefetch on step 3**: A `useEffect` in `app-logic.js` kicks off `window.BKK.getUserGPS(8000)` silently as soon as the user reaches the route preview. By the time they tap "Open in Google Maps", the session cache is already populated — no spinner, instant Start.
+  2. **getUserGPS aligned with existing GPS flow**: `getUserGPS` now uses the same `{ enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }` options as the rest of the app (was `enableHighAccuracy: false, timeout: 3000` — could be significantly slower on some devices). Click-time timeout also raised from 3s to 8s.
+  
+  Net effect: first click in a session → normally instant (prefetch already completed). If the user is very quick (tap "יאללה" within a second of reaching step 3), the spinner shows briefly. The background prefetch is "fire and forget" — no errors surfaced, no UI blocking.
 
 ## ⚠️ CONTEXT WINDOW NOTE
 Project is large (~2MB JS source). Memory fills up after 3-5 rounds of major changes.

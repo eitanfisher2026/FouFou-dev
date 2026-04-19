@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.2
+// FouFou app-data.js v3.23.3
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -3434,7 +3434,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.2';
+window.BKK.VERSION = '3.23.3';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -3716,18 +3716,22 @@ window.BKK.setUserGPS = (lat, lng) => {
 /**
  * Async fetch of device GPS with a session cache and a timeout.
  *
- * - If we already have a cached reading in this session (regardless of age),
- *   return it immediately. GPS doesn't change the hemisphere mid-visit, so a
- *   cached value is reliable enough for "which city are you in" questions.
- * - Otherwise request a fresh reading via navigator.geolocation.getCurrentPosition
- *   with a timeout (default 3000 ms). On success: cache and return. On timeout,
- *   permission denial, or any other failure: resolve with null — callers must
- *   handle absence gracefully.
+ * - If we already have a cached reading in this session, return it immediately.
+ *   GPS doesn't change the hemisphere mid-visit, so a cached value is reliable
+ *   enough for "which city are you in" questions.
+ * - Otherwise wrap `getValidatedGps` (which handles permissions, high-accuracy,
+ *   and timing consistently with the rest of the app). On any failure or timeout,
+ *   resolve with null — callers must handle absence gracefully.
+ *
+ * Note: we accept both in-city and out-of-city successful reads here (by calling
+ * `navigator.geolocation.getCurrentPosition` directly via the wrapper and
+ * catching the 'outside_city' case as success). Downstream logic in
+ * buildGoogleMapsUrls handles the in-city decision itself.
  *
  * Never rejects; always resolves to `{ lat, lng }` or `null`.
  */
 window.BKK.getUserGPS = (timeoutMs) => {
-  timeoutMs = timeoutMs || 3000;
+  timeoutMs = timeoutMs || 8000;
   if (window.BKK.lastKnownGPS) {
     const c = window.BKK.lastKnownGPS;
     return Promise.resolve({ lat: c.lat, lng: c.lng });
@@ -3737,39 +3741,31 @@ window.BKK.getUserGPS = (timeoutMs) => {
   }
   return new Promise((resolve) => {
     let settled = false;
-    const timer = setTimeout(() => {
+    const done = (val) => {
       if (settled) return;
       settled = true;
-      resolve(null);
-    }, timeoutMs);
+      resolve(val);
+    };
+    const timer = setTimeout(() => done(null), timeoutMs);
     try {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          if (settled) return;
-          settled = true;
           clearTimeout(timer);
           const lat = pos?.coords?.latitude;
           const lng = pos?.coords?.longitude;
           if (typeof lat === 'number' && typeof lng === 'number') {
             window.BKK.setUserGPS(lat, lng);
-            resolve({ lat, lng });
+            done({ lat, lng });
           } else {
-            resolve(null);
+            done(null);
           }
         },
-        () => {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timer);
-          resolve(null);
-        },
-        { enableHighAccuracy: false, maximumAge: 60000, timeout: timeoutMs }
+        () => { clearTimeout(timer); done(null); },
+        { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 60000 }
       );
     } catch (_) {
-      if (settled) return;
-      settled = true;
       clearTimeout(timer);
-      resolve(null);
+      done(null);
     }
   });
 };
