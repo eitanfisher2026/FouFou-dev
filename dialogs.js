@@ -631,8 +631,8 @@
 
                   {/* Status toggle + dedupOk — same row, below ratings */}
                   {showEditLocationDialog && (() => {
-                    const canToggleStatus = isAdmin || isEditor ||
-                      (authUser?.uid && (editingLocation?.userId === authUser?.uid || editingLocation?.addedBy === authUser?.uid));
+                    // Only editors and admins can approve (toggle draft ↔ approved)
+                    const canToggleStatus = isAdmin || isEditor;
                     if (!canToggleStatus && !isUnlocked) return null;
                     const isApproved = !!newLocation.locked;
                     return (
@@ -814,7 +814,7 @@
                     )}
                     {(() => {
                       const isOwnDel = !editingLocation?.addedBy || editingLocation.addedBy === authUser?.uid;
-                      const canDelete = isAdmin || isEditor || (isOwnDel && !editingLocation?.locked);
+                      const canDelete = isAdmin || isEditor || isOwnDel;
                       return canDelete ? (
                         <button
                           onClick={() => { showConfirm(`${t("general.deletePlace")} "${editingLocation.name}"?`, () => { deleteCustomLocation(editingLocation.id); setShowEditLocationDialog(false); setEditingLocation(null); }); }}
@@ -832,9 +832,10 @@
               {/* Footer */}
               {(() => {
                 const isOwnPlace = !editingLocation?.addedBy || editingLocation.addedBy === authUser?.uid;
-                // Admin and Editor can edit any place (including locked ones from other users)
-                // Regular users can only edit their own non-locked places
-                const canEdit = isAdmin || isEditor || (isOwnPlace && !editingLocation?.locked);
+                // Admin and Editor can edit any place.
+                // Regular users can edit their own places — draft or approved.
+                // When a regular user edits an approved place, it reverts to draft (see saveLocation logic).
+                const canEdit = isAdmin || isEditor || isOwnPlace;
                 return (
               <div className="px-4 py-2.5 border-t border-gray-200 flex gap-2" style={{ direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}>
                 {!canEdit ? (

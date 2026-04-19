@@ -2519,11 +2519,11 @@
                 </button>
               </div>
 
-              {/* Filter button for editor/admin */}
-              {isUnlocked && (
+              {/* Filter bar: status tabs + no-interest filter + addedBy filter.
+                  Status tabs are visible to all; 'skipped' (blacklist) is editor/admin only. */}
               <div className="flex mb-2 gap-1 items-center justify-end">
-                <span className="text-xs text-gray-400 mr-auto">{groupedPlaces.draftsCount + groupedPlaces.readyCount} {t('nav.favorites')} {groupedPlaces.blacklistCount > 0 ? `· ${groupedPlaces.blacklistCount} 🚫` : ''}</span>
-                {['all', 'drafts', 'ready', 'skipped'].map(tab => (
+                <span className="text-xs text-gray-400 mr-auto">{groupedPlaces.draftsCount + groupedPlaces.readyCount} {t('nav.favorites')} {isUnlocked && groupedPlaces.blacklistCount > 0 ? `· ${groupedPlaces.blacklistCount} 🚫` : ''}</span>
+                {(isUnlocked ? ['all', 'drafts', 'ready', 'skipped'] : ['all', 'drafts', 'ready']).map(tab => (
                   <button key={tab}
                     onClick={() => { setPlacesTab(tab); setFilterNoInterest(false); }}
                     className={`px-2 py-1 rounded text-xs font-bold transition-all ${
@@ -2578,7 +2578,6 @@
                   );
                 })()}
               </div>
-              )}
 
 
               {/* Pending locations waiting for sync */}
@@ -3821,8 +3820,8 @@
             </div>
 
             )}
-            {/* Bulk Approve Drafts */}
-            {true && (
+            {/* Bulk Approve Drafts — editor/admin only */}
+            {isUnlocked && (
             <div className="mb-3">
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-400 rounded-xl p-3">
                 <h3 className="text-base font-bold text-gray-800 mb-1">{`✅ ${t("settings.bulkApprove") || 'אשר טיוטות'}`}</h3>

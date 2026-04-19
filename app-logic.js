@@ -9024,9 +9024,20 @@
     }
     if (finalAreas.length === 0) finalAreas = editingLocation.areas || [formData.area || areaOptions[0]?.id || 'center'];
     
+    // Auto-revert approved → draft on content edit.
+    // If the place WAS approved and the status toggle wasn't flipped by an editor/admin,
+    // any content change (name/description/coords/interests/etc.) downgrades it back to draft,
+    // requiring re-approval. When an editor/admin flips draft→approved explicitly via the status
+    // toggle (editingLocation.locked=false, newLocation.locked=true), we preserve that.
+    const wasApproved = !!editingLocation.locked;
+    const nowApproved = !!newLocation.locked;
+    const userFlippedUpToApproved = !wasApproved && nowApproved;
+    const finalLocked = userFlippedUpToApproved ? true : false;
+
     const updatedLocation = sanitizeMapsUrl({ 
       ...editingLocation, // Keep existing fields like status
       ...newLocation, // Override with edited fields
+      locked: finalLocked,
       area: finalAreas[0],
       areas: finalAreas,
       custom: true, 
