@@ -599,6 +599,7 @@
                           {gR && (
                             <span style={{ fontSize: "12px", color: "#b45309", fontWeight: 600 }}>⭐ {gR.toFixed?.(1) || gR}{newLocation.googleRatingCount ? <span style={{color:"#9ca3af",fontWeight:400}}> ({newLocation.googleRatingCount})</span> : null}</span>
                           )}
+                          {isUnlocked && (
                           <button
                             onClick={async () => {
                               const existing = customLocations.find(l => l.firebaseId === editingLocation?.firebaseId) || customLocations.find(l => l.name === newLocation.name);
@@ -612,6 +613,7 @@
                             style={{ background: "#fef3c7", border: "1px solid #f59e0b", borderRadius: "6px", cursor: "pointer", fontSize: "11px", color: "#92400e", fontWeight: 700, padding: "2px 7px", display: "inline-flex", alignItems: "center", gap: "3px" }}
                             title={t("settings.refreshRatings") || "רענן דירוג גוגל"}
                           >⭐ {t("settings.refreshRatings") || "רענן"}</button>
+                          )}
                           {gR && ra && <span style={{ color: "#d1d5db", fontSize: "12px" }}>·</span>}
                           {ra ? (
                             <button
@@ -621,8 +623,9 @@
                           ) : (
                             <button
                               onClick={() => { const existing = customLocations.find(l => l.name === newLocation.name); if (existing) { openReviewDialog(existing); } else { showToast(t("places.enterNameFirst") || "יש להזין שם ותחום קודם", "warning"); } }}
-                              style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: "6px", cursor: "pointer", fontSize: "12px", color: "#6b7280", padding: "2px 8px" }}
-                            >☆ {t("reviews.rate") || "דרג"}</button>
+                              className="foufou-rate-pulse"
+                              style={{ background: "linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px", color: "white", fontWeight: 700, padding: "3px 10px", display: "inline-flex", alignItems: "center", gap: "4px", boxShadow: "0 2px 4px rgba(245, 158, 11, 0.4)" }}
+                            >⭐ {t("reviews.rate") || "דרג"}</button>
                           )}
                         </span>
                       </div>
@@ -3761,7 +3764,7 @@
       {/* LOGIN DIALOG */}
       {/* ═══════════════════════════════════════════════════════════ */}
       {showLoginDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)', padding: '16px' }}>
+        <div className="fixed inset-0 z-[10200] flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)', padding: '16px' }}>
           <div className="bg-white rounded-2xl shadow-2xl w-full" style={{ maxWidth: '380px', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}>
             {/* Header */}
             <div style={{ padding: '20px 20px 12px', textAlign: 'center' }}>

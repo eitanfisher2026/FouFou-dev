@@ -3791,7 +3791,8 @@
               </div>
             </div>
             
-            {/* Refresh Google Ratings */}
+            {/* Refresh Google Ratings — editor/admin only */}
+            {isUnlocked && (
             <div className="mb-3">
               <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-400 rounded-xl p-3">
                 <h3 className="text-base font-bold text-gray-800 mb-1">{`⭐ ${t("settings.refreshRatings") || 'רענן דירוגי גוגל'}`}</h3>
@@ -3821,6 +3822,7 @@
                 </button>
               </div>
             </div>
+            )}
 
             )}
             {/* Bulk Approve Drafts — editor/admin only */}

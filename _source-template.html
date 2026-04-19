@@ -44,6 +44,9 @@
       @keyframes winkRight { 0%,82% { transform: scaleY(1); } 87% { transform: scaleY(0.1); } 92%,100% { transform: scaleY(1); } }
       @keyframes tailWag { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(12deg); } 75% { transform: rotate(-8deg); } }
       @keyframes dotPulse { 0%,80%,100% { opacity: 0.3; } 40% { opacity: 1; } }
+      @keyframes rateGlow { 0%, 100% { box-shadow: 0 2px 4px rgba(245, 158, 11, 0.4); transform: scale(1); } 50% { box-shadow: 0 2px 10px rgba(245, 158, 11, 0.7); transform: scale(1.05); } }
+      .foufou-rate-pulse { animation: rateGlow 2s ease-in-out infinite; }
+      .foufou-rate-pulse:hover { animation: none; transform: scale(1.08); box-shadow: 0 3px 8px rgba(245, 158, 11, 0.6) !important; transition: all 0.15s; }
       .view-fade-in { animation: fadeIn 0.2s ease-out; }
       .overflow-y-auto::-webkit-scrollbar { width: 6px; }
       .overflow-y-auto::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }

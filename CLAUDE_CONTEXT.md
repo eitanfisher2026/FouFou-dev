@@ -7,7 +7,25 @@ https://eitanfisher2026.github.io/FouFou-dev/
 React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Places API, PWA
 
 ## Current Version
-**v3.22.94**
+**v3.22.95**
+
+## Recent Changes (v3.22.87 → v3.22.95)
+- **v3.22.87**: Debug tab + `addDebugLog` infrastructure removed
+- **v3.22.88**: TTS (הקראה) system removed — kept: recording playback + speech-to-text dictation
+- **v3.22.89**: Dead code cleanup (adminPassword state, setter-only useStates)
+- **v3.22.90**: Admin Tools section removed (5 tools + supporting functions)
+- **v3.22.91**: Malaga city map updated
+- **v3.22.92**: `adminPassword`/`adminUsers` removed + `places.noChanges` i18n added + `DEBUG_FULL_BACKUP.md` removed from zip
+- **v3.22.93**: Place permissions overhaul (see below)
+- **v3.22.95**: UI polish — anon users see no filter row; pencil→eye icon for approved places
+- **v3.22.95** (next): rate button CTA styling + login z-index fix + Google ratings refresh gating
+
+## ⚠️ CONTEXT WINDOW NOTE
+Project is large (~2MB JS source). Memory fills up after 3-5 rounds of major changes.
+**Recommendation**: start a fresh chat for:
+- Each planned deep-dive (Firebase efficiency, Google Places efficiency, City switching)
+- After completing a batch of 3-4 small fixes
+Last working zip before context reset: **v3.22.95** (582KB, 36 files)
 
 ---
 
@@ -94,9 +112,17 @@ zip -q github-upload-dev-vX_YY_ZZ.zip \
 - Switching tabs clears `disabledStops[]`
 
 ### Favorites / Locations
-- Status: `'draft'` (editors only) / `'approved'` (all users)
-- Regular users see: approved + own drafts. Anon: approved only.
-- Filtered in 4 places: `groupedPlaces` useMemo, header count, nav count, favorites map
+- Status: `loc.locked === true` = approved, `loc.status === 'blacklist'` = skip list, else = draft
+- **Edit/Delete permissions** (v3.22.93):
+  - Admin/Editor: edit/delete any place
+  - Regular user: edit/delete own places (draft OR approved)
+  - Anonymous: no edit/delete
+- **Approve permissions** (v3.22.93): only Admin/Editor can flip draft ↔ approved (via status toggle in edit dialog OR bulk approve in Settings)
+- **Auto-revert on edit** (v3.22.93): saving content edits to an approved place auto-downgrades it back to draft (`updateCustomLocation` L9027). **Exception**: when an admin/editor explicitly flips the status toggle draft→approved in the same save, the approval is preserved.
+- **Reviews are safe**: writing/editing reviews goes to `cities/{cityId}/reviews/{placeKey}/{uid}` — separate Firebase path, never touches `locked` on the location
+- **Tab visibility** (v3.22.94): `all/drafts/ready` tabs visible to all logged-in users; `skipped` (blacklist) hidden from non-editor; entire filter row hidden from anonymous
+- **Edit icon** (v3.22.94): `!canEdit || loc.locked ? "👁️" : "✏️"` — eye for approved (hints that editing will revert to draft)
+- Nav arrows in edit dialog work from `flatNavList` (app-logic.js L5410) which respects all active filters
 - `addedBy` = Firebase uid of creator
 
 ### Auth
@@ -119,10 +145,20 @@ Only the **floating bubble** (`🔬 N entries` bottom-left) remains. The Debug t
 
 ### Removal history
 - **v3.22.86**: Google Takeout import feature removed (see `TAKEOUT_FULL_BACKUP.md` in an earlier backup if restoring)
-- **v3.22.94**: Debug tab + `addDebugLog` infrastructure removed (see `DEBUG_FULL_BACKUP.md`)
+- **v3.22.95**: Debug tab + `addDebugLog` infrastructure removed (see `DEBUG_FULL_BACKUP.md`)
 
 ---
 
 ## Known Open Issues
 1. **boundaryFactor** not in systemParams UI — by design (per-city field)
 2. **dedupRelated** — review interest data for correct parent-child relationships (e.g. קפה בראנץ → קפה)
+3. **Singapore flag icon** — stored as base64 data URL in Firebase `cities/singapore/general/icon`; was rendering as string instead of image in one case (FIXED by user manually replacing with a different icon)
+
+## Planned Deep-Dive Sessions (one per chat, due to file size)
+1. **Firebase efficiency** — reads/writes audit, reactivity, batching opportunities
+2. **Google Places API efficiency** — caching, deduplication, call cost optimization
+3. **City switching flow** — `selectedCityId` reactivity, subscription cleanup
+
+## Known Code Smells (flagged but not yet cleaned)
+- 6 Firebase writes live in views.js/dialogs.js (L3103, L661, L1492-1493, L3686, L3696) — violates the "writes only in app-logic.js" rule. Intentional admin UI context, cleanup deferred.
+- Several `t('key') || 'fallback'` patterns exist — these don't work (t() returns the key when missing, which is truthy). If any toast shows raw key like "places.noChanges", add the key to i18n.js.
