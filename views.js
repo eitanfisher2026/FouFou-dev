@@ -2520,7 +2520,9 @@
               </div>
 
               {/* Filter bar: status tabs + no-interest filter + addedBy filter.
-                  Status tabs are visible to all; 'skipped' (blacklist) is editor/admin only. */}
+                  Entire row hidden from anonymous users (they just see the list).
+                  Status tabs are visible to all logged-in users; 'skipped' (blacklist) is editor/admin only. */}
+              {authUser && !authUser.isAnonymous && (
               <div className="flex mb-2 gap-1 items-center justify-end">
                 <span className="text-xs text-gray-400 mr-auto">{groupedPlaces.draftsCount + groupedPlaces.readyCount} {t('nav.favorites')} {isUnlocked && groupedPlaces.blacklistCount > 0 ? `· ${groupedPlaces.blacklistCount} 🚫` : ''}</span>
                 {(isUnlocked ? ['all', 'drafts', 'ready', 'skipped'] : ['all', 'drafts', 'ready']).map(tab => (
@@ -2578,6 +2580,7 @@
                   );
                 })()}
               </div>
+              )}
 
 
               {/* Pending locations waiting for sync */}
@@ -2701,7 +2704,7 @@
                                 ); })()}
                                 <button onClick={() => handleEditLocation(loc, flatNavList)}
                                   className="text-xs px-1 py-0.5 rounded"
-                                  title={canEdit ? t("places.detailsEdit") : t("general.viewOnly")}>{canEdit ? "✏️" : "👁️"}</button>
+                                  title={!canEdit ? t("general.viewOnly") : (loc.locked ? t("general.viewOnly") : t("places.detailsEdit"))}>{!canEdit || loc.locked ? "👁️" : "✏️"}</button>
                               </div>
                             );
                           })}
@@ -2757,7 +2760,7 @@
                               ); })()}
                               <button onClick={() => handleEditLocation(loc, flatNavList)}
                                 className="text-xs px-1 py-0.5 rounded"
-                                title={canEdit ? t("places.detailsEdit") : t("general.viewOnly")}>{canEdit ? "✏️" : "👁️"}</button>
+                                title={!canEdit ? t("general.viewOnly") : (loc.locked ? t("general.viewOnly") : t("places.detailsEdit"))}>{!canEdit || loc.locked ? "👁️" : "✏️"}</button>
                             </div>
                           );
                         })}
