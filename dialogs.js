@@ -3773,29 +3773,24 @@
               <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0' }}>{t('auth.loginSubtitle') || 'התחבר כדי לשמור את ההתקדמות שלך'}</p>
             </div>
 
-            {authUser ? (
-              /* Already signed in — show profile */
+            {authUser && !authUser.isAnonymous ? (
+              /* Already signed in (named account) — show profile */
               <div style={{ padding: '0 20px 20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#f0fdf4', borderRadius: '12px', marginBottom: '12px', border: '1px solid #bbf7d0' }}>
                   {authUser.photoURL && <img src={authUser.photoURL} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%' }} />}
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{authUser.displayName || authUser.email || (t('auth.anonymous'))}</div>
+                    <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{authUser.displayName || authUser.email}</div>
                     {authUser.email && <div style={{ fontSize: '11px', color: '#6b7280' }}>{authUser.email}</div>}
                     <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '2px' }}>
                       {userRole === 2 ? '👑 Admin' : userRole === 1 ? '✏️ Editor' : '👤 ' + (t('auth.regular') || 'משתמש')}
                     </div>
                   </div>
                 </div>
-                {authUser.isAnonymous && (
-                  <div style={{ padding: '10px', background: '#fef3c7', borderRadius: '8px', marginBottom: '10px', border: '1px solid #fbbf24' }}>
-                    <div style={{ fontSize: '11px', color: '#92400e' }}>{t('auth.anonWarning') || '⚠️ חשבון אנונימי — אם תנקה cache הנתונים יאבדו. התנתק והתחבר עם Google כדי לשמור.'}</div>
-                  </div>
-                )}
                 <button onClick={authSignOut}
                   style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #fca5a5', background: '#fef2f2', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', color: '#dc2626' }}>
                   🚪 {t('auth.signOut') || 'התנתק'}
                 </button>
-                {!authUser?.isAnonymous && !isEditor && (
+                {!isEditor && (
                   <button onClick={authDeleteAccount}
                     style={{ width: '100%', padding: '8px', borderRadius: '10px', border: '1px solid #fca5a5', background: 'white', fontSize: '12px', cursor: 'pointer', color: '#ef4444', marginTop: '6px' }}>
                     🗑️ {t('auth.deleteAccount') || 'מחק חשבון'}
