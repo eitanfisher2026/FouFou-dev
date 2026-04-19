@@ -469,26 +469,6 @@ window.BKK.getButtonStyle = (isActive = false, variant = 'primary') => {
 };
 
 /**
- * Build Google Maps directions URL from stops
- */
-window.BKK.buildMapsUrl = (stops, circular = false) => {
-  if (!stops || stops.length === 0) return '';
-  
-  const validStops = stops.filter(s => s.lat && s.lng && s.lat !== 0 && s.lng !== 0);
-  if (validStops.length === 0) return '';
-  
-  // Path-based format: opens in overview mode with Start button
-  const points = [''];  // Empty = "Your location"
-  validStops.forEach(s => points.push(`${s.lat},${s.lng}`));
-  if (circular && validStops.length > 1) {
-    points.push(points[1]); // Return to first stop
-  }
-  
-  const encoded = points.map(p => encodeURIComponent(p)).join('/');
-  return `https://www.google.com/maps/dir/${encoded}/data=!4m2!4m1!3e2`;
-};
-
-/**
  * Parse user agent for readable browser/OS info
  */
 window.BKK.parseUserAgent = (ua) => {
