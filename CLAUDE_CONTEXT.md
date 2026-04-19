@@ -7,9 +7,9 @@ https://eitanfisher2026.github.io/FouFou-dev/
 React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Places API, PWA
 
 ## Current Version
-**v3.23.3**
+**v3.23.4**
 
-## Recent Changes (v3.22.87 → v3.23.3)
+## Recent Changes (v3.22.87 → v3.23.4)
 - **v3.22.87**: Debug tab + `addDebugLog` infrastructure removed
 - **v3.22.88**: TTS (הקראה) system removed — kept: recording playback + speech-to-text dictation
 - **v3.22.89**: Dead code cleanup (adminPassword state, setter-only useStates)
@@ -23,13 +23,10 @@ React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Pla
 - **v3.22.100**: First attempt — regression (Preview instead of Start)
 - **v3.22.101**: `buildGoogleMapsUrls(userLoc)` — prepend "" only when both userLoc + origin in-city
 - **v3.23.0**: Dead code removal — `window.BKK.buildMapsUrl`
-- **v3.23.1**: Optimistic prepend when userLoc absent (wrong heuristic — could reintroduce 17-day bug)
+- **v3.23.1**: Optimistic prepend when userLoc absent (wrong heuristic)
 - **v3.23.2**: GPS cache + async helper + spinner on button click
-- **v3.23.3**: Fixed the Preview-vs-Start-on-first-click issue properly. Two complementary fixes:
-  1. **Proactive GPS prefetch on step 3**: A `useEffect` in `app-logic.js` kicks off `window.BKK.getUserGPS(8000)` silently as soon as the user reaches the route preview. By the time they tap "Open in Google Maps", the session cache is already populated — no spinner, instant Start.
-  2. **getUserGPS aligned with existing GPS flow**: `getUserGPS` now uses the same `{ enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }` options as the rest of the app (was `enableHighAccuracy: false, timeout: 3000` — could be significantly slower on some devices). Click-time timeout also raised from 3s to 8s.
-  
-  Net effect: first click in a session → normally instant (prefetch already completed). If the user is very quick (tap "יאללה" within a second of reaching step 3), the spinner shows briefly. The background prefetch is "fire and forget" — no errors surfaced, no UI blocking.
+- **v3.23.3**: Proactive GPS prefetch on step 3 + `getUserGPS` aligned with existing GPS settings
+- **v3.23.4**: `gpsTimeoutMs` exposed as a system parameter (default 8000, range 3000–15000, step 500) under the "App" section in the admin sysParams UI. Both the prefetch on wizard step 3 and the click-time fallback read from `window.BKK.systemParams.gpsTimeoutMs`. Enables live tuning without code changes.
 
 ## ⚠️ CONTEXT WINDOW NOTE
 Project is large (~2MB JS source). Memory fills up after 3-5 rounds of major changes.

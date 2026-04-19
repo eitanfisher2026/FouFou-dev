@@ -2153,7 +2153,8 @@
                           let liveUserLoc = userLoc;
                           if (!liveUserLoc && !window.BKK.lastKnownGPS) {
                             setWaitingForGps(true);
-                            liveUserLoc = await window.BKK.getUserGPS(8000);
+                            const timeoutMs = window.BKK.systemParams?.gpsTimeoutMs || 8000;
+                            liveUserLoc = await window.BKK.getUserGPS(timeoutMs);
                             setWaitingForGps(false);
                           }
                           // Rebuild URLs with the (possibly newly-acquired) userLoc. If we still
@@ -4395,6 +4396,7 @@
                   { key: 'systemAlertIntervalHours', label: 'System Alert Interval (hours)', desc: 'How often to send automated system feedback alerts (e.g. corrupted cacheVersion). Default: 1', min: 1, max: 72, step: 1, type: 'int' },
                   { key: 'pointSearchMaxGoogle', label: 'מסביב למקום — תוצאות גוגל', desc: 'מקסימום תוצאות גוגל בחיפוש מסביב למקום. ברירת מחדל: 10', min: 3, max: 20, step: 1, type: 'int' },
                   { key: 'pointSearchMaxFavorites', label: 'מסביב למקום — תוצאות מועדפים', desc: 'מקסימום מועדפים בחיפוש מסביב למקום. ברירת מחדל: 5', min: 1, max: 10, step: 1, type: 'int' },
+                  { key: 'gpsTimeoutMs', label: 'GPS Timeout (ms)', desc: 'זמן מקסימלי להמתנה למיקום GPS לפני ויתור ומעבר ל-Preview. משפיע גם על ה-prefetch ברקע וגם על הלחיצה על "יאללה לדרך". ברירת מחדל: 8000', min: 3000, max: 15000, step: 500, type: 'int' },
                 ]},
                 { title: t('sysParams.sectionDedup'), icon: '🔍', color: '#8b5cf6', params: [
                   { key: 'dedupRadiusMeters', label: t('sysParams.dedupRadius'), desc: t('sysParams.dedupRadiusDesc'), min: 10, max: 200, step: 10, type: 'int' },

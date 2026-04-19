@@ -342,7 +342,8 @@
     if (window.BKK.lastKnownGPS) return; // already cached
     if (typeof window.BKK.getUserGPS !== 'function') return;
     // Fire and forget — never throws, resolves to null on failure.
-    window.BKK.getUserGPS(8000).catch(() => {});
+    const timeoutMs = window.BKK.systemParams?.gpsTimeoutMs || 8000;
+    window.BKK.getUserGPS(timeoutMs).catch(() => {});
   }, [wizardStep]);
   const [disabledStops, setDisabledStops] = useState([]); // Track disabled stop IDs
   const disabledStopsRef = React.useRef(disabledStops);
@@ -960,6 +961,13 @@
       systemAlertIntervalHours: 1,
       // Feedback images
       feedbackMaxImages: 3,
+      // GPS timeout (ms) — max time to wait for a device GPS reading before giving up.
+      // Used by both the proactive prefetch on wizard step 3 and the click-time fallback
+      // on "Open in Google Maps". Most modern devices return a fix within a second or
+      // two; this is just the upper bound before we resolve null and fall back to
+      // Preview mode. Do NOT set below ~3000 — some devices (especially indoors)
+      // genuinely take a few seconds.
+      gpsTimeoutMs: 8000,
     };
     window.BKK.systemParams = { ...window.BKK._defaultSystemParams };
   }
