@@ -222,19 +222,6 @@
     }
   };
 
-  const authLinkAnonymousToGoogle = async () => {
-    if (!auth || !authUser || !authUser.isAnonymous) return;
-    setLoginError('');
-    try {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      await authUser.linkWithPopup(provider);
-      showToast(t('auth.accountLinked') || '✅ החשבון קושר בהצלחה!', 'success');
-    } catch (err) {
-      console.error('[AUTH] Link error:', err);
-      setLoginError(err.message);
-    }
-  };
-
   const authUpdateUserRole = async (uid, newRole) => {
     if (!isRealAdmin || !database) return;
     try {
@@ -2645,11 +2632,8 @@
     showToast(`💾 ${interestData.label || interestData.name} — ${t('toast.savedPending')}`, 'warning', 'sticky');
   };
 
-  // One-time migration: move old customLocations to per-city structure
   useEffect(() => {
     if (isFirebaseAvailable && database) {
-      window.BKK.migrateLocationsToPerCity(database);
-      window.BKK.cleanupInProgress(database);
       window.BKK.seedSystemRoutes(database);
 
       // interests and interestConfig live entirely in Firebase — no hardcoded seeds or patches

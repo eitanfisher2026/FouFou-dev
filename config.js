@@ -57,7 +57,7 @@ window.BKK.mapConfig = {
 })();
 
 // App Version
-window.BKK.VERSION = '3.22.95';
+window.BKK.VERSION = '3.22.97';
 // Convert stop index (0-based) to letter label: 0→A, 1→B, ..., 25→Z, 26→AA
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
@@ -193,92 +193,6 @@ window.BKK.exportCityFile = function(city) {
  */
 window.BKK.getCityRegistryEntry = function(city) {
   return '  ' + city.id + ": { id: '" + city.id + "', name: '" + city.name + "', nameEn: '" + city.nameEn + "', country: '" + (city.country || '') + "', icon: '" + city.icon + "', file: 'city-" + city.id + ".js' }";
-};
-
-/**
- * One-time migration: move old flat customLocations to per-city structure.
- * Old: customLocations/{id} → New: cities/{cityId}/locations/{id}
- * Writes ONE item at a time to avoid Firebase "Write too large" error.
- */
-window.BKK.migrateLocationsToPerCity = function(database) {
-  if (!database) return Promise.resolve();
-  var migrated = localStorage.getItem('locations_migrated_v2');
-  if (migrated === 'true') return Promise.resolve();
-  
-  var locCount = 0;
-  var routeCount = 0;
-  var errors = 0;
-  
-  return database.ref('customLocations').once('value').then(function(snap) {
-    var data = snap.val();
-    if (!data) return Promise.resolve();
-    var keys = Object.keys(data);
-    locCount = keys.length;
-    // Write one location at a time (sequential to avoid overwhelming Firebase)
-    return keys.reduce(function(chain, key) {
-      return chain.then(function() {
-        var loc = data[key];
-        // Strip base64 images during migration to reduce size
-        if (loc.uploadedImage && typeof loc.uploadedImage === 'string' && loc.uploadedImage.startsWith('data:')) {
-          delete loc.uploadedImage;
-        }
-        var cityId = loc.cityId || 'bangkok';
-        return database.ref('cities/' + cityId + '/locations/' + key).set(loc).catch(function(e) {
-          console.warn('[MIGRATION] Failed to migrate location ' + key + ':', e.message);
-          errors++;
-        });
-      });
-    }, Promise.resolve());
-  }).then(function() {
-    return database.ref('savedRoutes').once('value');
-  }).then(function(snap) {
-    var data = snap.val();
-    if (!data) return Promise.resolve();
-    var keys = Object.keys(data);
-    routeCount = keys.length;
-    // Write one route at a time
-    return keys.reduce(function(chain, key) {
-      return chain.then(function() {
-        var route = data[key];
-        // Strip base64 images from route stops
-        if (route.stops && Array.isArray(route.stops)) {
-          route.stops = route.stops.map(function(s) {
-            if (s.uploadedImage && typeof s.uploadedImage === 'string' && s.uploadedImage.startsWith('data:')) {
-              var copy = Object.assign({}, s);
-              delete copy.uploadedImage;
-              return copy;
-            }
-            return s;
-          });
-        }
-        var cityId = route.cityId || 'bangkok';
-        return database.ref('cities/' + cityId + '/routes/' + key).set(route).catch(function(e) {
-          console.warn('[MIGRATION] Failed to migrate route ' + key + ':', e.message);
-          errors++;
-        });
-      });
-    }, Promise.resolve());
-  }).then(function() {
-    if (locCount === 0 && routeCount === 0) {
-      localStorage.setItem('locations_migrated_v2', 'true');
-      console.log('[MIGRATION] No old data to migrate');
-      return;
-    }
-    if (errors > 0) {
-      console.warn('[MIGRATION] Completed with ' + errors + ' errors — will retry next load');
-      return;
-    }
-    // Only remove old data and mark done if ALL writes succeeded
-    var removals = [];
-    if (locCount > 0) removals.push(database.ref('customLocations').remove());
-    if (routeCount > 0) removals.push(database.ref('savedRoutes').remove());
-    return Promise.all(removals).then(function() {
-      localStorage.setItem('locations_migrated_v2', 'true');
-      console.log('[MIGRATION] Migrated ' + locCount + ' locations + ' + routeCount + ' routes to per-city structure');
-    });
-  }).catch(function(err) {
-    console.error('[MIGRATION] Error:', err);
-  });
 };
 
 /**

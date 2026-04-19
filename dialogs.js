@@ -3788,11 +3788,7 @@
                 </div>
                 {authUser.isAnonymous && (
                   <div style={{ padding: '10px', background: '#fef3c7', borderRadius: '8px', marginBottom: '10px', border: '1px solid #fbbf24' }}>
-                    <div style={{ fontSize: '11px', color: '#92400e', marginBottom: '6px' }}>{t('auth.anonWarning') || '⚠️ חשבון אנונימי — אם תנקה cache הנתונים יאבדו. קשר לחשבון Google כדי לשמור.'}</div>
-                    <button onClick={authLinkAnonymousToGoogle}
-                      style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #f59e0b', background: 'white', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', color: '#92400e' }}>
-                      🔗 {t('auth.linkGoogle') || 'קשר לחשבון Google'}
-                    </button>
+                    <div style={{ fontSize: '11px', color: '#92400e' }}>{t('auth.anonWarning') || '⚠️ חשבון אנונימי — אם תנקה cache הנתונים יאבדו. התנתק והתחבר עם Google כדי לשמור.'}</div>
                   </div>
                 )}
                 <button onClick={authSignOut}

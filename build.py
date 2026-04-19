@@ -186,7 +186,7 @@ def build():
     if os.path.exists('sw.js'):
         with open('sw.js', 'r', encoding='utf-8') as f:
             sw = f.read()
-        sw = re.sub(r"const CACHE_NAME = 'foufou-v[\d.]+'", f"const CACHE_NAME = 'foufou-v{ver}'", sw)
+        sw = re.sub(r"const CACHE_NAME = 'foufou(-\w+)?-v[\d.]+'", f"const CACHE_NAME = 'foufou-dev-v{ver}'", sw)
         # Also update versioned asset URLs in OFFLINE_ASSETS
         sw = re.sub(r"app-data\.js\?v=[\d.]+", f"app-data.js?v={ver}", sw)
         sw = re.sub(r"app-code\.js\?v=[\d.]+", f"app-code.js?v={ver}", sw)

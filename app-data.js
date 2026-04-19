@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.22.95
+// FouFou app-data.js v3.22.97
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -989,9 +989,7 @@ auth: {
   noAccount: 'אין חשבון? הירשם',
   anonymous: 'אנונימי',
   regular: 'משתמש',
-  anonWarning: '⚠️ חשבון אנונימי — אם תנקה cache הנתונים יאבדו. קשר לחשבון Google כדי לשמור.',
-  linkGoogle: 'קשר לחשבון Google',
-  accountLinked: '✅ החשבון קושר בהצלחה!',
+  anonWarning: '⚠️ חשבון אנונימי — אם תנקה cache הנתונים יאבדו. התנתק והתחבר עם Google כדי לשמור.',
   userNotFound: 'משתמש לא קיים. נסה להירשם.',
   wrongPassword: 'סיסמה שגויה',
   emailInUse: 'אימייל כבר רשום. נסה להתחבר.',
@@ -2098,9 +2096,7 @@ auth: {
   noAccount: "Don't have an account? Register",
   anonymous: 'Anonymous',
   regular: 'User',
-  anonWarning: '⚠️ Anonymous account — data will be lost if you clear cache. Link to Google to keep it safe.',
-  linkGoogle: 'Link to Google account',
-  accountLinked: '✅ Account linked successfully!',
+  anonWarning: '⚠️ Anonymous account — data will be lost if you clear cache. Sign out and sign in with Google to keep it safe.',
   userNotFound: 'User not found. Try registering.',
   wrongPassword: 'Wrong password',
   emailInUse: 'Email already registered. Try signing in.',
@@ -3438,7 +3434,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.22.95';
+window.BKK.VERSION = '3.22.97';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -3558,82 +3554,6 @@ window.BKK.exportCityFile = function(city) {
  */
 window.BKK.getCityRegistryEntry = function(city) {
   return '  ' + city.id + ": { id: '" + city.id + "', name: '" + city.name + "', nameEn: '" + city.nameEn + "', country: '" + (city.country || '') + "', icon: '" + city.icon + "', file: 'city-" + city.id + ".js' }";
-};
-
-/**
- * One-time migration: move old flat customLocations to per-city structure.
- * Old: customLocations/{id} → New: cities/{cityId}/locations/{id}
- * Writes ONE item at a time to avoid Firebase "Write too large" error.
- */
-window.BKK.migrateLocationsToPerCity = function(database) {
-  if (!database) return Promise.resolve();
-  var migrated = localStorage.getItem('locations_migrated_v2');
-  if (migrated === 'true') return Promise.resolve();
-  
-  var locCount = 0;
-  var routeCount = 0;
-  var errors = 0;
-  
-  return database.ref('customLocations').once('value').then(function(snap) {
-    var data = snap.val();
-    if (!data) return Promise.resolve();
-    var keys = Object.keys(data);
-    locCount = keys.length;
-    return keys.reduce(function(chain, key) {
-      return chain.then(function() {
-        var loc = data[key];
-        if (loc.uploadedImage && typeof loc.uploadedImage === 'string' && loc.uploadedImage.startsWith('data:')) {
-          delete loc.uploadedImage;
-        }
-        var cityId = loc.cityId || 'bangkok';
-        return database.ref('cities/' + cityId + '/locations/' + key).set(loc).catch(function(e) {
-          errors++;
-        });
-      });
-    }, Promise.resolve());
-  }).then(function() {
-    return database.ref('savedRoutes').once('value');
-  }).then(function(snap) {
-    var data = snap.val();
-    if (!data) return Promise.resolve();
-    var keys = Object.keys(data);
-    routeCount = keys.length;
-    return keys.reduce(function(chain, key) {
-      return chain.then(function() {
-        var route = data[key];
-        if (route.stops && Array.isArray(route.stops)) {
-          route.stops = route.stops.map(function(s) {
-            if (s.uploadedImage && typeof s.uploadedImage === 'string' && s.uploadedImage.startsWith('data:')) {
-              var copy = Object.assign({}, s);
-              delete copy.uploadedImage;
-              return copy;
-            }
-            return s;
-          });
-        }
-        var cityId = route.cityId || 'bangkok';
-        return database.ref('cities/' + cityId + '/routes/' + key).set(route).catch(function(e) {
-          errors++;
-        });
-      });
-    }, Promise.resolve());
-  }).then(function() {
-    if (locCount === 0 && routeCount === 0) {
-      localStorage.setItem('locations_migrated_v2', 'true');
-      return;
-    }
-    if (errors > 0) {
-      return;
-    }
-    var removals = [];
-    if (locCount > 0) removals.push(database.ref('customLocations').remove());
-    if (routeCount > 0) removals.push(database.ref('savedRoutes').remove());
-    return Promise.all(removals).then(function() {
-      localStorage.setItem('locations_migrated_v2', 'true');
-    });
-  }).catch(function(err) {
-    console.error('[MIGRATION] Error:', err);
-  });
 };
 
 /**
