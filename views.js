@@ -2549,25 +2549,48 @@
                     >🏷️ {noInterestCount}</button>
                   );
                 })()}
-                {/* addedBy filter — admin: dropdown with names; any logged-in: הכל/אני toggle */}
+                {/* addedBy filter — admin: הכל / אני / dropdown of other users; any logged-in: הכל/אני toggle */}
                 {authUser && !authUser.isAnonymous && (() => {
                   const myUid = authUser.uid;
                   const hasMine = cityCustomLocations.some(l => l.addedBy === myUid);
                   if (!hasMine && !isAdmin) return null;
                   if (isAdmin) {
-                    const allContribs = Object.entries(userNamesMap || {})
-                      .filter(([uid]) => cityCustomLocations.some(l => l.addedBy === uid))
+                    // Collect all unique addedBy uids from this city's places, not only those in userNamesMap
+                    const uidSet = new Set();
+                    cityCustomLocations.forEach(l => { if (l.addedBy) uidSet.add(l.addedBy); });
+                    const allContribs = Array.from(uidSet)
+                      .map(uid => [uid, (userNamesMap && userNamesMap[uid]) || (uid.slice(0, 6) + '…')])
                       .sort(([,a],[,b]) => a.localeCompare(b));
+                    // Split: "me" is handled by its own button, dropdown lists others only
+                    const others = allContribs.filter(([uid]) => uid !== myUid);
                     if (allContribs.length <= 1) return null;
+                    const isAll = !filterAddedBy;
+                    const isMe = filterAddedBy === myUid;
+                    const isOther = filterAddedBy && filterAddedBy !== myUid;
+                    const setFilter = (v) => { setFilterAddedBy(v); try { localStorage.setItem('foufou_filter_addedby', v); } catch(_) {} };
                     return (
-                      <select
-                        value={filterAddedBy}
-                        onChange={e => { const v = e.target.value; setFilterAddedBy(v); try { localStorage.setItem('foufou_filter_addedby', v); } catch(_) {} }}
-                        style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '8px', border: '1px solid #d1d5db', background: filterAddedBy ? '#ede9fe' : 'white', color: filterAddedBy ? '#7c3aed' : '#374151', fontWeight: filterAddedBy ? 'bold' : 'normal', cursor: 'pointer', maxWidth: '110px' }}
-                      >
-                        <option value="">👤 {t('general.all') || 'הכל'}</option>
-                        {allContribs.map(([uid, name]) => <option key={uid} value={uid}>{name}</option>)}
-                      </select>
+                      <>
+                        <button
+                          onClick={() => setFilter('')}
+                          className={`px-2 py-1 rounded text-xs font-bold transition-all ${isAll ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                        >👥 {t('general.all') || 'הכל'}</button>
+                        {hasMine && (
+                          <button
+                            onClick={() => setFilter(myUid)}
+                            className={`px-2 py-1 rounded text-xs font-bold transition-all ${isMe ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                          >👤 {window.BKK.i18n.currentLang === 'en' ? 'Me' : 'אני'}</button>
+                        )}
+                        {others.length > 0 && (
+                          <select
+                            value={isOther ? filterAddedBy : ''}
+                            onChange={e => setFilter(e.target.value)}
+                            style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '8px', border: '1px solid #d1d5db', background: isOther ? '#ede9fe' : 'white', color: isOther ? '#7c3aed' : '#6b7280', fontWeight: isOther ? 'bold' : 'normal', cursor: 'pointer', maxWidth: '110px' }}
+                          >
+                            <option value="">👥 {window.BKK.i18n.currentLang === 'en' ? 'Choose user…' : 'בחר משתמש…'}</option>
+                            {others.map(([uid, name]) => <option key={uid} value={uid}>{name}</option>)}
+                          </select>
+                        )}
+                      </>
                     );
                   }
                   // Any logged-in user: simple הכל/אני toggle

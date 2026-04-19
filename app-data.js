@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.22.98
+// FouFou app-data.js v3.22.99
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -1173,6 +1173,7 @@ help: {
     useThis: 'השתמש במקום זה',
     addAsNew: 'התעלם, הוסף כמקום חדש',
     alreadyExists: 'מקום זה כבר קיים ברשימה',
+    alreadyExistsOpen: 'מקום כבר קיים ברשימה, פתח ודרג',
     customExists: 'כבר קיים ברשימה שלך',
     googleMatchMulti: 'מקומות קרובים בגוגל',
     selectOrSkip: 'בחר את המקום שצילמת, או דלג',
@@ -2288,6 +2289,7 @@ help: {
     useThis: 'Use this place',
     addAsNew: 'Ignore, add as new place',
     alreadyExists: 'This place already exists in your list',
+    alreadyExistsOpen: 'Already in your list — open and rate',
     customExists: 'Already in your list',
     googleMatchMulti: 'Nearby places on Google',
     selectOrSkip: 'Select the place you photographed, or skip',
@@ -3432,7 +3434,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.22.98';
+window.BKK.VERSION = '3.22.99';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));

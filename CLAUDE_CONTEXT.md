@@ -7,9 +7,9 @@ https://eitanfisher2026.github.io/FouFou-dev/
 React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Places API, PWA
 
 ## Current Version
-**v3.22.98**
+**v3.22.99**
 
-## Recent Changes (v3.22.87 → v3.22.95)
+## Recent Changes (v3.22.87 → v3.22.99)
 - **v3.22.87**: Debug tab + `addDebugLog` infrastructure removed
 - **v3.22.88**: TTS (הקראה) system removed — kept: recording playback + speech-to-text dictation
 - **v3.22.89**: Dead code cleanup (adminPassword state, setter-only useStates)
@@ -19,6 +19,7 @@ React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Pla
 - **v3.22.93**: Place permissions overhaul (see below)
 - **v3.22.95**: UI polish — anon users see no filter row; pencil→eye icon for approved places
 - **v3.22.95** (next): rate button CTA styling + login z-index fix + Google ratings refresh gating
+- **v3.22.99**: Dedup "already exists" button now opens the FouFou place info popup (open-and-rate flow); admin favorites filter rebuilt as three modes: הכל / אני / dropdown of other contributors (robust to missing `userNamesMap` entries)
 
 ## ⚠️ CONTEXT WINDOW NOTE
 Project is large (~2MB JS source). Memory fills up after 3-5 rounds of major changes.

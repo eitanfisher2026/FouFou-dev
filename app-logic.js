@@ -8591,8 +8591,9 @@
         addCustomLocation(closeAfter, googleData);
         showToast(`📍 ${t('dedup.googleMatch')}: ${match.name}`, 'success');
       } else {
-        // Custom match — don't add, merge interests if needed
+        // Custom match — don't add, merge interests if needed, then open place details
         const newInterests = loc.interests.filter(i => !match.interests?.includes(i));
+        let finalMatch = match;
         if (newInterests.length > 0) {
           const mergedInterests = [...(match.interests || []), ...newInterests];
           const updated = customLocations.map(l => 
@@ -8602,14 +8603,22 @@
           if (isFirebaseAvailable && database && match.firebaseKey) {
             database.ref(`cities/${selectedCityId}/locations/${match.firebaseKey}/interests`).set(mergedInterests);
           }
+          finalMatch = { ...match, interests: mergedInterests };
           const interestNames = newInterests.map(id => {
             const opt = allInterestOptions.find(o => o.id === id);
             return opt ? (tLabel(opt) || id) : id;
           }).join(', ');
           showToast(`🔗 "${match.name}" +${interestNames}`, 'success');
-        } else {
-          showToast(`✅ "${match.name}" ${t('dedup.alreadyExists')}`, 'info');
         }
+        // Close dedup and open the FouFou place info popup on the existing match
+        setDedupConfirm(null);
+        if (closeQuickCapture) setShowQuickCapture(false);
+        setTimeout(() => {
+          setModalImage(finalMatch.uploadedImage || (finalMatch.imageUrls && finalMatch.imageUrls[0]) || '__placeholder__');
+          setModalImageCtx({ description: finalMatch.description, location: finalMatch });
+          setShowImageModal(true);
+        }, 120);
+        return;
       }
     } else if (action === 'addNew') {
       if (dedupConfirm.pendingGooglePlace) {

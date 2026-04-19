@@ -120,7 +120,7 @@
                   <>
                     <button onClick={() => handleDedupConfirm('accept')}
                       style={{ width: '100%', padding: '12px', fontSize: '14px', fontWeight: 'bold', background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer' }}>
-                      ✅ {type === 'google' ? t('dedup.useThis') : t('dedup.alreadyExists')}
+                      ✅ {type === 'google' ? t('dedup.useThis') : t('dedup.alreadyExistsOpen')}
                     </button>
                     <button onClick={() => handleDedupConfirm('addNew')}
                       style={{ width: '100%', padding: '12px', fontSize: '14px', fontWeight: 'bold', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer' }}>
