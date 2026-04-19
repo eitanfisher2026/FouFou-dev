@@ -2067,7 +2067,7 @@
                             ? activeStops.filter(s => !(Math.abs(s.lat - startPointCoords.lat) < 0.0001 && Math.abs(s.lng - startPointCoords.lng) < 0.0001))
                             : activeStops.slice(1);
                           const isCirc = routeType === 'circular';
-                          const urls = window.BKK.buildGoogleMapsUrls(stopsForUrl, origin, isCirc, googleMaxWaypoints);
+                          const urls = window.BKK.buildGoogleMapsUrls(stopsForUrl, origin, isCirc, googleMaxWaypoints, false);
                           const routeName = route.name || t('route.myRoute');
                           const mapUrl = urls.length > 0 ? urls[0].url : '';
                           if (!mapUrl) return;
@@ -2130,7 +2130,7 @@
                     return urls.length <= 1 ? (
                       <button
                         id="open-google-maps-btn"
-                        disabled={!route?.optimized}
+                        disabled={!route?.optimized || waitingForGps}
                         style={{
                           width: '100%', height: '48px', 
                           background: route?.optimized ? 'linear-gradient(135deg, #f0fdf4, #dcfce7)' : '#d1d5db',
@@ -2138,12 +2138,32 @@
                           borderRadius: '14px', fontWeight: 'bold', fontSize: '15px',
                           border: route?.optimized ? '2px solid #22c55e' : '2px solid #d1d5db',
                           boxShadow: route?.optimized ? '0 4px 6px -1px rgba(34, 197, 94, 0.3)' : 'none',
-                          cursor: route?.optimized ? 'pointer' : 'not-allowed'
+                          cursor: route?.optimized && !waitingForGps ? 'pointer' : 'not-allowed',
+                          opacity: waitingForGps ? 0.7 : 1
                         }}
-                        onClick={() => {
+                        onClick={async () => {
                           if (!route?.optimized) { showToast(t('route.calcRoutePrevious'), 'warning'); return; }
                           if (activeStops.length === 0) { showToast(t('places.noPlacesWithCoords'), 'warning'); return; }
-                          const mapUrl = urls.length === 1 ? urls[0].url : (activeStops.length === 1 && !hasStartPoint ? window.BKK.getNavigateUrl(activeStops[0]) : '#');
+
+                          // Ensure we have a GPS reading before opening Google Maps so the URL
+                          // can include "" ("Your location") and give us the Start button when
+                          // the user is in the city. getUserGPS() returns cached value instantly
+                          // if available; otherwise it requests with a 3 s timeout. Either way
+                          // resolves to {lat,lng} or null — never throws.
+                          let liveUserLoc = userLoc;
+                          if (!liveUserLoc && !window.BKK.lastKnownGPS) {
+                            setWaitingForGps(true);
+                            liveUserLoc = await window.BKK.getUserGPS(3000);
+                            setWaitingForGps(false);
+                          }
+                          // Rebuild URLs with the (possibly newly-acquired) userLoc. If we still
+                          // have none, buildGoogleMapsUrls will check its internal cache and
+                          // fall back to "no prepend" (Preview) — which is correct when we
+                          // genuinely can't confirm the user is in the city.
+                          const liveUrls = window.BKK.buildGoogleMapsUrls(stopsForUrls, origin, isCircular, googleMaxWaypoints, liveUserLoc);
+                          const mapUrl = liveUrls.length === 1
+                            ? liveUrls[0].url
+                            : (activeStops.length === 1 && !hasStartPoint ? window.BKK.getNavigateUrl(activeStops[0]) : '#');
                           if (mapUrl.length > 2000) showToast(`${t('toast.urlTooLong')} (${mapUrl.length})`, 'warning');
                           else if (isCircular) showToast(t('route.circularDesc'), 'info');
                           startActiveTrail(activeStops, formData.interests, formData.area);
@@ -2152,7 +2172,15 @@
                           window.open(mapUrl, 'city_explorer_map');
                         }}
                       >
-                        {`🚀 ${t('route.openRouteInGoogle')}`}
+                        {waitingForGps ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                            <svg className="animate-spin" style={{ width: '18px', height: '18px' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span>{t('trail.locating') || '📍 Locating...'}</span>
+                          </span>
+                        ) : `🚀 ${t('route.openRouteInGoogle')}`}
                       </button>
                     ) : (
                       <div style={{ display: 'flex', gap: '4px' }}>

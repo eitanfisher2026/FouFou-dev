@@ -7,9 +7,9 @@ https://eitanfisher2026.github.io/FouFou-dev/
 React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Places API, PWA
 
 ## Current Version
-**v3.23.0**
+**v3.23.2**
 
-## Recent Changes (v3.22.87 → v3.23.0)
+## Recent Changes (v3.22.87 → v3.23.2)
 - **v3.22.87**: Debug tab + `addDebugLog` infrastructure removed
 - **v3.22.88**: TTS (הקראה) system removed — kept: recording playback + speech-to-text dictation
 - **v3.22.89**: Dead code cleanup (adminPassword state, setter-only useStates)
@@ -19,10 +19,12 @@ React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Pla
 - **v3.22.93**: Place permissions overhaul (see below)
 - **v3.22.95**: UI polish — anon users see no filter row; pencil→eye icon for approved places
 - **v3.22.95** (next): rate button CTA styling + login z-index fix + Google ratings refresh gating
-- **v3.22.99**: Dedup "already exists" button now opens the FouFou place info popup (open-and-rate flow); admin favorites filter rebuilt as three modes: הכל / אני / dropdown of other contributors (robust to missing `userNamesMap` entries)
-- **v3.22.100**: First attempt to fix Google Maps URL — dropped `''` unconditionally. Introduced regression: Start button replaced with Preview because Google needs a device-close point to show Start.
-- **v3.22.101**: Proper fix — `buildGoogleMapsUrls(stops, origin, isCircular, maxPoints, userLoc)` takes optional `userLoc`. Prepends `''` ("Your location") **only when both userLoc AND origin are inside the currently selected city's bounds** (`window.BKK.selectedCity.center` + `allCityRadius`). In-city routes get Start; cross-city routes fall back to Preview with the correct route drawn. Callers updated in `views.js` (main open button), `app-logic.js` (auto-open after wizard + continue-from on active trail); share-route button intentionally does NOT pass userLoc (recipient's location is unknown).
-- **v3.23.0**: Dead code removal — `window.BKK.buildMapsUrl` removed from `utils.js` (19 lines). Was superseded long ago by `buildGoogleMapsUrls` (which handles splitting, origins, and city-bounds proximity). No remaining callers anywhere in the project.
+- **v3.22.99**: Dedup "already exists" button opens FouFou place popup; admin favorites filter with 3 modes
+- **v3.22.100**: First attempt — regression (Preview instead of Start)
+- **v3.22.101**: `buildGoogleMapsUrls(userLoc)` — prepend "" only when both userLoc + origin in-city
+- **v3.23.0**: Dead code removal — `window.BKK.buildMapsUrl` (19 lines, no callers)
+- **v3.23.1**: Optimistic prepend when userLoc absent (turned out to be wrong heuristic — could re-trigger 17-day bug for users planning from abroad)
+- **v3.23.2**: Proper GPS-aware fix. Added `window.BKK.lastKnownGPS` session cache + `getUserGPS(timeoutMs)` async helper (cached-first, 3 s timeout, never throws). `getValidatedGps` now populates the cache on every successful read — all existing GPS flows feed it silently. `buildGoogleMapsUrls` consults the cache when no `userLoc` is passed, and safely falls back to **no prepend** (Preview) when we truly have no GPS info — protecting remote route planners from the 17-day-walk bug. The "Open in Google Maps" button now awaits `getUserGPS(3000)` on click when no cache exists, shows an inline spinner on the button, and rebuilds the URL with fresh coordinates. Net effect: first click in a session may have a brief spinner; all subsequent clicks instant; user never gets a surprising Preview vs. Start flip.
 
 ## ⚠️ CONTEXT WINDOW NOTE
 Project is large (~2MB JS source). Memory fills up after 3-5 rounds of major changes.
