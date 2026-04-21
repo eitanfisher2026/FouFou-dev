@@ -336,13 +336,13 @@
                             const detected = window.BKK.getAreasForCoordinates(newLocation.lat, newLocation.lng);
                             if (detected.length > 0) {
                               setNewLocation({...newLocation, areas: detected, area: detected[0], outsideArea: false});
-                              showToast(`📍 ${(t('toast.detectedAreas') || '{count} אזורים זוהו').replace('{count}', detected.length)}`, 'success');
+                              showToast(`📍 ${t('toast.detectedAreas').replace('{count}', detected.length)}`, 'success');
                             } else {
-                              showToast('⚠️ לא נמצא אזור לקואורדינטות', 'warning');
+                              showToast(t('toast.noAreaForCoords'), 'warning');
                             }
                           }}
                           style={{ fontSize: '9px', padding: '1px 6px', borderRadius: '4px', background: '#dbeafe', border: '1px solid #93c5fd', color: '#1e40af', cursor: 'pointer', fontWeight: 'bold' }}
-                        >📍 זהה אזור</button>
+                        >{t('places.detectArea')}</button>
                       )}
                       {newLocation.lat && newLocation.lng && (
                         <button
@@ -1101,13 +1101,13 @@
                 {isUnlocked && (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-gray-600">📂 קיבוץ:</span>
+                    <span className="text-xs font-bold text-gray-600">{t('interests.groupLabel')}</span>
                     <select
                       value={newInterest.group || ''}
                       onChange={(e) => setNewInterest({...newInterest, group: e.target.value})}
                       className="p-1 text-xs border rounded flex-1"
                     >
-                      <option value="">— ללא קיבוץ —</option>
+                      <option value="">{t('interests.noGroupOption')}</option>
                       {Object.keys(interestGroups || {}).sort().map(gId => {
                         const gData = interestGroups[gId] || {};
                         const uiLang = window.BKK.i18n?.lang?.() || 'he';
@@ -1377,7 +1377,7 @@
                       <div style={{ fontSize: '9px', color: '#9ca3af', marginBottom: '6px' }}>{t('interests.dedupRelatedDesc')}</div>
                       <button type="button" onClick={() => setShowDedupDropdown(v => !v)}
                         style={{ width: '100%', padding: '5px 8px', borderRadius: '7px', border: '1px solid #d8b4fe', background: '#f5f3ff', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', color: '#6d28d9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>{selected.length === 0 ? '— ללא קישורים' : `${selected.length} מקושרים`}</span>
+                        <span>{selected.length === 0 ? t('interests.dedupNoneSelected') : t('interests.dedupSelectedCount').replace('{n}', selected.length)}</span>
                         <span style={{ fontSize: '9px' }}>{showDedupDropdown ? '▲' : '▼'}</span>
                       </button>
                       {showDedupDropdown && (

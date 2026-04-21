@@ -2422,7 +2422,7 @@
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1 flex-wrap">
-                              {savedRoute.system && <span style={{ fontSize: '11px' }} title="מסלול מומלץ">⭐</span>}
+                              {savedRoute.system && <span style={{ fontSize: '11px' }} title={t('route.recommended')}>⭐</span>}
                               <span className="font-medium text-sm truncate">{savedRoute.name}</span>
                               {savedRoute.locked && isUnlocked && !savedRoute.system && <span title={t("general.locked")} style={{ fontSize: '11px' }}>🔒</span>}
                               {routeInterestIds.slice(0, 5).map((intId, idx) => {
@@ -2477,7 +2477,7 @@
                     <button
                       onClick={() => { const v = isFiltered ? '' : myUid; setFilterAddedBy(v); try { localStorage.setItem('foufou_filter_addedby', v); } catch(_) {} }}
                       style={{ padding: '3px 8px', fontSize: '10px', fontWeight: 'bold', borderRadius: '8px', border: 'none', cursor: 'pointer', background: isFiltered ? '#ede9fe' : '#f3f4f6', color: isFiltered ? '#7c3aed' : '#6b7280' }}
-                    >{isFiltered ? '👤 אני' : '👤 הכל'}</button>
+                    >{`👤 ${isFiltered ? t('general.me') : t('general.all')}`}</button>
                   );
                 })()}
 
@@ -2631,7 +2631,7 @@
                     <button
                       onClick={() => { const v = isFiltered ? '' : myUid; setFilterAddedBy(v); try { localStorage.setItem('foufou_filter_addedby', v); } catch(_) {} }}
                       className={`px-2 py-1 rounded text-xs font-bold transition-all ${isFiltered ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                    >{isFiltered ? '👤 אני' : '👤 הכל'}</button>
+                    >{`👤 ${isFiltered ? t('general.me') : t('general.all')}`}</button>
                   );
                 })()}
               </div>
@@ -2928,7 +2928,7 @@
                       <span className="text-lg flex-shrink-0">{interest.icon?.startsWith?.('data:') ? <img src={interest.icon} alt="" className="w-5 h-5 object-contain" /> : interest.icon}</span>
                       <span className={`font-medium text-sm truncate ${isHidden ? 'text-red-400 line-through' : isDraft ? 'text-amber-700' : !effectiveActive ? 'text-gray-500' : ''}`}>{tLabel(interest)}</span>
                       {favCount > 0 && <span style={{ fontSize: '10px', color: '#9ca3af', flexShrink: 0 }}>({favCount})</span>}
-                      {interestConfig[interest.id]?.noGoogleSearch && <span style={{ fontSize: '9px', background: '#f3f4f6', color: '#6b7280', padding: '1px 4px', borderRadius: '3px', flexShrink: 0 }}>פנימי</span>}
+                      {interestConfig[interest.id]?.noGoogleSearch && <span style={{ fontSize: '9px', background: '#f3f4f6', color: '#6b7280', padding: '1px 4px', borderRadius: '3px', flexShrink: 0 }}>{t('interests.internalBadge')}</span>}
                       {!interestConfig[interest.id]?.noGoogleSearch && (() => {
                         const cfg = interestConfig[interest.id];
                         const hasText = cfg?.textSearch;
@@ -4153,9 +4153,9 @@
                   <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', borderRadius: '8px', border: '1px solid', borderColor: isHidden ? '#fca5a5' : isDraft ? '#fde68a' : '#e5e7eb', background: isHidden ? '#fef2f2' : isDraft ? '#fffbeb' : 'white', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', marginBottom: '3px' }}>
                     <span style={{ flexShrink: 0 }}>{renderIcon(icon, '20px')}</span>
                     <span style={{ flex: 1, fontSize: '13px', fontWeight: '600', color: isHidden ? '#ef4444' : 'inherit' }}>{tLabel(i) || i.label}</span>
-                    {interestConfig[i.id]?.noGoogleSearch && <span style={{ fontSize: '9px', background: '#f3f4f6', color: '#6b7280', padding: '1px 4px', borderRadius: '3px', flexShrink: 0 }}>פנימי</span>}
-                    {isDraft && <span style={{ fontSize: '9px', background: '#fef3c7', color: '#92400e', padding: '1px 4px', borderRadius: '3px' }}>טיוטה</span>}
-                    {isHidden && <span style={{ fontSize: '9px', background: '#fee2e2', color: '#b91c1c', padding: '1px 4px', borderRadius: '3px' }}>מוסתר</span>}
+                    {interestConfig[i.id]?.noGoogleSearch && <span style={{ fontSize: '9px', background: '#f3f4f6', color: '#6b7280', padding: '1px 4px', borderRadius: '3px', flexShrink: 0 }}>{t('interests.internalBadge')}</span>}
+                    {isDraft && <span style={{ fontSize: '9px', background: '#fef3c7', color: '#92400e', padding: '1px 4px', borderRadius: '3px' }}>{t('places.draft')}</span>}
+                    {isHidden && <span style={{ fontSize: '9px', background: '#fee2e2', color: '#b91c1c', padding: '1px 4px', borderRadius: '3px' }}>{t('interests.hiddenBadge')}</span>}
                     {/* City visibility button — opens dialog */}
                     <button onClick={() => setCityVisibilityInterest(i.id)}
                       title="ניהול ניראות לפי עיר"
@@ -4448,9 +4448,9 @@
               // Business status + openNow filter — custom UI (not a simple slider)
               const ALL_BUSINESS_STATUSES = ['CLOSED_PERMANENTLY', 'CLOSED_TEMPORARILY', 'BUSINESS_STATUS_UNSPECIFIED'];
               const STATUS_LABELS = {
-                CLOSED_PERMANENTLY: 'סגור לצמיתות',
-                CLOSED_TEMPORARILY: 'סגור זמנית',
-                BUSINESS_STATUS_UNSPECIFIED: 'סטטוס לא ידוע',
+                CLOSED_PERMANENTLY: t('places.statusClosedPermanent'),
+                CLOSED_TEMPORARILY: t('places.statusClosedTemporary'),
+                BUSINESS_STATUS_UNSPECIFIED: t('places.statusUnknown'),
               };
               const currentFiltered = systemParams.filteredBusinessStatuses || ['CLOSED_PERMANENTLY', 'CLOSED_TEMPORARILY'];
               const toggleStatus = (status) => {

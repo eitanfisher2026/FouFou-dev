@@ -525,6 +525,7 @@ route: {
   startPoint: 'נקודת התחלה',
   routeType: 'סוג מסלול',
   newRoute: 'צור מסלול חדש',
+  recommended: 'מסלול מומלץ',
 },
 
 // --- Places ---
@@ -647,6 +648,10 @@ places: {
   noResultsFor: 'לא נמצאו תוצאות עבור',
   thisCity: 'עיר זו',
   fromGoogleCache: 'מגוגל (cache)',
+  detectArea: '📍 זהה אזור',
+  statusClosedPermanent: 'סגור לצמיתות',
+  statusClosedTemporary: 'סגור זמנית',
+  statusUnknown: 'סטטוס לא ידוע',
 },
 
 // --- Interests ---
@@ -712,6 +717,12 @@ interests: {
   blacklistWords: 'מילות סינון (מופרדות בפסיק)',
   dedupRelated: 'תחומים קשורים (כפילויות)',
   dedupRelatedDesc: 'תחומים שייחשבו זהים לצורך בדיקת כפילויות',
+  internalBadge: 'פנימי',
+  hiddenBadge: 'מוסתר',
+  groupLabel: '📂 קיבוץ:',
+  noGroupOption: '— ללא קיבוץ —',
+  dedupNoneSelected: '— ללא קישורים',
+  dedupSelectedCount: '{n} מקושרים',
 },
 
 // --- Active Trail ---
@@ -855,6 +866,9 @@ toast: {
   privateOnlyBody: 'התחום "{label}" אינו מחפש מקומות בגוגל אלא עושה שימוש רק במקומות מועדפים של המערכת',
   roleUpdated: 'תפקיד עודכן',
   noConnection: 'אין חיבור לאינטרנט',
+  noAreaForCoords: '⚠️ לא נמצא אזור לקואורדינטות',
+  savedTranslating: '💾 נשמר, מתרגם…',
+  translationSaved: '🌐 התרגום נשמר!',
 },
 
 // --- Settings ---
@@ -1055,6 +1069,10 @@ help: {
     startRecording: 'הקלט תיאור קולי',
     stopRecording: 'עצור הקלטה',
     micPermissionDenied: 'אין הרשאה למיקרופון',
+    stopShort: '⏹️ הפסק',
+    dictate: '🎤 הכתב',
+    recordVoice: '🎙️ הקלט קול ({lang})',
+    recordingSaved: '✅ יש הקלטה',
   },
   import: {
     interests: 'תחומים:',
@@ -1639,6 +1657,7 @@ route: {
   startPoint: 'Starting point',
   routeType: 'Route type',
   newRoute: 'New route',
+  recommended: 'Recommended route',
 },
 
 places: {
@@ -1760,6 +1779,10 @@ places: {
   noResultsFor: 'No results for',
   thisCity: 'this city',
   fromGoogleCache: 'from Google (cache)',
+  detectArea: '📍 Detect area',
+  statusClosedPermanent: 'Permanently closed',
+  statusClosedTemporary: 'Temporarily closed',
+  statusUnknown: 'Status unknown',
 },
 
 interests: {
@@ -1824,6 +1847,12 @@ interests: {
   blacklistWords: 'Blacklist Words (comma separated)',
   dedupRelated: 'Related interests (dedup)',
   dedupRelatedDesc: 'Interests that count as similar for duplicate detection',
+  internalBadge: 'Internal',
+  hiddenBadge: 'Hidden',
+  groupLabel: '📂 Group:',
+  noGroupOption: '— No group —',
+  dedupNoneSelected: '— No links',
+  dedupSelectedCount: '{n} linked',
 },
 
 trail: {
@@ -1965,6 +1994,9 @@ toast: {
   privateOnlyBody: 'The interest "{label}" does not search Google — it only uses places from the system favorites',
   roleUpdated: 'Role updated',
   noConnection: 'No internet connection',
+  noAreaForCoords: '⚠️ No area matches these coordinates',
+  savedTranslating: '💾 Saved, translating…',
+  translationSaved: '🌐 Translation saved!',
 },
 
 settings: {
@@ -2161,6 +2193,10 @@ help: {
     startRecording: 'Record voice description',
     stopRecording: 'Stop recording',
     micPermissionDenied: 'Microphone permission denied',
+    stopShort: '⏹️ Stop',
+    dictate: '🎤 Dictate',
+    recordVoice: '🎙️ Record voice ({lang})',
+    recordingSaved: '✅ Recording saved',
   },
   import: {
     interests: 'Interests:',

@@ -2135,7 +2135,7 @@
     // Save original to source lang slot
     database.ref(`helpContent/${sectionId}/${srcLang}`).set(text);
     setHelpOverrides(prev => ({ ...prev, [sectionId]: { ...(prev[sectionId] || {}), [srcLang]: text } }));
-    showToast('💾 נשמר, מתרגם...', 'info');
+    showToast(t('toast.savedTranslating'), 'info');
     setHintEditId(null);
     // Translate and save to target lang slot
     try {
@@ -2144,7 +2144,7 @@
       const translated = data[0].map(function(s) { return s[0]; }).join('');
       database.ref(`helpContent/${sectionId}/${tgtLang}`).set(translated);
       setHelpOverrides(prev => ({ ...prev, [sectionId]: { ...(prev[sectionId] || {}), [tgtLang]: translated } }));
-      showToast('🌐 ' + (tgtLang === 'en' ? 'תורגם לאנגלית' : 'Translated to Hebrew') + '!', 'success');
+      showToast(t('toast.translationSaved'), 'success');
     } catch (err) { showToast('Translation: ' + err.message, 'error'); }
   };
 
@@ -2160,14 +2160,14 @@
       return;
     }
     // Hebrew edit — translate to English
-    showToast('💾 ' + (t('general.saved') || 'נשמר') + ', מתרגם...', 'info');
+    showToast(t('toast.savedTranslating'), 'info');
     try {
       const resp = await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=he&tl=en&dt=t&q=' + encodeURIComponent(text));
       const data = await resp.json();
       const translated = data[0].map(function(s) { return s[0]; }).join('');
       database.ref('settings/aboutContent/en').set(translated);
       setAboutContent(prev => ({ ...prev, en: translated }));
-      showToast('🌐 תורגם לאנגלית!', 'success');
+      showToast(t('toast.translationSaved'), 'success');
     } catch (err) { showToast('Translation: ' + err.message, 'error'); }
   };
 
@@ -2367,19 +2367,19 @@
           <button onClick={() => saveAndTranslateHint(hintId, hintEditText)}
             style={{ padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', background: '#6366f1', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>💾🌐</button>
           <button onClick={() => hintRecording ? stopHintDictation() : startHintDictation()}
-            style={{ padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', background: hintRecording ? '#ef4444' : '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', animation: hintRecording ? 'pulse 1s infinite' : 'none' }}>{hintRecording ? '⏹️ הפסק' : '🎤 הכתב'}</button>
+            style={{ padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', background: hintRecording ? '#ef4444' : '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', animation: hintRecording ? 'pulse 1s infinite' : 'none' }}>{hintRecording ? t('speech.stopShort') : t('speech.dictate')}</button>
           <button onClick={() => setHintEditId(null)}
             style={{ padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', background: '#d1d5db', color: '#374151', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>✕</button>
           {/* Audio recording */}
           <div style={{ width: '100%', display: 'flex', gap: '4px', marginTop: '2px' }}>
             {hintAudioRecording === hintId ? (
               <button onClick={stopHintAudioRecord}
-                style={{ padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', animation: 'pulse 1s infinite' }}>🔴 סיום הקלטה</button>
+                style={{ padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', animation: 'pulse 1s infinite' }}>{`🔴 ${t('speech.stopRecording')}`}</button>
             ) : (
               <button onClick={() => startHintAudioRecord(hintId)}
-                style={{ padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>🎙️ הקלט קול ({lang})</button>
+                style={{ padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>{t('speech.recordVoice').replace('{lang}', lang)}</button>
             )}
-            {hasAudio && <span style={{ fontSize: '10px', color: '#22c55e', alignSelf: 'center' }}>✅ יש הקלטה</span>}
+            {hasAudio && <span style={{ fontSize: '10px', color: '#22c55e', alignSelf: 'center' }}>{t('speech.recordingSaved')}</span>}
           </div>
         </div>
       </div>
