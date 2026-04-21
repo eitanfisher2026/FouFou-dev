@@ -1110,8 +1110,8 @@
                       <option value="">{t('interests.noGroupOption')}</option>
                       {Object.keys(interestGroups || {}).sort().map(gId => {
                         const gData = interestGroups[gId] || {};
-                        const uiLang = window.BKK.i18n?.lang?.() || 'he';
-                        const label = uiLang === 'he' ? (gData.labelHe || gId) : (gData.labelEn || gId);
+                        const uiLang = window.BKK.i18n.currentLang;
+                        const label = uiLang === 'he' ? (gData.labelHe || gId) : (gData.labelEn || gData.labelHe || gId);
                         return <option key={gId} value={gId}>{label}</option>;
                       })}
                     </select>
