@@ -2694,67 +2694,7 @@
       }
 
       // v3.12.5 adminStatus restore retired — adminStatus field removed entirely in v3.23.8
-
-      // v3.23.8 ONE-TIME BACKFILL (admin only): copy addedBy/addedByName/addedAt from a reference interest
-      // (any interest that already has addedBy set — typically the admin's test interest) onto all
-      // customInterests that lack those fields. This lets editors edit existing interests under the new rules.
-      if ((window.BKK._isAdmin === true) && localStorage.getItem('interest_owner_backfill_v3238') !== 'true') {
-        database.ref('customInterests').once('value').then(snap => {
-          const all = snap.val() || {};
-          const keys = Object.keys(all);
-          // Find a template: interest that already has addedBy (e.g. "Interest test")
-          // If multiple, pick the one with the earliest addedAt for consistency.
-          let template = null;
-          keys.forEach(k => {
-            const v = all[k];
-            if (v && v.addedBy && (!template || (v.addedAt && template.addedAt && v.addedAt < template.addedAt))) {
-              template = v;
-            }
-          });
-          if (!template) {
-            console.log('[BACKFILL v3.23.8] no template interest with addedBy found — skipping until one exists');
-            return;
-          }
-          const tplBy   = template.addedBy;
-          const tplName = template.addedByName || 'Admin';
-          const tplAt   = template.addedAt || new Date().toISOString();
-          const writes = {};
-          keys.forEach(k => {
-            const v = all[k];
-            if (!v || v.addedBy) return; // skip already-stamped
-            writes[`customInterests/${k}/addedBy`]     = tplBy;
-            writes[`customInterests/${k}/addedByName`] = tplName;
-            writes[`customInterests/${k}/addedAt`]     = tplAt;
-          });
-          if (Object.keys(writes).length > 0) {
-            database.ref().update(writes)
-              .then(() => { console.log(`[BACKFILL v3.23.8] stamped ${Object.keys(writes).length / 3} interests from template "${template.id || '?'}"`); localStorage.setItem('interest_owner_backfill_v3238', 'true'); })
-              .catch(e => console.warn('[BACKFILL v3.23.8] failed:', e));
-          } else {
-            console.log('[BACKFILL v3.23.8] all interests already have addedBy — nothing to do');
-            localStorage.setItem('interest_owner_backfill_v3238', 'true');
-          }
-        }).catch(() => {});
-      }
-
-      // v3.23.8 ONE-TIME CLEANUP (admin only): strip orphaned adminStatus + duplicate locked from interestConfig
-      if ((window.BKK._isAdmin === true) && localStorage.getItem('interestConfig_cleanup_v3238') !== 'true') {
-        database.ref('settings/interestConfig').once('value').then(snap => {
-          const cfg = snap.val() || {};
-          const writes = {};
-          Object.keys(cfg).forEach(id => {
-            if (cfg[id] && cfg[id].adminStatus !== undefined) writes[`settings/interestConfig/${id}/adminStatus`] = null;
-            if (cfg[id] && cfg[id].locked !== undefined)      writes[`settings/interestConfig/${id}/locked`] = null;
-          });
-          if (Object.keys(writes).length > 0) {
-            database.ref().update(writes)
-              .then(() => { console.log('[CLEANUP v3.23.8] removed', Object.keys(writes).length, 'orphan fields'); localStorage.setItem('interestConfig_cleanup_v3238', 'true'); })
-              .catch(e => console.warn('[CLEANUP v3.23.8] failed:', e));
-          } else {
-            localStorage.setItem('interestConfig_cleanup_v3238', 'true');
-          }
-        }).catch(() => {});
-      }
+      // v3.23.8 backfill + cleanup moved to their own useEffect below (depends on isAdmin state so it fires AFTER auth resolves)
 
       // ONE-TIME MIGRATION: Move labelOverride/labelEnOverride → customInterests.label/labelEn (v3.12.11)
       // After this, interestConfig holds search config only — no display fields
@@ -3130,6 +3070,69 @@
       }
     }
   }, []);
+
+  // v3.23.8 admin-only migrations — fire AFTER admin role resolves, not on mount.
+  useEffect(() => {
+    if (!isAdmin) return;
+    if (!isFirebaseAvailable || !database) return;
+
+    // BACKFILL: copy addedBy/addedByName/addedAt from a reference interest onto any that lack them.
+    if (localStorage.getItem('interest_owner_backfill_v3238') !== 'true') {
+      database.ref('customInterests').once('value').then(snap => {
+        const all = snap.val() || {};
+        const keys = Object.keys(all);
+        let template = null;
+        keys.forEach(k => {
+          const v = all[k];
+          if (v && v.addedBy && (!template || (v.addedAt && template.addedAt && v.addedAt < template.addedAt))) {
+            template = v;
+          }
+        });
+        if (!template) {
+          console.log('[BACKFILL v3.23.8] no template interest with addedBy found — skipping until one exists');
+          return;
+        }
+        const tplBy   = template.addedBy;
+        const tplName = template.addedByName || 'Admin';
+        const tplAt   = template.addedAt || new Date().toISOString();
+        const writes = {};
+        keys.forEach(k => {
+          const v = all[k];
+          if (!v || v.addedBy) return;
+          writes[`customInterests/${k}/addedBy`]     = tplBy;
+          writes[`customInterests/${k}/addedByName`] = tplName;
+          writes[`customInterests/${k}/addedAt`]     = tplAt;
+        });
+        if (Object.keys(writes).length > 0) {
+          database.ref().update(writes)
+            .then(() => { console.log(`[BACKFILL v3.23.8] stamped ${Object.keys(writes).length / 3} interests from template "${template.id || '?'}"`); localStorage.setItem('interest_owner_backfill_v3238', 'true'); })
+            .catch(e => console.warn('[BACKFILL v3.23.8] failed:', e));
+        } else {
+          console.log('[BACKFILL v3.23.8] all interests already have addedBy — nothing to do');
+          localStorage.setItem('interest_owner_backfill_v3238', 'true');
+        }
+      }).catch(() => {});
+    }
+
+    // CLEANUP: strip orphaned adminStatus + duplicate locked from interestConfig.
+    if (localStorage.getItem('interestConfig_cleanup_v3238') !== 'true') {
+      database.ref('settings/interestConfig').once('value').then(snap => {
+        const cfg = snap.val() || {};
+        const writes = {};
+        Object.keys(cfg).forEach(id => {
+          if (cfg[id] && cfg[id].adminStatus !== undefined) writes[`settings/interestConfig/${id}/adminStatus`] = null;
+          if (cfg[id] && cfg[id].locked !== undefined)      writes[`settings/interestConfig/${id}/locked`] = null;
+        });
+        if (Object.keys(writes).length > 0) {
+          database.ref().update(writes)
+            .then(() => { console.log('[CLEANUP v3.23.8] removed', Object.keys(writes).length, 'orphan fields'); localStorage.setItem('interestConfig_cleanup_v3238', 'true'); })
+            .catch(e => console.warn('[CLEANUP v3.23.8] failed:', e));
+        } else {
+          localStorage.setItem('interestConfig_cleanup_v3238', 'true');
+        }
+      }).catch(() => {});
+    }
+  }, [isAdmin]);
 
   // Load user display names for addedBy resolution
   useEffect(() => {
