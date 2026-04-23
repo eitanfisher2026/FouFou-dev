@@ -797,6 +797,7 @@
     try { return JSON.parse(localStorage.getItem('foufou_preferences') || '{}').placesSortBy || 'updatedAt'; } catch(e) { return 'updatedAt'; }
   }); // 'updatedAt' | 'addedAt' | 'interest' | 'area'
   const [routesSortBy, setRoutesSortBy] = useState('area'); // 'area' or 'name'
+  const [trailsFilter, setTrailsFilter] = useState('all'); // v3.23.15: 'all' | 'me' | 'others'
   const [editingRoute, setEditingRoute] = useState(null);
   const [showRouteDialog, setShowRouteDialog] = useState(false);
   const [routeDialogMode, setRouteDialogMode] = useState('edit'); // 'add' or 'edit'
@@ -6721,26 +6722,30 @@
         });
       }
 
-      // Route name and area info
+      // Route name and area info — v3.23.15: always build in English regardless of UI language
+      // so saved trails have stable, shareable names across languages.
+      const enLabel = (obj) => obj ? (obj.labelEn || obj.nameEn || obj.label || obj.name || obj.id || '') : '';
       let areaName, interestsText;
       if (isRadiusMode) {
-        const allCityLabel = t('general.all') + ' ' + (tLabel(window.BKK.selectedCity) || t('general.city'));
-        if (formData.searchMode === 'all' || formData.radiusPlaceName === allCityLabel || formData.radiusPlaceName === t('general.allCity')) {
+        const city = window.BKK.selectedCity;
+        const allCityLabel = 'All ' + (enLabel(city) || 'City');
+        if (formData.searchMode === 'all' || formData.radiusPlaceName === allCityLabel) {
           areaName = allCityLabel;
         } else {
           const sourceName = formData.radiusSource === 'myplace' && formData.radiusPlaceId
-            ? customLocations.find(l => l.id === formData.radiusPlaceId)?.name || t('form.myPlace')
+            ? customLocations.find(l => l.id === formData.radiusPlaceId)?.name || 'My place'
             : formData.radiusSource === 'gps'
-            ? t('wizard.myLocation')
-            : formData.radiusPlaceName || t('form.currentLocation');
+            ? 'My location'
+            : formData.radiusPlaceName || 'Current location';
           areaName = `${formData.radiusMeters}m - ${sourceName}`;
         }
       } else {
         const selectedArea = areaOptions.find(a => a.id === formData.area);
-        areaName = tLabel(selectedArea) || t('general.allCity');
+        areaName = enLabel(selectedArea) || 'All City';
       }
       interestsText = searchInterests
-        .map(id => allInterestOptions.filter(o => o && o.id).find(o => o.id === id)).map(o => o ? tLabel(o) : null)
+        .map(id => allInterestOptions.filter(o => o && o.id).find(o => o.id === id))
+        .map(o => o ? enLabel(o) : null)
         .filter(Boolean)
         .join(', ');
       

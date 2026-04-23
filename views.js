@@ -229,6 +229,26 @@
             }}
             title={t("general.menu")}
           >☰</button>
+          {/* v3.23.15: Sign-in / avatar button — sits just inside the feedback button */}
+          <button
+            onClick={() => setShowLoginDialog(true)}
+            style={{
+              position: 'absolute',
+              [currentLang === 'he' ? 'left' : 'right']: '34px',
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none', borderRadius: '50%',
+              width: '26px', height: '26px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', fontSize: '13px', color: 'white',
+              transition: 'background 0.2s',
+              padding: 0, overflow: 'hidden'
+            }}
+            title={authUser && !authUser.isAnonymous ? (authUser.displayName || authUser.email || t('auth.anonymous')) : (t('auth.signIn') || 'Sign in')}
+          >
+            {authUser && !authUser.isAnonymous && authUser.photoURL
+              ? <img src={authUser.photoURL} alt="" style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }} />
+              : (authUser && !authUser.isAnonymous ? '👤' : '🔑')}
+          </button>
           {(theme.iconLeft || window.BKK.selectedCity?.secondaryIcon) && (() => {
             const val = theme.iconLeft || window.BKK.selectedCity?.secondaryIcon;
             return <span style={{ fontSize: '14px', display: 'flex', alignItems: 'center' }}>
@@ -286,14 +306,12 @@
             {[
               { icon: '🗺️', label: t('nav.route'), view: 'form' },
               { icon: '⭐', label: t('nav.favorites'), view: 'myPlaces', count: groupedPlaces.activeCount },
-              { icon: '🏷️', label: t('nav.myInterests'), view: 'myInterests', count: allInterestOptions.filter(o => {
-                const aStatus = o.adminStatus || 'active';
-                if (aStatus === 'hidden') return false;
-                if (aStatus === 'draft' && !isUnlocked) return false;
+              // v3.23.15: Interests nav hidden from regular/anon users — editor+ only
+              ...(isUnlocked ? [{ icon: '🏷️', label: t('nav.myInterests'), view: 'myInterests', count: allInterestOptions.filter(o => {
                 if (o.scope === 'local' && o.cityId && o.cityId !== selectedCityId) return false;
                 return true;
-              }).length },
-              { icon: '💾', label: t('nav.saved'), view: 'saved', count: citySavedRoutes.length },
+              }).length }] : []),
+              { icon: '🛤️', label: t('nav.savedTrails'), view: 'saved', count: citySavedRoutes.length },
               // Settings — admin only (hidden from regular users, not just blocked)
               ...(isAdmin ? [{ icon: '⚙️', label: t('settings.title'), view: 'settings' }] : []),
             ].map(item => (
@@ -2037,7 +2055,7 @@
                       {[
                         { icon: '+', label: t('route.addManualStop').replace('➕ ', ''), action: () => { setShowRouteMenu(false); setShowManualAddDialog(true); } },
                         { icon: '≡', label: t('route.reorderStops'), action: () => { setShowRouteMenu(false); reorderOriginalStopsRef.current = route?.stops ? [...route.stops] : null; setShowRoutePreview(true); }, disabled: !route?.optimized },
-                        { icon: '↗', label: t('general.shareRoute'), action: () => {
+                        { icon: '↗', label: (!authUser || authUser.isAnonymous) ? (t('auth.loginToShare') || 'Sign in to share') : t('general.shareRoute'), action: () => {
                           if (!authUser || authUser.isAnonymous) { setShowLoginDialog(true); return; }
                           setShowRouteMenu(false);
                           if (!route?.optimized) return;
@@ -2356,7 +2374,7 @@
           <div className="view-fade-in bg-white rounded-xl shadow-lg p-3">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold">{`🗺️ ${t("nav.saved")}`}</h2>
+                <h2 className="text-lg font-bold">{`🛤️ ${t("nav.savedTrails")}`}</h2>
                 <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
                   {citySavedRoutes.length}
                 </span>
@@ -2375,6 +2393,23 @@
                 </div>
               </div>
             </div>
+            {/* v3.23.15: Me / Others / All filter — hidden for anon (no uid to own anything) */}
+            {authUser && !authUser.isAnonymous && (
+              <div className="flex bg-gray-200 rounded-lg p-0.5 mb-2" style={{ width: 'fit-content' }}>
+                <button
+                  onClick={() => setTrailsFilter('all')}
+                  className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${trailsFilter === 'all' ? 'bg-white shadow text-blue-700' : 'text-gray-500'}`}
+                >📋 {t('general.all')}</button>
+                <button
+                  onClick={() => setTrailsFilter('me')}
+                  className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${trailsFilter === 'me' ? 'bg-white shadow text-blue-700' : 'text-gray-500'}`}
+                >👤 {t('general.me')}</button>
+                <button
+                  onClick={() => setTrailsFilter('others')}
+                  className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${trailsFilter === 'others' ? 'bg-white shadow text-blue-700' : 'text-gray-500'}`}
+                >🌐 {t('route.others') || 'Others'}</button>
+              </div>
+            )}
             {renderContextHint('hint_saved')}
             
             {citySavedRoutes.length === 0 ? (
@@ -2389,7 +2424,14 @@
             ) : (
               <div className="space-y-1">
                 {(() => {
-                  const sorted = [...citySavedRoutes].sort((a, b) => {
+                  // v3.23.15: apply Me/Others/All filter before sort
+                  const myUid = authUser?.uid;
+                  const filteredRoutes = citySavedRoutes.filter(r => {
+                    if (trailsFilter === 'me') return myUid && r.savedBy === myUid;
+                    if (trailsFilter === 'others') return !(myUid && r.savedBy === myUid);
+                    return true;
+                  });
+                  const sorted = [...filteredRoutes].sort((a, b) => {
                     if (routesSortBy === 'name') return (a.name || '').localeCompare(b.name || '', 'he');
                     return (a.areaName || '').localeCompare(b.areaName || '', 'he');
                   });

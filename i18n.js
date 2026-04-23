@@ -373,6 +373,7 @@ nav: {
   route: 'מסלול',
   search: 'חיפוש',
   saved: 'שמורים',
+  savedTrails: 'מסלולים שמורים',
   favorites: 'מועדפים',
   myPlaces: 'מקומות',
   myInterests: 'תחומים',
@@ -526,6 +527,7 @@ route: {
   routeType: 'סוג מסלול',
   newRoute: 'צור מסלול חדש',
   recommended: 'מסלול מומלץ',
+  others: 'אחרים',
   private: 'פרטי',
   public: 'ציבורי',
   viewingShared: '🚫 זהו מסלול משותף — לא ניתן לשמור',
@@ -1029,6 +1031,7 @@ auth: {
   needAdmin: 'נדרשת הרשאת מנהל',
   inUseBy: 'בשימוש מקומות',
   loginToSave: 'התחבר כדי לשמור',
+  loginToShare: 'התחבר כדי לשתף',
 },
 
 // --- Map ---
@@ -1517,6 +1520,7 @@ nav: {
   route: 'Route',
   search: 'Search',
   saved: 'Saved',
+  savedTrails: 'Saved Trails',
   myPlaces: 'Places',
   favorites: 'Favorites',
   myInterests: 'Interests',
@@ -1676,6 +1680,7 @@ route: {
   routeType: 'Route type',
   newRoute: 'New route',
   recommended: 'Recommended route',
+  others: 'Others',
   private: 'Private',
   public: 'Public',
   viewingShared: '🚫 Viewing shared route — cannot save',
@@ -2172,6 +2177,7 @@ auth: {
   needAdmin: 'Admin permission required',
   inUseBy: 'Used by places',
   loginToSave: 'Sign in to save',
+  loginToShare: 'Sign in to share',
 },
 
 // --- Map ---
