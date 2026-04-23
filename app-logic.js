@@ -4196,14 +4196,16 @@
   // Two visibility axes (v3.23.8):
   //   1. Draft/Public (locked): drafts only visible to creator + admin, bypassing city hide
   //   2. cityHiddenInterests (per-city admin hide): applies only to public interests
+  // Back-compat (v3.23.11): legacy interests without a locked field default to Public.
+  // Only explicit locked===false is treated as Draft.
   const hiddenForCity = cityHiddenInterests[selectedCityId] || new Set();
   const interestOptions = (customInterests || []).filter(i => {
-    const isPublic = !!i.locked;
-    if (!isPublic) {
+    const isDraft = i.locked === false; // explicit false only; undefined/missing → treated as public
+    if (isDraft) {
       // Draft: only creator + admin, bypassing city hide
       return isAdmin || (authUser?.uid && i.addedBy === authUser.uid);
     }
-    // Public: subject to per-city hide
+    // Public (or legacy): subject to per-city hide
     return !hiddenForCity.has(i.id);
   });
 

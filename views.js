@@ -1283,7 +1283,7 @@
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
                         {options.map(option => {
                           const isSelected = formData.interests.includes(option.id);
-                          const isDraft = !option.locked;
+                          const isDraft = option.locked === false; // legacy (undefined) treated as public
                           return (
                             <button
                               key={option.id}
@@ -2924,7 +2924,7 @@
                 const isValid = isInterestValid(interest.id);
                 const isInternal = !!interestConfig[interest.id]?.noGoogleSearch;
                 const effectiveActive = (isValid || isInternal) ? isActive : false;
-                const isDraft = !interest.locked; // v3.23.8: locked=true = public, false = draft
+                const isDraft = interest.locked === false; // v3.23.11: legacy (undefined) treated as public
                 const isHidden = false; // hidden tri-state retired in v3.23.8
                 const interestColor = window.BKK.getInterestColor(interest.id, allInterestOptions);
                 const favCount = favCountByInterest[interest.id] || 0;
@@ -2963,7 +2963,7 @@
                       {/* v3.23.8: admin always editable. Editor editable only for own draft. Else view-only. */}
                       {(() => {
                         const isOwn = interest.addedBy && authUser?.uid && interest.addedBy === authUser.uid;
-                        const isPublic = !!interest.locked;
+                        const isPublic = interest.locked !== false; // legacy (undefined) treated as public
                         const canEdit = isAdmin || (isEditor && isOwn && !isPublic);
                         return (
                           <button

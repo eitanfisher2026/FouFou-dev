@@ -7,7 +7,7 @@ https://eitanfisher2026.github.io/FouFou-dev/
 React (pre-compiled JSX via Babel), Firebase Realtime DB + Analytics, Google Places API, PWA
 
 ## Current Version
-**v3.23.10**
+**v3.23.11**
 
 ## Recent Changes (v3.22.87 → v3.23.4)
 - **v3.22.87**: Debug tab + `addDebugLog` infrastructure removed

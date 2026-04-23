@@ -1444,7 +1444,7 @@
                 })()}
                 {editingCustomInterest && isUnlocked && (() => {
                   const interestId = editingCustomInterest.id;
-                  const isPublic = !!editingCustomInterest.locked;
+                  const isPublic = editingCustomInterest.locked !== false; // legacy (undefined) treated as public
                   const isOwnInterest = editingCustomInterest.addedBy && authUser?.uid && editingCustomInterest.addedBy === authUser.uid;
                   // Count places tagged with this interest
                   const cityLocs = (customLocations || []).filter(l => (l.cityId || 'bangkok') === selectedCityId && l.status !== 'blacklist');
