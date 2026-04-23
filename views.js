@@ -346,20 +346,7 @@
               <span>{authUser ? (authUser.displayName || authUser.email || (t('auth.anonymous'))) : (t('auth.signIn') || 'התחבר')}</span>
               {authUser && <span style={{ fontSize: '9px', marginRight: 'auto', marginLeft: '4px', padding: '1px 5px', borderRadius: '4px', background: isAdmin ? '#fef2f2' : isEditor ? '#f3e8ff' : '#f3f4f6', color: isAdmin ? '#dc2626' : isEditor ? '#7c3aed' : '#9ca3af' }}>{isAdmin ? 'Admin' : isEditor ? 'Editor' : ''}{roleOverride !== null ? ' 🎭' : ''}</span>}
             </button>
-            {isAdmin && (
-              <button
-                onClick={() => { setShowUserManagement(true); authLoadAllUsers(); setShowHeaderMenu(false); }}
-                style={{
-                  width: '100%', textAlign: currentLang === 'he' ? 'right' : 'left',
-                  background: 'transparent', border: 'none', borderRadius: '8px', padding: '8px 12px',
-                  color: '#374151', fontSize: '13px', fontWeight: '500',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px'
-                }}
-              >
-                <span style={{ fontSize: '15px' }}>👥</span>
-                <span>{t('auth.userManagement')}</span>
-              </button>
-            )}
+            {/* v3.23.13: User Management moved to Settings → Users tab */}
             {/* Return to Admin — shown when simulating another role */}
             {isRealAdmin && roleOverride !== null && (
               <button
@@ -3056,6 +3043,12 @@
                   settingsTab === 'sysparams' ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >🔧 פרמטרים</button>
+              <button
+                onClick={() => { setSettingsTab('users'); if (isRealAdmin) authLoadAllUsers(); }}
+                className={`flex-1 py-2 rounded-lg font-bold text-xs transition ${
+                  settingsTab === 'users' ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >👥 {t('auth.userManagement') || 'Users'}</button>
             </div>
 
             {/* ===== CITIES & AREAS TAB ===== */}
@@ -4650,6 +4643,82 @@
             })()}
 
             </div>)}
+
+            {/* ===== USERS TAB (v3.23.13) ===== */}
+            {settingsTab === 'users' && isRealAdmin && (() => {
+              const roleColors = ['#6b7280', '#7c3aed', '#dc2626'];
+              // Sort ascending by name/email/uid, case-insensitive. Anonymous users are never in /users/
+              // (see app-logic.js onAuthStateChanged early-return), so no special branching needed.
+              const sortKey = (u) => ((u.name || u.email || u.uid || '').toLowerCase());
+              const sortedUsers = [...allUsers].sort((a, b) => sortKey(a).localeCompare(sortKey(b)));
+              const confirmDeleteUser = (uid, displayName) => {
+                showConfirm(
+                  `${t('auth.deleteUserConfirm') || 'Delete user'} "${displayName}"?\n${t('toast.actionCannotBeUndone') || 'This action cannot be undone.'}`,
+                  async () => {
+                    try {
+                      await deleteUser(uid);
+                      showToast(`🗑️ "${displayName}" ${t('general.removed') || 'removed'}`, 'success');
+                      authLoadAllUsers();
+                    } catch (e) {
+                      showToast('❌ ' + (e.message || e), 'error');
+                    }
+                  },
+                  { confirmLabel: t('general.delete') || 'Delete', confirmColor: '#ef4444' }
+                );
+              };
+              return (
+                <div className="bg-white rounded-xl p-3" style={{ direction: 'ltr' }}>
+                  {/* Header + counter + refresh */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <h3 style={{ fontWeight: 'bold', fontSize: '14px', margin: 0 }}>
+                      👥 {sortedUsers.length} {t('auth.usersCount') || 'users'}
+                    </h3>
+                    <button onClick={authLoadAllUsers}
+                      style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', border: '1px solid #d1d5db', background: '#f3f4f6', cursor: 'pointer' }}
+                      title={t('general.refresh') || 'Refresh'}>🔄</button>
+                  </div>
+                  {/* User rows */}
+                  {sortedUsers.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '20px', color: '#9ca3af', fontSize: '12px' }}>
+                      {t('general.loading') || 'Loading…'}
+                    </div>
+                  ) : sortedUsers.map(user => {
+                    const displayName = user.name || user.email || user.uid.slice(0, 12);
+                    const isSelf = user.uid === authUser?.uid;
+                    return (
+                      <div key={user.uid} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 6px', borderBottom: '1px solid #f3f4f6' }}>
+                        {user.photo
+                          ? <img src={user.photo} alt="" style={{ width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0 }} />
+                          : <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0 }}>👤</div>
+                        }
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 'bold', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#111827' }}>{displayName}</div>
+                          <div style={{ fontSize: '10px', color: '#9ca3af' }}>
+                            {user.email || ''}
+                            {user.lastLogin ? ` · ${new Date(user.lastLogin).toLocaleDateString()}` : ''}
+                          </div>
+                        </div>
+                        <select value={user.role || 0}
+                          onChange={e => authUpdateUserRole(user.uid, parseInt(e.target.value))}
+                          disabled={isSelf}
+                          style={{ padding: '3px 6px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '11px', fontWeight: 'bold', color: roleColors[user.role || 0], cursor: isSelf ? 'not-allowed' : 'pointer', opacity: isSelf ? 0.5 : 1 }}>
+                          <option value={0}>👤 Regular</option>
+                          <option value={1}>✏️ Editor</option>
+                          <option value={2}>👑 Admin</option>
+                        </select>
+                        {!isSelf && (
+                          <button
+                            onClick={() => confirmDeleteUser(user.uid, displayName)}
+                            style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #fca5a5', background: '#fef2f2', color: '#dc2626', fontSize: '11px', cursor: 'pointer', flexShrink: 0 }}
+                            title={t('auth.deleteUser') || 'Delete user'}
+                          >🗑️</button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
 
 
 

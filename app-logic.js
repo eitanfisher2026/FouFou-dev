@@ -47,7 +47,7 @@
   const [authLoading, setAuthLoading] = useState(true); // true until onAuthStateChanged fires
   const [userRole, setUserRole] = useState(0); // 0=regular, 1=editor, 2=admin (real role from Firebase)
   const [showLoginDialog, setShowLoginDialog] = useState(false);
-  const [showUserManagement, setShowUserManagement] = useState(false);
+  // showUserManagement retired in v3.23.13 — user management now lives in Settings → Users tab
   const [showAbout, setShowAbout] = useState(false);
   const [aboutEditing, setAboutEditing] = useState(false);
   const [aboutLocalText, setAboutLocalText] = useState('');
@@ -226,8 +226,8 @@
     if (!isRealAdmin || !database) return;
     try {
       await database.ref(`users/${uid}/role`).set(newRole);
-      // Refresh allUsers if open
-      if (showUserManagement) authLoadAllUsers();
+      // v3.23.13: always refresh after a role change (cheap; Users tab may be open)
+      authLoadAllUsers();
       showToast(`✅ ${t('toast.roleUpdated')}: ${['Regular','Editor','Admin'][newRole]}`, 'success');
     } catch (err) {
       console.error('[AUTH] Update role error:', err);
