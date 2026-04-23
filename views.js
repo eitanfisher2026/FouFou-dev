@@ -1255,9 +1255,7 @@
                 <div style={{ marginBottom: '12px' }}>
                   {(() => {
                     const filtered = allInterestOptions.filter(option => {
-                      const aStatus = option.adminStatus || 'active';
-                      if (aStatus === 'hidden') return false;
-                      if (aStatus === 'draft' && !isUnlocked) return false;
+                      // v3.23.8: draft visibility handled by interestOptions memo (creator+admin only). adminStatus retired.
                       if (option.scope === 'local' && option.cityId && option.cityId !== selectedCityId) return false;
                       // Time filter: show only interests matching selected time filter
                       // Check option.bestTime first (stored on the interest object), then interestConfig override
@@ -1285,7 +1283,7 @@
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px' }}>
                         {options.map(option => {
                           const isSelected = formData.interests.includes(option.id);
-                          const isDraft = (option.adminStatus || 'active') === 'draft';
+                          const isDraft = !option.locked;
                           return (
                             <button
                               key={option.id}
@@ -2077,11 +2075,21 @@
                           if (navigator.share) { navigator.share({ title: routeName, text: shareText }); }
                           else { navigator.clipboard.writeText(shareText); showToast(t('route.routeCopied'), 'success'); }
                         }, disabled: !route?.optimized },
-                        { icon: route.name ? '✓' : '⬇', label: route.name ? `${t('route.savedAs')} ${route.name}` : ((!authUser || authUser.isAnonymous) ? (t('auth.loginToSave')) : t('route.saveRoute')), action: () => {
-                          if (!authUser || authUser.isAnonymous) { setShowLoginDialog(true); return; }
-                          setShowRouteMenu(false);
-                          if (!route.name && route?.optimized) quickSaveRoute();
-                        }, disabled: !route?.optimized || !!route.name },
+                        (() => {
+                          const isOthersRoute = route?.savedBy && authUser?.uid && route.savedBy !== authUser.uid;
+                          return { icon: route.name ? '✓' : (isOthersRoute ? '🚫' : '⬇'),
+                            label: route.name
+                              ? `${t('route.savedAs')} ${route.name}`
+                              : isOthersRoute
+                                ? t('route.viewingShared')
+                                : ((!authUser || authUser.isAnonymous) ? (t('auth.loginToSave')) : t('route.saveRoute')),
+                            action: () => {
+                              if (!authUser || authUser.isAnonymous) { setShowLoginDialog(true); return; }
+                              setShowRouteMenu(false);
+                              if (!route.name && !isOthersRoute && route?.optimized) quickSaveRoute();
+                            },
+                            disabled: !route?.optimized || !!route.name || isOthersRoute };
+                        })(),
                       ].map((item, idx) => (
                         <button
                           key={idx}
@@ -2424,7 +2432,7 @@
                             <div className="flex items-center gap-1 flex-wrap">
                               {savedRoute.system && <span style={{ fontSize: '11px' }} title={t('route.recommended')}>⭐</span>}
                               <span className="font-medium text-sm truncate">{savedRoute.name}</span>
-                              {savedRoute.locked && isUnlocked && !savedRoute.system && <span title={t("general.locked")} style={{ fontSize: '11px' }}>🔒</span>}
+                              {savedRoute.locked && !savedRoute.system && <span title={t("route.public")} style={{ fontSize: '11px' }}>🌐</span>}
                               {routeInterestIds.slice(0, 5).map((intId, idx) => {
                                 const obj = interestMap[intId];
                                 if (!obj?.icon) return null;
@@ -2436,16 +2444,22 @@
                               <div className="text-[10px] text-gray-500 mt-0.5" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>📝 <AutoTranslateText text={savedRoute.notes} translateText={translateText} detectNeedsTranslation={detectNeedsTranslation} /></div>
                             )}
                           </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingRoute({...savedRoute});
-                              setRouteDialogMode(savedRoute.system || (savedRoute.locked && !isUnlocked) ? 'view' : 'edit');
-                              setShowRouteDialog(true);
-                            }}
-                            className="text-xs px-1 py-0.5 rounded hover:bg-blue-100 flex-shrink-0"
-                            title={savedRoute.system ? t("general.viewOnly") : (savedRoute.locked && !isUnlocked ? t("general.viewOnly") : t("places.detailsEdit"))}
-                          >{savedRoute.system || (savedRoute.locked && !isUnlocked) ? '👁️' : '✏️'}</button>
+                          {(() => {
+                            const isOwnRoute = savedRoute.savedBy && authUser?.uid && savedRoute.savedBy === authUser.uid;
+                            const canEdit = isOwnRoute || isUnlocked;
+                            return (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingRoute({...savedRoute});
+                                  setRouteDialogMode(canEdit ? 'edit' : 'view');
+                                  setShowRouteDialog(true);
+                                }}
+                                className="text-xs px-1 py-0.5 rounded hover:bg-blue-100 flex-shrink-0"
+                                title={canEdit ? t("places.detailsEdit") : t("general.viewOnly")}
+                              >{canEdit ? '✏️' : '👁️'}</button>
+                            );
+                          })()}
                         </div>
                       </React.Fragment>
                     );
@@ -2910,13 +2924,11 @@
                 const isValid = isInterestValid(interest.id);
                 const isInternal = !!interestConfig[interest.id]?.noGoogleSearch;
                 const effectiveActive = (isValid || isInternal) ? isActive : false;
-                const aStatus = interest.adminStatus || (interestConfig[interest.id]?.adminStatus) || 'active';
-                const isDraft = aStatus === 'draft';
-                const isHidden = aStatus === 'hidden';
+                const isDraft = !interest.locked; // v3.23.8: locked=true = public, false = draft
+                const isHidden = false; // hidden tri-state retired in v3.23.8
                 const interestColor = window.BKK.getInterestColor(interest.id, allInterestOptions);
                 const favCount = favCountByInterest[interest.id] || 0;
-                const borderClass = isHidden ? 'border-2 border-red-300 bg-red-50 opacity-50'
-                  : isDraft ? 'border-2 border-amber-300 bg-amber-50'
+                const borderClass = isDraft ? 'border-2 border-amber-300 bg-amber-50'
                   : !effectiveActive ? 'border border-gray-300 bg-gray-50 opacity-60'
                   : (isValid || isInternal ? 'border border-gray-200 bg-white' : 'border-2 border-red-400 bg-red-50');
                 
@@ -2926,7 +2938,8 @@
                     <div style={{ width: '4px', alignSelf: 'stretch', borderRadius: '2px', background: effectiveActive ? interestColor : '#d1d5db', flexShrink: 0 }}></div>
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <span className="text-lg flex-shrink-0">{interest.icon?.startsWith?.('data:') ? <img src={interest.icon} alt="" className="w-5 h-5 object-contain" /> : interest.icon}</span>
-                      <span className={`font-medium text-sm truncate ${isHidden ? 'text-red-400 line-through' : isDraft ? 'text-amber-700' : !effectiveActive ? 'text-gray-500' : ''}`}>{tLabel(interest)}</span>
+                      <span className={`font-medium text-sm truncate ${isDraft ? 'text-amber-700' : !effectiveActive ? 'text-gray-500' : ''}`}>{tLabel(interest)}</span>
+                      {isDraft && <span title={t('interests.draftStatus')} style={{ fontSize: '11px', flexShrink: 0 }}>✏️</span>}
                       {favCount > 0 && <span style={{ fontSize: '10px', color: '#9ca3af', flexShrink: 0 }}>({favCount})</span>}
                       {interestConfig[interest.id]?.noGoogleSearch && <span style={{ fontSize: '9px', background: '#f3f4f6', color: '#6b7280', padding: '1px 4px', borderRadius: '3px', flexShrink: 0 }}>{t('interests.internalBadge')}</span>}
                       {!interestConfig[interest.id]?.noGoogleSearch && (() => {
@@ -2946,33 +2959,20 @@
                           title={`${t('wizard.showMap')} (${favCount})`}
                         >🗺️</button>
                       )}
-                      {/* Admin status cycle — admin only, hide green (active is default) */}
-                      {(isDraft || isHidden) && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); cycleAdminStatus(interest.id); }}
-                          style={{
-                            fontSize: '9px', padding: '1px 4px', borderRadius: '4px',
-                            background: isHidden ? '#fee2e2' : '#fef3c7',
-                            border: `1px solid ${isHidden ? '#fca5a5' : '#fcd34d'}`,
-                            cursor: 'pointer', lineHeight: '14px'
-                          }}
-                          title={`Status: ${aStatus} (click to cycle)`}
-                        >{isHidden ? '🔴' : '🟡'}</button>
-                      )}
-                      {/* Editor: edit button. Regular user: view-only button */}
-                      {isEditor ? (
-                      <button
-                        onClick={() => { setInterestDialogReadOnly(false); openInterestDialog(interest); }}
-                        className="text-xs px-1 py-0.5 rounded flex-shrink-0"
-                        title={t("places.detailsEdit")}
-                      >{'✏️'}</button>
-                      ) : (
-                      <button
-                        onClick={() => { setInterestDialogReadOnly(true); openInterestDialog(interest); }}
-                        className="text-xs px-1 py-0.5 rounded flex-shrink-0"
-                        title={t("general.viewOnly")}
-                      >{'👁️'}</button>
-                      )}
+                      {/* Admin status cycle retired in v3.23.8 — draft/public controlled via edit dialog */}
+                      {/* v3.23.8: admin always editable. Editor editable only for own draft. Else view-only. */}
+                      {(() => {
+                        const isOwn = interest.addedBy && authUser?.uid && interest.addedBy === authUser.uid;
+                        const isPublic = !!interest.locked;
+                        const canEdit = isAdmin || (isEditor && isOwn && !isPublic);
+                        return (
+                          <button
+                            onClick={() => { setInterestDialogReadOnly(!canEdit); openInterestDialog(interest); }}
+                            className="text-xs px-1 py-0.5 rounded flex-shrink-0"
+                            title={canEdit ? t("places.detailsEdit") : t("general.viewOnly")}
+                          >{canEdit ? '✏️' : '👁️'}</button>
+                        );
+                      })()}
                     </div>
                   </div>
                 );
@@ -2985,14 +2985,9 @@
                 return as === 'active';
               });
               const activeCustom = []; // merged into activeBuiltIn above
-              const inactiveBuiltIn = allOpts.filter(i => {
-                const as = (interestConfig[i.id]?.adminStatus) || 'active';
-                return false; // user toggle removed
-              });
+              const inactiveBuiltIn = []; // user toggle removed
               const inactiveCustom = []; // user toggle removed
-              const allForAdmin = allOpts;
-              const draftInterests = allForAdmin.filter(i => (interestConfig[i.id]?.adminStatus) === 'draft');
-              const hiddenInterests = allForAdmin.filter(i => (interestConfig[i.id]?.adminStatus) === 'hidden');
+              // v3.23.8: retired 'draft/hidden' adminStatus groupings — public/draft shown inline via isDraft badge
               
               return (
                 <>
@@ -3019,29 +3014,7 @@
                     </div>
                   )}
                   
-                  {/* Draft Interests — admin only */}
-                  {draftInterests.length > 0 && (
-                    <div className="mb-4">
-                      <h3 className="text-sm font-bold text-amber-600 mb-2">
-                        🟡 Draft ({draftInterests.length})
-                      </h3>
-                      <div className="space-y-1">
-                        {draftInterests.map(i => renderInterestRow(i, true))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Hidden Interests — admin only */}
-                  {hiddenInterests.length > 0 && (
-                    <div className="mb-2">
-                      <h3 className="text-sm font-bold text-red-500 mb-2">
-                        🔴 Hidden ({hiddenInterests.length})
-                      </h3>
-                      <div className="space-y-1">
-                        {hiddenInterests.map(i => renderInterestRow(i, false))}
-                      </div>
-                    </div>
-                  )}
+                  {/* v3.23.8: draft/hidden groupings retired. Drafts now appear inline with ✏️ badge. */}
                 </>
               );
             })()}
@@ -4250,17 +4223,8 @@
                               const names = orphaned.map(i => cfg => (interestConfig[i.id]?.label || i.label || i.id)).join ? orphaned.map(i => interestConfig[i.id]?.label || i.label || i.id).join(', ') : '';
                               if (!window.confirm(`הסתר ${orphaned.length} תחומים ללא אייקון?\n${names}`)) return;
                               orphaned.forEach(i => {
-                                const isCustom = customInterests.some(ci => ci.id === i.id);
-                                if (isCustom) {
-                                  deleteCustomInterest(i.id);
-                                } else {
-                                  // Built-in: hide via adminStatus
-                                  const cfg = { ...(interestConfig[i.id] || {}), adminStatus: 'hidden' };
-                                  setInterestConfig(prev => ({ ...prev, [i.id]: cfg }));
-                                  if (isFirebaseAvailable && database) {
-                                    saveInterestAdminStatus(i.id, 'hidden');
-                                  }
-                                }
+                                // v3.23.8: all interests live in customInterests; delete directly (adminStatus hide retired)
+                                deleteCustomInterest(i.id);
                               });
                             }}
                             style={{ padding: '5px 10px', borderRadius: '8px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}

@@ -1444,75 +1444,58 @@
                 })()}
                 {editingCustomInterest && isUnlocked && (() => {
                   const interestId = editingCustomInterest.id;
-                  const cfg = interestConfig[interestId] || {};
-                  const aStatus = cfg.adminStatus || 'active';
-                  const builtInDefault = interestOptions.some(i => i.id === interestId);
-                  const isDefault = cfg.defaultEnabled !== undefined ? cfg.defaultEnabled : builtInDefault;
-                  const statusLabels = { active: '🟢 Active', draft: '🟡 Draft', hidden: '🔴 Hidden' };
-                  const statusColors = { active: '#dcfce7', draft: '#fef3c7', hidden: '#fee2e2' };
-                  const statusBorders = { active: '#86efac', draft: '#fcd34d', hidden: '#fca5a5' };
+                  const isPublic = !!editingCustomInterest.locked;
+                  const isOwnInterest = editingCustomInterest.addedBy && authUser?.uid && editingCustomInterest.addedBy === authUser.uid;
                   // Count places tagged with this interest
                   const cityLocs = (customLocations || []).filter(l => (l.cityId || 'bangkok') === selectedCityId && l.status !== 'blacklist');
                   const tagged = cityLocs.filter(l => (l.interests || []).includes(interestId));
-                  const locked = tagged.filter(l => l.locked);
+                  const lockedLocs = tagged.filter(l => l.locked);
                   const withCoords = tagged.filter(l => l.lat && l.lng);
+                  // Draft/Public toggle: admin can click to flip; editor sees current state read-only.
+                  const flipDraftPublic = async () => {
+                    if (!isAdmin) return;
+                    const newLocked = !isPublic;
+                    setCustomInterests(prev => prev.map(ci => ci.id === interestId ? { ...ci, locked: newLocked } : ci));
+                    if (isFirebaseAvailable && database) {
+                      try {
+                        await database.ref(`customInterests/${editingCustomInterest.firebaseId || interestId}/locked`).set(newLocked);
+                        await database.ref('settings/cacheVersion').set(Date.now()).catch(() => {});
+                      } catch (e) { /* rule rejection for non-admin */ }
+                    }
+                    showToast(`${newLocked ? '🌐' : '✏️'} ${tLabel(editingCustomInterest) || interestId} → ${newLocked ? t('interests.publicStatus') : t('interests.draftStatus')}`, 'info');
+                  };
                   return (
                     <div style={{ display: 'flex', gap: '8px', padding: '8px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', marginBottom: '4px' }}>Status</div>
-                        <div style={{ display: 'flex', gap: '4px' }}>
-                          {['active', 'draft', 'hidden'].map(s => (
-                            <button key={s} type="button"
-                              onClick={async () => {
-                                if (aStatus === s) return;
-                                const updCfg = { ...interestConfig, [interestId]: { ...cfg, adminStatus: s } };
-                                setInterestConfig(updCfg);
-                                if (isFirebaseAvailable && database) {
-                                  await saveInterestAdminStatusAsync(interestId, s);
-                                }
-                                const labels = { active: '🟢', draft: '🟡', hidden: '🔴' };
-                                showToast(`${labels[s]} ${tLabel(editingCustomInterest) || interestId} → ${s}`, 'info');
-                              }}
-                              style={{
-                                fontSize: '10px', padding: '3px 8px', borderRadius: '6px', cursor: 'pointer',
-                                background: aStatus === s ? statusColors[s] : '#f1f5f9',
-                                border: `1px solid ${aStatus === s ? statusBorders[s] : '#e2e8f0'}`,
-                                fontWeight: aStatus === s ? 'bold' : 'normal',
-                                opacity: aStatus === s ? 1 : 0.5
-                              }}
-                            >{statusLabels[s]}</button>
-                          ))}
-                        </div>
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b' }}>{t('interests.visibility') || 'Visibility'}</div>
+                        <button type="button"
+                          onClick={flipDraftPublic}
+                          disabled={!isAdmin}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all ${isAdmin ? 'cursor-pointer' : 'cursor-default'} ${isPublic ? 'border-emerald-500 bg-emerald-500 text-white shadow-md' : 'border-amber-300 bg-amber-50 text-amber-700'}`}
+                          title={isAdmin ? (isPublic ? t('interests.flipToDraft') || 'Flip to Draft' : t('interests.flipToPublic') || 'Flip to Public') : (isPublic ? t('interests.publicStatus') : t('interests.draftStatus'))}>
+                          {isPublic ? `🌐 ${t('interests.publicStatus')}` : `✏️ ${t('interests.draftStatus')}`}
+                        </button>
                       </div>
-                      {isAdmin && (
-                        <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                          <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b' }}>Lock</div>
-                          <button type="button"
-                            onClick={async () => {
-                              const newLocked = !cfg.locked;
-                              const updCfg = { ...interestConfig, [interestId]: { ...cfg, locked: newLocked } };
-                              setInterestConfig(updCfg);
-                              if (isFirebaseAvailable && database) {
-                                database.ref(`settings/interestConfig/${interestId}/locked`).set(newLocked).catch(() => {});
-                                database.ref('settings/cacheVersion').set(Date.now()).catch(() => {});
-                              }
-                              showToast(`${newLocked ? '🔒' : '🔓'} ${tLabel(editingCustomInterest) || interestId}`, 'info');
-                            }}
-                            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${cfg.locked ? 'border-green-600 bg-green-600 text-white' : 'border-amber-300 bg-amber-50 text-amber-600'}`}
-                            title={cfg.locked ? 'Locked' : 'Unlocked'}>
-                            {cfg.locked ? '🔒' : '✏️'}
-                          </button>
-                        </div>
-                      )}
                       <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '8px' }}>
                         <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#64748b', marginBottom: '4px' }}>⭐ Places</div>
                         <div style={{ fontSize: '11px', fontWeight: 'bold', color: tagged.length > 0 ? '#059669' : '#94a3b8' }}>
-                          {tagged.length}{locked.length > 0 ? ` (${locked.length}🔒)` : ''}{tagged.length > 0 && withCoords.length < tagged.length ? ` · ${tagged.length - withCoords.length}❗` : ''}
+                          {tagged.length}{lockedLocs.length > 0 ? ` (${lockedLocs.length}🔒)` : ''}{tagged.length > 0 && withCoords.length < tagged.length ? ` · ${tagged.length - withCoords.length}❗` : ''}
                         </div>
                       </div>
                     </div>
                   );
                 })()}
+                {/* Creator info footer (v3.23.8) — shown when addedBy is present */}
+                {editingCustomInterest && isUnlocked && editingCustomInterest.addedBy && (
+                  <div style={{ padding: '6px 14px', fontSize: '10px', color: '#9ca3af', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    {editingCustomInterest.addedByName && (
+                      <div>👤 {t('interests.addedBy')} {editingCustomInterest.addedByName}</div>
+                    )}
+                    {editingCustomInterest.addedAt && (
+                      <div>⏱ {new Date(editingCustomInterest.addedAt).toLocaleString()}</div>
+                    )}
+                  </div>
+                )}
 
                 {editingCustomInterest && isUnlocked && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '10px', direction: 'rtl' }}>
@@ -1620,7 +1603,7 @@
                             configData.group = newInterest.group || '';
                             // Preserve admin flags that are set separately
                             if (existingConfig.defaultEnabled !== undefined) configData.defaultEnabled = existingConfig.defaultEnabled;
-                            if (existingConfig.adminStatus) configData.adminStatus = existingConfig.adminStatus;
+                            // v3.23.8: adminStatus field retired — no longer preserved
                             if (isUnlocked) {
                               configData.locked = newInterest.locked || false;
                               if (newInterest.color) configData.color = newInterest.color;
@@ -1711,7 +1694,10 @@
                             icon: newInterest.icon || '📍',
                             custom: true,
                             privateOnly: newInterest.privateOnly || false,
-                            locked: newInterest.locked || false,
+                            locked: false,
+                            addedBy: authUser?.uid || null,
+                            addedByName: authUser?.displayName || authUser?.email || 'User',
+                            addedAt: new Date().toISOString(),
                             category: newInterest.category || 'attraction',
                             weight: newInterest.weight || 3,
                               minStops: newInterest.minStops != null ? newInterest.minStops : 1,
@@ -1879,7 +1865,7 @@
                   onChange={(e) => setEditingRoute({...editingRoute, name: e.target.value})}
                   className="w-full p-2 text-sm border-2 border-blue-300 rounded-lg"
                   style={{ direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}
-                  disabled={editingRoute.locked && !isUnlocked}
+                  disabled={!(editingRoute.savedBy === authUser?.uid || isUnlocked)}
                 />
               </div>
 
@@ -1892,7 +1878,7 @@
                   placeholder={t("places.notes")}
                   className="w-full p-2 text-sm border-2 border-gray-300 rounded-lg h-16 resize-none"
                   style={{ direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}
-                  disabled={editingRoute.locked && !isUnlocked}
+                  disabled={!(editingRoute.savedBy === authUser?.uid || isUnlocked)}
                 />
               </div>
 
@@ -1911,14 +1897,14 @@
               </div>
               </div>{/* close inner wrapper */}
 
-              {/* Status toggle - locked (admin only) */}
-              {isUnlocked && (
+              {/* Private (locked:false, default) / Public (locked:true) toggle — owner or editor+ */}
+              {(editingRoute.savedBy === authUser?.uid || isUnlocked) && (
               <div className="flex gap-3 px-4 py-2 bg-gray-50 border-t border-gray-100">
                 <button type="button"
                   onClick={() => setEditingRoute({...editingRoute, locked: !editingRoute.locked})}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all cursor-pointer ${editingRoute.locked ? 'border-gray-600 bg-gray-600 text-white shadow-md' : 'border-gray-300 bg-white text-gray-500 hover:border-gray-400'}`}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all cursor-pointer ${editingRoute.locked ? 'border-emerald-500 bg-emerald-500 text-white shadow-md' : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'}`}
                 >
-                  {editingRoute.locked ? '🔒' : '○'} {t("general.locked")}
+                  {editingRoute.locked ? `🌐 ${t("route.public")}` : `✏️ ${t("route.private")}`}
                 </button>
               </div>
               )}
@@ -1937,7 +1923,10 @@
                   >
                     📍 {t("general.openRoute")}
                   </button>
-                  {!(editingRoute.system) && !(editingRoute.locked && !isUnlocked) && (
+                  {(() => {
+                    const isOwn = editingRoute.savedBy && authUser?.uid && editingRoute.savedBy === authUser.uid;
+                    const canDelete = isOwn || isUnlocked;
+                    return canDelete ? (
                     <button
                       onClick={() => {
                         showConfirm(`${t("general.deleteRoute")} "${editingRoute.name}"?`, () => {
@@ -1951,7 +1940,8 @@
                     >
                       🗑️
                     </button>
-                  )}
+                    ) : null;
+                  })()}
                 </div>
               </div>
             </div>
@@ -1959,10 +1949,11 @@
             {/* Footer */}
             <div className="px-4 py-2.5 border-t border-gray-200 flex gap-2" style={{ direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}>
               {(() => {
-                const isLockedRoute = editingRoute.locked && !isUnlocked;
+                const isOwnRoute = editingRoute.savedBy && authUser?.uid && editingRoute.savedBy === authUser.uid;
+                const canUpdate = isOwnRoute || isUnlocked;
                 return (
                   <>
-                    {!isLockedRoute && (
+                    {canUpdate && (
                       <button
                         onClick={() => {
                           updateRoute(editingRoute.id, {

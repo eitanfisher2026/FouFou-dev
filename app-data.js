@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.7
+// FouFou app-data.js v3.23.8
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -527,6 +527,9 @@ route: {
   routeType: 'סוג מסלול',
   newRoute: 'צור מסלול חדש',
   recommended: 'מסלול מומלץ',
+  private: 'פרטי',
+  public: 'ציבורי',
+  viewingShared: '🚫 זהו מסלול משותף — לא ניתן לשמור',
 },
 
 // --- Places ---
@@ -720,6 +723,12 @@ interests: {
   dedupRelatedDesc: 'תחומים שייחשבו זהים לצורך בדיקת כפילויות',
   internalBadge: 'פנימי',
   hiddenBadge: 'מוסתר',
+  draftStatus: 'טיוטה',
+  publicStatus: 'ציבורי',
+  addedBy: 'נוצר על ידי',
+  visibility: 'נראות',
+  flipToPublic: 'העבר לציבורי',
+  flipToDraft: 'העבר לטיוטה',
   groupLabel: '📂 קיבוץ:',
   noGroupOption: '— ללא קיבוץ —',
   dedupNoneSelected: '— ללא קישורים',
@@ -1665,6 +1674,9 @@ route: {
   routeType: 'Route type',
   newRoute: 'New route',
   recommended: 'Recommended route',
+  private: 'Private',
+  public: 'Public',
+  viewingShared: '🚫 Viewing shared route — cannot save',
 },
 
 places: {
@@ -1856,6 +1868,12 @@ interests: {
   dedupRelatedDesc: 'Interests that count as similar for duplicate detection',
   internalBadge: 'Internal',
   hiddenBadge: 'Hidden',
+  draftStatus: 'Draft',
+  publicStatus: 'Public',
+  addedBy: 'Added by',
+  visibility: 'Visibility',
+  flipToPublic: 'Flip to Public',
+  flipToDraft: 'Flip to Draft',
   groupLabel: '📂 Group:',
   noGroupOption: '— No group —',
   dedupNoneSelected: '— No links',
@@ -3482,7 +3500,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.7';
+window.BKK.VERSION = '3.23.8';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
