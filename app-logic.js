@@ -996,7 +996,7 @@
   const [showAddInterestDialog, setShowAddInterestDialog] = useState(false);
   const [interestDialogReadOnly, setInterestDialogReadOnly] = useState(false);
   const [cityVisibilityInterest, setCityVisibilityInterest] = useState(null); // interest object for city visibility dialog
-  const [newInterest, setNewInterest] = useState({ label: '', icon: '📍', searchMode: 'types', types: '', textSearch: '', blacklist: '', nameKeywords: '', privateOnly: true, locked: false, scope: 'global', category: 'attraction', weight: 3, minStops: 1, maxStops: 10, minRatingCount: null, lowRatingCount: null });
+  const [newInterest, setNewInterest] = useState({ label: '', icon: '📍', searchMode: 'types', types: '', textSearch: '', blacklist: '', nameKeywords: '', privateOnly: false, locked: false, scope: 'global', category: 'attraction', weight: 3, minStops: 1, maxStops: 10, minRatingCount: null, lowRatingCount: null });
   const [iconPickerConfig, setIconPickerConfig] = useState(null); // { description: '', callback: fn, suggestions: [], loading: false }
   const [showEditLocationDialog, setShowEditLocationDialog] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
@@ -2694,6 +2694,48 @@
       }
 
       // v3.12.5 adminStatus restore retired — adminStatus field removed entirely in v3.23.8
+
+      // v3.23.8 ONE-TIME BACKFILL (admin only): copy addedBy/addedByName/addedAt from a reference interest
+      // (any interest that already has addedBy set — typically the admin's test interest) onto all
+      // customInterests that lack those fields. This lets editors edit existing interests under the new rules.
+      if ((window.BKK._isAdmin === true) && localStorage.getItem('interest_owner_backfill_v3238') !== 'true') {
+        database.ref('customInterests').once('value').then(snap => {
+          const all = snap.val() || {};
+          const keys = Object.keys(all);
+          // Find a template: interest that already has addedBy (e.g. "Interest test")
+          // If multiple, pick the one with the earliest addedAt for consistency.
+          let template = null;
+          keys.forEach(k => {
+            const v = all[k];
+            if (v && v.addedBy && (!template || (v.addedAt && template.addedAt && v.addedAt < template.addedAt))) {
+              template = v;
+            }
+          });
+          if (!template) {
+            console.log('[BACKFILL v3.23.8] no template interest with addedBy found — skipping until one exists');
+            return;
+          }
+          const tplBy   = template.addedBy;
+          const tplName = template.addedByName || 'Admin';
+          const tplAt   = template.addedAt || new Date().toISOString();
+          const writes = {};
+          keys.forEach(k => {
+            const v = all[k];
+            if (!v || v.addedBy) return; // skip already-stamped
+            writes[`customInterests/${k}/addedBy`]     = tplBy;
+            writes[`customInterests/${k}/addedByName`] = tplName;
+            writes[`customInterests/${k}/addedAt`]     = tplAt;
+          });
+          if (Object.keys(writes).length > 0) {
+            database.ref().update(writes)
+              .then(() => { console.log(`[BACKFILL v3.23.8] stamped ${Object.keys(writes).length / 3} interests from template "${template.id || '?'}"`); localStorage.setItem('interest_owner_backfill_v3238', 'true'); })
+              .catch(e => console.warn('[BACKFILL v3.23.8] failed:', e));
+          } else {
+            console.log('[BACKFILL v3.23.8] all interests already have addedBy — nothing to do');
+            localStorage.setItem('interest_owner_backfill_v3238', 'true');
+          }
+        }).catch(() => {});
+      }
 
       // v3.23.8 ONE-TIME CLEANUP (admin only): strip orphaned adminStatus + duplicate locked from interestConfig
       if ((window.BKK._isAdmin === true) && localStorage.getItem('interestConfig_cleanup_v3238') !== 'true') {
