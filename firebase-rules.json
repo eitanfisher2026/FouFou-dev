@@ -8,11 +8,27 @@
         },
         "locations": {
           ".read": true,
-          ".write": "auth != null && auth.token.firebase.sign_in_provider != 'anonymous'"
+          "$locationId": {
+            ".write": "auth != null && auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('users').child(auth.uid).child('role').val() >= 1 || (newData.exists() && !data.exists() && newData.child('addedBy').val() === auth.uid) || (newData.exists() && data.exists() && data.child('addedBy').val() === auth.uid) || (!newData.exists() && data.child('addedBy').val() === auth.uid))",
+            "addedBy": {
+              ".validate": "!data.exists() || newData.val() === data.val() || root.child('users').child(auth.uid).child('role').val() >= 2"
+            },
+            "locked": {
+              ".validate": "newData.val() === false || (newData.val() === true && root.child('users').child(auth.uid).child('role').val() >= 1)"
+            },
+            "status": {
+              ".validate": "newData.val() !== 'blacklist' || root.child('users').child(auth.uid).child('role').val() >= 1"
+            }
+          }
         },
         "routes": {
           ".read": true,
-          ".write": "auth != null && auth.token.firebase.sign_in_provider != 'anonymous'"
+          "$routeId": {
+            ".write": "auth != null && auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('users').child(auth.uid).child('role').val() >= 1 || (newData.exists() && !data.exists() && newData.child('savedBy').val() === auth.uid) || (newData.exists() && data.exists() && data.child('savedBy').val() === auth.uid) || (!newData.exists() && data.child('savedBy').val() === auth.uid))",
+            "savedBy": {
+              ".validate": "!data.exists() || newData.val() === data.val() || root.child('users').child(auth.uid).child('role').val() >= 2"
+            }
+          }
         },
         "reviews": {
           ".read": true,
@@ -93,8 +109,7 @@
           ".validate": "newData.isString() && newData.val().length <= 500"
         },
         "role": {
-          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2",
-          ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() >= 2 || (!data.exists() && newData.val() <= 1))"
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2 && (root.child('users').child(auth.uid).child('role').val() >= 2 || (!data.exists() && newData.val() <= 1) || (!data.exists() && newData.val() == 2 && !root.child('users').exists()) || (data.exists() && data.val() == newData.val()))"
         },
         "$other": {
           ".validate": "true"
@@ -106,14 +121,24 @@
       ".write": "auth != null"
     },
     "feedback": {
-      ".read": "auth != null",
-      "$feedbackId": {
-        ".write": "!data.exists() || (auth != null && (data.child('userId').val() === auth.uid || root.child('users').child(auth.uid).child('role').val() >= 2))",
-        ".validate": "newData.hasChildren(['text', 'timestamp'])"
-      },
-      ".indexOn": [
-        "timestamp"
-      ]
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2",
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() >= 2)",
+        ".write": "auth != null && auth.token.firebase.sign_in_provider != 'anonymous' && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() >= 2)",
+        ".indexOn": ["timestamp"],
+        "$entryId": {
+          ".validate": "newData.hasChildren(['text', 'timestamp']) && (data.exists() || newData.parent().numChildren() <= 10)",
+          "text": {
+            ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 3000"
+          },
+          "images": {
+            ".validate": "newData.numChildren() <= 3",
+            "$imgIndex": {
+              ".validate": "newData.isString() && newData.val().length <= 1200000"
+            }
+          }
+        }
+      }
     },
     "cityStates": {
       ".read": true,

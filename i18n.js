@@ -869,6 +869,10 @@ toast: {
   noAreaForCoords: '⚠️ לא נמצא אזור לקואורדינטות',
   savedTranslating: '💾 נשמר, מתרגם…',
   translationSaved: '🌐 התרגום נשמר!',
+  feedbackTooLong: '⚠️ ההודעה חייבת להיות קצרה מ-3000 תווים',
+  feedbackTooManyImages: '⚠️ מותר לצרף עד 3 תמונות',
+  feedbackImageTooLarge: '⚠️ תמונה גדולה מדי (עד ~900KB לכל תמונה)',
+  feedbackCapReached: '⚠️ יש לך 10 פניות פתוחות. יש להמתין לבדיקה לפני שליחת פניות נוספות',
 },
 
 // --- Settings ---
@@ -984,6 +988,8 @@ auth: {
   signOut: 'התנתק',
   register: 'הרשם',
   signInRequired: '🔒 כדי לבצע פעולה זו יש להתחבר — FouFou רוצה לשייך את התרומה שלך לחשבונך ולהגן על המידע',
+  feedbackSignInRequired: 'יש להתחבר כדי לשלוח משוב',
+  feedbackSignInCTA: 'התחבר',
   deleteAccount: 'מחק חשבון',
   deleteAccountConfirm: 'האם אתה בטוח שברצונך למחוק את החשבון?\nפעולה זו בלתי הפיכה.',
   accountDeleted: '🗑️ החשבון נמחק',
@@ -1997,6 +2003,10 @@ toast: {
   noAreaForCoords: '⚠️ No area matches these coordinates',
   savedTranslating: '💾 Saved, translating…',
   translationSaved: '🌐 Translation saved!',
+  feedbackTooLong: '⚠️ Message must be under 3000 characters',
+  feedbackTooManyImages: '⚠️ Up to 3 images allowed',
+  feedbackImageTooLarge: '⚠️ Image too large (max ~900KB per image)',
+  feedbackCapReached: '⚠️ You have 10 open feedback entries. Please wait for review before sending more',
 },
 
 settings: {
@@ -2107,6 +2117,8 @@ settings: {
 auth: {
   signIn: 'Sign In',
   signInRequired: '🔒 Please sign in to continue — FouFou links your contributions to your account and keeps the data secure',
+  feedbackSignInRequired: 'Sign in to send feedback',
+  feedbackSignInCTA: 'Sign in',
   signOut: 'Sign Out',
   register: 'Register',
   deleteAccount: 'Delete account',

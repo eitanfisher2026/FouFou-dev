@@ -2564,6 +2564,27 @@
       {/* Feedback Dialog */}
       {showFeedbackDialog && (() => {
         const maxImgs = sp.feedbackMaxImages || 3;
+        const isAnon = !authUser || authUser.isAnonymous;
+        if (isAnon) {
+          return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center p-0 sm:p-4" style={{ zIndex: 10300 }}>
+              <div className="bg-white rounded-t-2xl sm:rounded-xl w-full max-w-md shadow-2xl" style={{ display: 'flex', flexDirection: 'column' }}>
+                <div className="bg-gradient-to-r from-slate-600 to-slate-700 text-white p-3 rounded-t-2xl sm:rounded-t-xl flex justify-between items-center">
+                  <h3 className="text-base font-bold">{`💬 ${t("settings.sendFeedback")}`}</h3>
+                  <button onClick={() => { setShowFeedbackDialog(false); }} className="text-white opacity-70 hover:opacity-100 text-xl leading-none">✕</button>
+                </div>
+                <div className="p-6" style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '40px', marginBottom: '8px' }}>🔒</div>
+                  <p style={{ fontSize: '14px', color: '#374151', marginBottom: '16px' }}>{t('auth.feedbackSignInRequired')}</p>
+                  <button onClick={() => { setShowFeedbackDialog(false); setShowLoginDialog(true); }}
+                    style={{ padding: '10px 24px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>
+                    {t('auth.feedbackSignInCTA')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        }
         return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center p-0 sm:p-4" style={{ zIndex: 10300 }}>
           <div className="bg-white rounded-t-2xl sm:rounded-xl w-full max-w-md shadow-2xl" style={{ maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>

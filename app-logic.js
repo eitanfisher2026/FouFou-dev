@@ -2663,8 +2663,7 @@
 
   useEffect(() => {
     if (isFirebaseAvailable && database) {
-      window.BKK.seedSystemRoutes(database);
-
+      // System routes retired (v3.23.7) — all routes are user-owned
       // interests and interestConfig live entirely in Firebase — no hardcoded seeds or patches
 
       // ONE-TIME CLEANUP: Remove interestConfig + interestStatus orphans (v3.12.19)
@@ -3963,7 +3962,27 @@
       showToast(t('settings.writeFeedback'), 'warning');
       return;
     }
+    // Auth guard — anon blocked (rule also enforces)
+    if (!authUser || authUser.isAnonymous || !authUser.uid) {
+      showToast(t('auth.feedbackSignInRequired'), 'warning');
+      return;
+    }
+    // Client-side validation mirroring Firebase rules
+    const trimmedText = feedbackText.trim();
+    if (trimmedText.length > 3000) {
+      showToast(t('toast.feedbackTooLong'), 'warning');
+      return;
+    }
+    if (feedbackImages && feedbackImages.length > 3) {
+      showToast(t('toast.feedbackTooManyImages'), 'warning');
+      return;
+    }
+    if (feedbackImages && feedbackImages.some(img => typeof img === 'string' && img.length > 1200000)) {
+      showToast(t('toast.feedbackImageTooLarge'), 'warning');
+      return;
+    }
 
+    const uid = authUser.uid;
     const existingEntry = myFeedbackList.length > 0 ? myFeedbackList[0] : null;
 
     const feedbackEntry = {
@@ -3971,9 +3990,10 @@
       subject: feedbackSubject.trim() || null,
       senderName: feedbackSenderName.trim() || null,
       senderEmail: feedbackSenderEmail.trim() || null,
-      text: feedbackText.trim(),
+      text: trimmedText,
       images: feedbackImages.length > 0 ? feedbackImages : null,
-      ...(authUser?.uid ? { userId: authUser.uid, userEmail: authUser.email || '' } : {}),
+      userId: uid,
+      userEmail: authUser.email || '',
       currentView: currentView || 'unknown',
       wizardStep: wizardStep || 0,
       cityId: selectedCityId || '',
@@ -3982,79 +4002,117 @@
       resolved: false
     };
 
+    const handleError = (err) => {
+      const code = err?.code || '';
+      if (code === 'PERMISSION_DENIED') {
+        showToast(t('toast.feedbackCapReached'), 'warning', 'sticky');
+      } else {
+        showToast(`${t('toast.sendError')}: ${err.message || err}`, 'error');
+      }
+    };
+    const resetForm = () => {
+      setFeedbackText(''); setFeedbackImages([]); setFeedbackSubject(''); setFeedbackSenderName(''); setFeedbackSenderEmail('');
+      try { localStorage.removeItem('feedback_draft'); } catch(e) {}
+      setFeedbackCategory('general');
+      setShowFeedbackDialog(false);
+    };
+
     if (isFirebaseAvailable && database) {
       if (existingEntry && existingEntry.firebaseId) {
-        // Update existing feedback
-        database.ref(`feedback/${existingEntry.firebaseId}`).update(feedbackEntry)
-          .then(() => {
-            showToast(t('toast.feedbackThanks'), 'success');
-            setFeedbackText(''); setFeedbackImages([]); setFeedbackSubject(''); setFeedbackSenderName(''); setFeedbackSenderEmail(''); try { localStorage.removeItem('feedback_draft'); } catch(e) {}
-            setFeedbackCategory('general');
-            setShowFeedbackDialog(false);
-          })
-          .catch((err) => {
-            showToast(`${t('toast.sendError')}: ${err.message || err}`, 'error');
-          });
+        // Update existing feedback (nested path)
+        database.ref(`feedback/${uid}/${existingEntry.firebaseId}`).update(feedbackEntry)
+          .then(() => { showToast(t('toast.feedbackThanks'), 'success'); resetForm(); })
+          .catch(handleError);
       } else {
-        // New feedback entry
-        database.ref('feedback').push(feedbackEntry)
+        // New feedback entry under /feedback/{uid}/{pushId}
+        database.ref(`feedback/${uid}`).push(feedbackEntry)
           .then((ref) => {
             showToast(t('toast.feedbackThanks'), 'success');
             setMyFeedbackList(prev => [{ ...feedbackEntry, firebaseId: ref.key }, ...prev].slice(0, 10));
-            setFeedbackText(''); setFeedbackImages([]); setFeedbackSubject(''); setFeedbackSenderName(''); setFeedbackSenderEmail(''); try { localStorage.removeItem('feedback_draft'); } catch(e) {}
-            setFeedbackCategory('general');
-            setShowFeedbackDialog(false);
+            resetForm();
           })
-          .catch((err) => {
-            showToast(`${t('toast.sendError')}: ${err.message || err}`, 'error');
-          });
+          .catch(handleError);
       }
     } else {
       showToast(t('toast.firebaseUnavailable'), 'error');
     }
   };
 
-  // Load feedback list - all users see all feedback; non-admin can only delete their own
+  // Load feedback list.
+  // Admin: listens on /feedback (nested by uid, with legacy flat entries dual-detected).
+  // Non-admin signed-in: listens only on /feedback/{own-uid}.
+  // Anonymous: no listener (and can't read feedback per rules).
   const feedbackCountRef = useRef(null);
   useEffect(() => {
     if (!isFirebaseAvailable || !database) return;
+    if (!authUser || authUser.isAnonymous) {
+      setFeedbackList([]);
+      setMyFeedbackList([]);
+      feedbackCountRef.current = 0;
+      return;
+    }
 
-    const feedbackRef = database.ref('feedback').orderByChild('timestamp').limitToLast(100);
+    // Flatten /feedback nested-by-uid structure while also surfacing legacy flat entries
+    const flatten = (raw) => {
+      const arr = [];
+      if (!raw) return arr;
+      Object.keys(raw).forEach(topKey => {
+        const topVal = raw[topKey];
+        if (topVal && typeof topVal.text === 'string') {
+          // Legacy flat entry: /feedback/{entryId} = {text, timestamp, ...}
+          arr.push({ ...topVal, firebaseId: topKey, _legacy: true });
+        } else if (topVal && typeof topVal === 'object') {
+          // Uid grouping: /feedback/{uid}/{entryId} = {text, ...}
+          Object.keys(topVal).forEach(entryKey => {
+            const entry = topVal[entryKey];
+            if (entry && typeof entry === 'object') {
+              arr.push({ ...entry, firebaseId: entryKey, userId: entry.userId || topKey });
+            }
+          });
+        }
+      });
+      return arr.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    };
 
-    const unsubscribe = feedbackRef.on('value', (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const arr = Object.keys(data).map(key => ({
-          ...data[key],
-          firebaseId: key
-        })).sort((a, b) => b.timestamp - a.timestamp);
+    let feedbackRef;
+    let onValue;
+
+    if (isCurrentUserAdmin) {
+      feedbackRef = database.ref('feedback');
+      onValue = (snapshot) => {
+        const arr = flatten(snapshot.val());
         setFeedbackList(arr);
-        if (authUser && authUser.uid) {
-          setMyFeedbackList(arr.filter(f => f.userId === authUser.uid));
+        setMyFeedbackList(arr.filter(f => f.userId === authUser.uid));
+        const prevCount = feedbackCountRef.current;
+        if (prevCount !== null && arr.length > prevCount) {
+          const newest = arr[0];
+          setHasNewFeedback(true);
+          showToast(`💬 ${t('settings.newFeedback')}: "${(newest.text || '').slice(0, 40)}${(newest.text || '').length > 40 ? '...' : ''}"`, 'info', 5000);
         }
-        if (isCurrentUserAdmin) {
-          const prevCount = feedbackCountRef.current;
-          if (prevCount !== null && arr.length > prevCount) {
-            const newest = arr[0];
-            setHasNewFeedback(true);
-            showToast(`💬 ${t('settings.newFeedback')}: "${(newest.text || '').slice(0, 40)}${(newest.text || '').length > 40 ? '...' : ''}"`, 'info', 5000);
-          }
-          feedbackCountRef.current = arr.length;
-          if (prevCount === null) {
-            const lastSeen = parseInt(localStorage.getItem('foufou_last_seen_feedback') || '0');
-            const hasUnseen = arr.some(f => f.timestamp > lastSeen);
-            if (hasUnseen) setHasNewFeedback(true);
-          }
+        feedbackCountRef.current = arr.length;
+        if (prevCount === null) {
+          const lastSeen = parseInt(localStorage.getItem('foufou_last_seen_feedback') || '0');
+          const hasUnseen = arr.some(f => (f.timestamp || 0) > lastSeen);
+          if (hasUnseen) setHasNewFeedback(true);
         }
-      } else {
-        setFeedbackList([]);
-        setMyFeedbackList([]);
-        feedbackCountRef.current = 0;
-      }
-    });
+      };
+    } else {
+      // Non-admin: listen on own slot only
+      feedbackRef = database.ref(`feedback/${authUser.uid}`).orderByChild('timestamp').limitToLast(100);
+      onValue = (snapshot) => {
+        const data = snapshot.val();
+        const arr = data
+          ? Object.keys(data).map(k => ({ ...data[k], firebaseId: k, userId: authUser.uid }))
+              .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+          : [];
+        setFeedbackList([]); // non-admin doesn't see the global list
+        setMyFeedbackList(arr);
+      };
+    }
 
-    return () => feedbackRef.off('value', unsubscribe);
-  }, [isCurrentUserAdmin]);
+    feedbackRef.on('value', onValue);
+    return () => feedbackRef.off('value', onValue);
+  }, [isCurrentUserAdmin, authUser?.uid, authUser?.isAnonymous]);
 
     const markFeedbackAsSeen = () => {
     const latest = feedbackList.length > 0 ? feedbackList[0].timestamp : Date.now();
@@ -4062,17 +4120,26 @@
     setHasNewFeedback(false);
   };
 
+  // Resolve path: legacy flat entries live at /feedback/{id}; new entries at /feedback/{uid}/{id}
+  const feedbackPath = (feedbackItem) => {
+    if (!feedbackItem?.firebaseId) return null;
+    if (feedbackItem._legacy) return `feedback/${feedbackItem.firebaseId}`;
+    const uid = feedbackItem.userId || authUser?.uid;
+    if (!uid) return null;
+    return `feedback/${uid}/${feedbackItem.firebaseId}`;
+  };
+
   const toggleFeedbackResolved = (feedbackItem) => {
-    if (isFirebaseAvailable && database && feedbackItem.firebaseId) {
-      database.ref(`feedback/${feedbackItem.firebaseId}`).update({
-        resolved: !feedbackItem.resolved
-      });
+    const path = feedbackPath(feedbackItem);
+    if (isFirebaseAvailable && database && path) {
+      database.ref(path).update({ resolved: !feedbackItem.resolved });
     }
   };
 
   const deleteFeedback = (feedbackItem) => {
-    if (isFirebaseAvailable && database && feedbackItem.firebaseId) {
-      database.ref(`feedback/${feedbackItem.firebaseId}`).remove()
+    const path = feedbackPath(feedbackItem);
+    if (isFirebaseAvailable && database && path) {
+      database.ref(path).remove()
         .then(() => {
           showToast(t('toast.feedbackDeleted'), 'success');
           setMyFeedbackList(prev => prev.filter(f => f.firebaseId !== feedbackItem.firebaseId));
@@ -7177,6 +7244,7 @@
       notes: '',
       savedAt: new Date().toISOString(),
       savedBy: authUser?.uid || null,
+      savedByName: authUser?.displayName || authUser?.email || 'User',
       locked: false,
       cityId: selectedCityId
     };
