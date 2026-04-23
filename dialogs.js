@@ -1606,8 +1606,9 @@
                             // Preserve admin flags that are set separately
                             if (existingConfig.defaultEnabled !== undefined) configData.defaultEnabled = existingConfig.defaultEnabled;
                             // v3.23.8: adminStatus field retired — no longer preserved
+                            // v3.23.12: locked field no longer written to interestConfig — canonical lives
+                            // on /customInterests/{id} and is owned by the Draft/Public toggle
                             if (isUnlocked) {
-                              configData.locked = newInterest.locked || false;
                               if (newInterest.color) configData.color = newInterest.color;
                             }
                             if (isFirebaseAvailable && database) {
@@ -1619,6 +1620,10 @@
                             }
                           } else {
                             // Custom interest - update in customInterests
+                            // NOTE (v3.23.12): `locked` intentionally omitted here — it's owned by the
+                            // Draft/Public toggle above which writes directly to Firebase. The spread of
+                            // editingCustomInterest already carries the up-to-date value. Overriding here
+                            // with the stale form value reverted the toggle's change.
                             const updatedInterest = {
                               ...editingCustomInterest,
                               label: newInterest.label.trim(),
@@ -1627,7 +1632,6 @@
                               icon: newInterest.icon || '📍',
                               privateOnly: newInterest.privateOnly || false,
                               noGoogleSearch: newInterest.noGoogleSearch || false,
-                              locked: newInterest.locked || false,
                               category: newInterest.category || 'attraction',
                               weight: newInterest.weight || 3,
                               minStops: newInterest.minStops != null ? newInterest.minStops : 1,
