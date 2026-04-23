@@ -1702,7 +1702,7 @@
                             privateOnly: newInterest.privateOnly || false,
                             locked: false,
                             addedBy: authUser?.uid || null,
-                            addedByName: authUser?.displayName || authUser?.email || 'User',
+                            addedByName: window.BKK.safeDisplayName(authUser),
                             addedAt: new Date().toISOString(),
                             category: newInterest.category || 'attraction',
                             weight: newInterest.weight || 3,

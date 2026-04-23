@@ -19,6 +19,20 @@ window.BKK = window.BKK || {};
 window.BKK.lastKnownGPS = null; // { lat, lng, timestamp } | null
 
 /**
+ * Safe display name for writing to publicly-readable shared data (reviews,
+ * routes, custom interests). Never falls back to the user's email — that would
+ * leak PII into paths that anyone can read. (v3.23.14)
+ *   displayName  -> use it
+ *   else uid     -> 'User-<6 chars of uid>'
+ *   else         -> 'User'
+ */
+window.BKK.safeDisplayName = function(user) {
+  if (user && user.displayName) return user.displayName;
+  if (user && user.uid) return 'User-' + user.uid.slice(0, 6);
+  return 'User';
+};
+
+/**
  * Store a known GPS reading in the session cache. Call this from anywhere that
  * legitimately obtains device coordinates (e.g. the GPS search flow).
  */

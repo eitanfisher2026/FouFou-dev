@@ -27,6 +27,9 @@
             ".write": "auth != null && auth.token.firebase.sign_in_provider != 'anonymous' && (root.child('users').child(auth.uid).child('role').val() >= 1 || (newData.exists() && !data.exists() && newData.child('savedBy').val() === auth.uid) || (newData.exists() && data.exists() && data.child('savedBy').val() === auth.uid) || (!newData.exists() && data.child('savedBy').val() === auth.uid))",
             "savedBy": {
               ".validate": "!data.exists() || newData.val() === data.val() || root.child('users').child(auth.uid).child('role').val() >= 2"
+            },
+            "savedByName": {
+              ".validate": "!newData.exists() || (newData.isString() && !newData.val().contains('@'))"
             }
           }
         },
@@ -36,7 +39,10 @@
             ".read": true,
             "$userId": {
               ".write": "auth != null && auth.token.firebase.sign_in_provider != 'anonymous' && (auth.uid === $userId || root.child('users').child(auth.uid).child('role').val() >= 2)",
-              ".validate": "newData.hasChildren(['rating', 'timestamp']) || !newData.exists()"
+              ".validate": "newData.hasChildren(['rating', 'timestamp']) || !newData.exists()",
+              "userName": {
+                ".validate": "!newData.exists() || (newData.isString() && !newData.val().contains('@'))"
+              }
             }
           }
         },
@@ -87,6 +93,9 @@
         ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() >= 2 || (root.child('users').child(auth.uid).child('role').val() >= 1 && ((newData.exists() && !data.exists() && newData.child('addedBy').val() === auth.uid && newData.child('locked').val() === false) || (newData.exists() && data.exists() && data.child('addedBy').val() === auth.uid && data.child('locked').val() === false && newData.child('locked').val() === false) || (!newData.exists() && data.child('addedBy').val() === auth.uid && data.child('locked').val() === false))))",
         "addedBy": {
           ".validate": "!data.exists() || newData.val() === data.val() || root.child('users').child(auth.uid).child('role').val() >= 2"
+        },
+        "addedByName": {
+          ".validate": "!newData.exists() || (newData.isString() && !newData.val().contains('@'))"
         }
       }
     },
