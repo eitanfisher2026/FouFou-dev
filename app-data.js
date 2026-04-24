@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.20
+// FouFou app-data.js v3.23.21
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -891,6 +891,19 @@ toast: {
 // --- Settings ---
 settings: {
   title: 'הגדרות',
+  generalTab: 'כללי',
+  citiesTab: 'ערים',
+  interestsTab: 'תחומים',
+  parametersTab: 'פרמטרים',
+  uploadFile: 'העלה קובץ',
+  chooseEmoji: 'בחר אמוג׳י',
+  ratingThresholds: 'סף מספר דירוגים',
+  emptyMeansDefault: 'ריק = ברירת מחדל מערכת',
+  minRatings: 'מינ׳ דירוגים',
+  lowRatings: 'דירוגים נמוכים',
+  visibleInAllCities: 'חשוף בכל הערים',
+  visibleInCities: 'חשוף ב-',
+  cities: 'ערים',
   sendFeedback: 'שלח משוב',
   newFeedback: 'משוב חדש',
   send: 'שלח',
@@ -944,16 +957,16 @@ settings: {
   refreshRatingsDesc: 'עדכון דירוגי גוגל לכל המקומות המועדפים בעיר הנוכחית',
   ratingsRefreshed: 'דירוגי גוגל עודכנו',
   bulkApprove: 'אשר טיוטות',
-  bulkApproveDesc: 'הפוך מקומות טיוטה למאושרים בעיר הנוכחית',
+  bulkApproveAllCitiesDesc: 'אישור מקומות טיוטה לכל עיר',
   noDrafts: 'אין טיוטות לאישור',
-  approveMyConfirm: 'לאשר',
-  approveAllConfirm: 'לאשר',
+  approveConfirmPrefix: 'לאשר',
+  approveMine: 'אשר את שלי',
+  approveAll: 'אשר הכל',
   myDrafts: 'טיוטות שלי',
   allDrafts: 'טיוטות',
-  myDraftsBtn: 'שלי',
-  allDraftsBtn: 'הכל',
   mine: 'שלי',
   others: 'אחרים',
+  total: 'סה״כ',
   approved: 'אושרו',
   noPlacesToRefresh: 'אין מקומות עם נוכחות בגוגל לרענון',
   updated: 'עודכנו',
@@ -2059,6 +2072,19 @@ toast: {
 
 settings: {
   title: 'Settings',
+  generalTab: 'General',
+  citiesTab: 'Cities',
+  interestsTab: 'Interests',
+  parametersTab: 'Parameters',
+  uploadFile: 'Upload file',
+  chooseEmoji: 'Choose emoji',
+  ratingThresholds: 'Rating count thresholds',
+  emptyMeansDefault: 'leave empty = system default',
+  minRatings: 'Min ratings',
+  lowRatings: 'Low ratings',
+  visibleInAllCities: 'Visible in all cities',
+  visibleInCities: 'Visible in',
+  cities: 'cities',
   sendFeedback: 'Send feedback',
   newFeedback: 'New feedback',
   send: 'Send',
@@ -2110,16 +2136,16 @@ settings: {
   refreshRatingsDesc: 'Update Google ratings for all favorite places in current city',
   ratingsRefreshed: 'Google ratings updated',
   bulkApprove: 'Approve drafts',
-  bulkApproveDesc: 'Convert draft places to approved in current city',
+  bulkApproveAllCitiesDesc: 'Approve draft locations per city',
   noDrafts: 'No drafts to approve',
-  approveMyConfirm: 'Approve',
-  approveAllConfirm: 'Approve',
+  approveConfirmPrefix: 'Approve',
+  approveMine: 'Approve mine',
+  approveAll: 'Approve all',
   myDrafts: 'my drafts',
   allDrafts: 'drafts',
-  myDraftsBtn: 'Mine',
-  allDraftsBtn: 'All',
   mine: 'mine',
   others: 'others',
+  total: 'total',
   approved: 'approved',
   noPlacesToRefresh: 'No places with Google presence to refresh',
   updated: 'updated',
@@ -3552,7 +3578,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.20';
+window.BKK.VERSION = '3.23.21';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));

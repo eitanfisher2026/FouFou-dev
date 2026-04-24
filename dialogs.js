@@ -1223,12 +1223,12 @@
                 {(isAdmin || isEditor) && (
                 <div style={{ background: '#fef9c3', border: '1.5px solid #fde047', borderRadius: '10px', padding: '10px', marginTop: '8px' }}>
                   <label style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#854d0e', marginBottom: '8px' }}>
-                    ⭐ {window.BKK.i18n.currentLang === 'en' ? 'Rating count thresholds' : 'סף מספר דירוגים'} ({window.BKK.i18n.currentLang === 'en' ? 'leave empty = system default' : 'ריק = ברירת מחדל מערכת'})
+                    ⭐ {t('settings.ratingThresholds') || 'Rating count thresholds'} ({t('settings.emptyMeansDefault') || 'leave empty = system default'})
                   </label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <div style={{ flex: 1 }}>
                       <label style={{ display: 'block', fontSize: '10px', color: '#92400e', marginBottom: '3px' }}>
-                        {window.BKK.i18n.currentLang === 'en' ? 'Min ratings' : 'מינ׳ דירוגים'}
+                        {t('settings.minRatings') || 'Min ratings'}
                       </label>
                       <input
                         type="number" min="0" max="10000"
@@ -1241,7 +1241,7 @@
                     </div>
                     <div style={{ flex: 1 }}>
                       <label style={{ display: 'block', fontSize: '10px', color: '#92400e', marginBottom: '3px' }}>
-                        {window.BKK.i18n.currentLang === 'en' ? 'Low ratings' : 'דירוגים נמוכים'}
+                        {t('settings.lowRatings') || 'Low ratings'}
                       </label>
                       <input
                         type="number" min="0" max="10000"
@@ -1424,7 +1424,7 @@
                   return (
                     <details style={{ marginBottom: '8px' }}>
                       <summary style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #d1d5db', background: '#f9fafb', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', color: '#374151', listStyle: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span>{allVisible ? '🌍 חשוף בכל הערים' : `🏙️ חשוף ב-${visibleCount}/${allCities.length} ערים`}</span>
+                        <span>{allVisible ? `🌍 ${t('settings.visibleInAllCities') || 'Visible in all cities'}` : `🏙️ ${t('settings.visibleInCities') || 'Visible in'} ${visibleCount}/${allCities.length} ${t('settings.cities') || 'cities'}`}</span>
                         <span style={{ fontSize: '10px', color: '#9ca3af' }}>▼</span>
                       </summary>
                       <div style={{ border: '1px solid #d1d5db', borderTop: 'none', borderRadius: '0 0 8px 8px', padding: '8px', background: 'white', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}>
@@ -2046,7 +2046,7 @@
               
               {/* Search input — same layout as Step 2 point search */}
               <div className="p-4 space-y-3">
-                <div className="flex gap-2 items-center">
+                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                   <input
                     id="manual-stop-input"
                     type="text"
@@ -2071,11 +2071,13 @@
                       {isRecording && recordingField === 'manual_stop' ? '⏹️' : '🎤'}
                     </button>
                   )}
+                </div>
+                <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
                   <button
                     onClick={searchManualPlace}
-                    className="px-3 py-2 rounded-lg text-sm font-bold whitespace-nowrap bg-purple-500 text-white hover:bg-purple-600"
+                    className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-purple-500 text-white hover:bg-purple-600"
                   >
-                    {`🔍 ${t('general.search')}`}
+                    {`🔍 ${t('form.searchPlaceGoogle')}`}
                   </button>
                 </div>
                 {isRecording && recordingField === 'manual_stop' && interimText && (

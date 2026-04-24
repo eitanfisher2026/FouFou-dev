@@ -3066,25 +3066,25 @@
                 className={`flex-1 py-2 rounded-lg font-bold text-xs transition ${
                   settingsTab === 'general' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
-              >⚙️ כללי</button>
+              >⚙️ {t('settings.generalTab') || 'General'}</button>
               <button
                 onClick={() => setSettingsTab('cities')}
                 className={`flex-1 py-2 rounded-lg font-bold text-xs transition ${
                   settingsTab === 'cities' ? 'bg-rose-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
-              >🌍 ערים</button>
+              >🌍 {t('settings.citiesTab') || 'Cities'}</button>
               <button
                 onClick={() => setSettingsTab('interests')}
                 className={`flex-1 py-2 rounded-lg font-bold text-xs transition ${
                   settingsTab === 'interests' ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
-              >🏷️ תחומים</button>
+              >🏷️ {t('settings.interestsTab') || 'Interests'}</button>
               <button
                 onClick={() => setSettingsTab('sysparams')}
                 className={`flex-1 py-2 rounded-lg font-bold text-xs transition ${
                   settingsTab === 'sysparams' ? 'bg-purple-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
-              >🔧 פרמטרים</button>
+              >🔧 {t('settings.parametersTab') || 'Parameters'}</button>
               <button
                 onClick={() => { setSettingsTab('users'); if (isRealAdmin) authLoadAllUsers(); }}
                 className={`flex-1 py-2 rounded-lg font-bold text-xs transition ${
@@ -3132,14 +3132,14 @@
                               {city.icon?.startsWith?.('data:') ? <img src={city.icon} alt="" style={{ width: '38px', height: '38px', objectFit: 'contain' }} /> : (city.icon || '📍')}
                             </div>
                             <div style={{ display: 'flex', gap: '3px' }}>
-                              <label style={{ fontSize: '9px', padding: '2px 5px', border: '1px solid #d1d5db', borderRadius: '4px', background: '#f9fafb', cursor: 'pointer', color: '#374151', fontWeight: 'bold' }} title="העלה קובץ">
+                              <label style={{ fontSize: '9px', padding: '2px 5px', border: '1px solid #d1d5db', borderRadius: '4px', background: '#f9fafb', cursor: 'pointer', color: '#374151', fontWeight: 'bold' }} title={t('settings.uploadFile') || 'Upload file'}>
                                 📁
                                 <input type="file" accept="image/*,image/jpeg,image/jfif" className="hidden" onChange={(e) => handleCityIconUpload(e.target.files?.[0], city.id, 'icon', 80)} />
                               </label>
                               <button onClick={() => setIconPickerConfig({ description: city.nameEn || city.name || '', callback: (emoji) => { city.icon = emoji; if (window.BKK.cityRegistry[city.id]) window.BKK.cityRegistry[city.id].icon = emoji; setCityModified(true); setCityEditCounter(c => c + 1);
                                 saveCityGeneralField(city.id, 'icon', emoji);
                               }, suggestions: [], loading: false })}
-                                style={{ fontSize: '9px', padding: '2px 5px', border: '1px solid #f59e0b', borderRadius: '4px', background: '#fffbeb', cursor: 'pointer', color: '#d97706', fontWeight: 'bold' }} title="בחר אמוג'י"
+                                style={{ fontSize: '9px', padding: '2px 5px', border: '1px solid #f59e0b', borderRadius: '4px', background: '#fffbeb', cursor: 'pointer', color: '#d97706', fontWeight: 'bold' }} title={t('settings.chooseEmoji') || 'Choose emoji'}
                               >✨</button>
                             </div>
                           </div>
@@ -3888,68 +3888,69 @@
             )}
 
             )}
-            {/* Bulk Approve Drafts — editor/admin only */}
-            {isUnlocked && (
-            <div className="mb-3">
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-400 rounded-xl p-3">
-                <h3 className="text-base font-bold text-gray-800 mb-1">{`✅ ${t("settings.bulkApprove") || 'אשר טיוטות'}`}</h3>
-                <p className="text-xs text-gray-600 mb-2">
-                  {t("settings.bulkApproveDesc") || 'הפוך מקומות טיוטה למאושרים בעיר הנוכחית'}
-                </p>
-                {(() => {
-                  const cityLocs = customLocations.filter(l => (l.cityId || 'bangkok') === selectedCityId && l.status !== 'blacklist' && !l.locked);
-                  const myDrafts = cityLocs.filter(l => l.addedBy === authUser?.uid);
-                  const otherDrafts = cityLocs.length - myDrafts.length;
-                  return (
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <button
-                      onClick={() => {
-                        if (myDrafts.length === 0) { showToast(t('settings.noDrafts'), 'info'); return; }
-                        showConfirm(`${t('settings.approveMyConfirm') || 'לאשר'} ${myDrafts.length} ${t('settings.myDrafts') || 'טיוטות שלי'}?`, () => {
-                          let count = 0;
-                          myDrafts.forEach(loc => {
-                            if (loc.firebaseId && isFirebaseAvailable && database) {
-                              saveLocationLocked(selectedCityId, loc.firebaseId, true);
-                              count++;
-                            }
-                          });
-                          setCustomLocations(prev => prev.map(l => myDrafts.find(d => d.name === l.name) ? {...l, locked: true} : l));
-                          showToast(`✅ ${count} ${t('settings.approved')}`, 'success');
-                        });
-                      }}
-                      disabled={myDrafts.length === 0}
-                      className={`flex-1 py-2 px-3 rounded-lg font-bold text-sm transition ${myDrafts.length > 0 ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                    >
-                      {`👤 ${t('settings.myDraftsBtn') || 'שלי'} (${myDrafts.length})`}
-                    </button>
-                    {true && (
-                    <button
-                      onClick={() => {
-                        if (cityLocs.length === 0) { showToast(t('settings.noDrafts'), 'info'); return; }
-                        showConfirm(`${t('settings.approveAllConfirm') || 'לאשר'} ${cityLocs.length} ${t('settings.allDrafts') || 'טיוטות'}? (${myDrafts.length} ${t('settings.mine') || 'שלי'} + ${otherDrafts} ${t('settings.others') || 'אחרים'})`, () => {
-                          let count = 0;
-                          cityLocs.forEach(loc => {
-                            if (loc.firebaseId && isFirebaseAvailable && database) {
-                              saveLocationLocked(selectedCityId, loc.firebaseId, true);
-                              count++;
-                            }
-                          });
-                          setCustomLocations(prev => prev.map(l => cityLocs.find(d => d.name === l.name) ? {...l, locked: true} : l));
-                          showToast(`✅ ${count} ${t('settings.approved')}`, 'success');
-                        });
-                      }}
-                      disabled={cityLocs.length === 0}
-                      className={`flex-1 py-2 px-3 rounded-lg font-bold text-sm transition ${cityLocs.length > 0 ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
-                    >
-                      {`👑 ${t('settings.allDraftsBtn') || 'הכל'} (${cityLocs.length})`}
-                    </button>
-                    )}
+            {/* Bulk Approve Drafts — per-city scrollable list, editor/admin only */}
+            {isUnlocked && (() => {
+              const allCities = Object.values(window.BKK.cities || {});
+              const approveDrafts = (cityId, drafts, label) => {
+                if (drafts.length === 0) { showToast(t('settings.noDrafts'), 'info'); return; }
+                showConfirm(`${t('settings.approveConfirmPrefix') || 'Approve'} ${drafts.length} ${label}?`, () => {
+                  let count = 0;
+                  drafts.forEach(loc => {
+                    if (loc.firebaseId && isFirebaseAvailable && database) {
+                      saveLocationLocked(cityId, loc.firebaseId, true);
+                      count++;
+                    }
+                  });
+                  const ids = new Set(drafts.map(d => d.firebaseId));
+                  setCustomLocations(prev => prev.map(l => ids.has(l.firebaseId) ? {...l, locked: true} : l));
+                  showToast(`✅ ${count} ${t('settings.approved')}`, 'success');
+                });
+              };
+              return (
+              <div className="mb-3">
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-400 rounded-xl p-3">
+                  <h3 className="text-base font-bold text-gray-800 mb-1">{`✅ ${t('settings.bulkApprove')}`}</h3>
+                  <p className="text-xs text-gray-600 mb-2">{t('settings.bulkApproveAllCitiesDesc') || 'Approve draft locations per city'}</p>
+                  <div style={{ maxHeight: '40vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', padding: '2px' }}>
+                    {allCities.map(city => {
+                      const cityLocs = customLocations.filter(l => (l.cityId || 'bangkok') === city.id && l.status !== 'blacklist' && !l.locked);
+                      const myDrafts = cityLocs.filter(l => l.addedBy === authUser?.uid);
+                      const totalDrafts = cityLocs.length;
+                      const mineCount = myDrafts.length;
+                      const icon = (typeof city.icon === 'string' && !city.icon.startsWith('data:')) ? city.icon : '📍';
+                      return (
+                        <div key={city.id} style={{ background: 'white', border: '1px solid #d1d5db', borderRadius: '8px', padding: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '18px', flexShrink: 0 }}>{icon}</span>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tLabel(city)}</div>
+                              <div style={{ fontSize: '10px', color: '#6b7280' }}>
+                                {t('settings.mine')}: {mineCount} · {t('settings.total') || 'total'}: {totalDrafts}
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => approveDrafts(city.id, myDrafts, `${t('settings.myDrafts') || 'my drafts'} (${city.nameEn || city.name || city.id})`)}
+                            disabled={mineCount === 0}
+                            title={t('settings.approveMine') || 'Approve mine'}
+                            className={`px-2 py-1 rounded-md font-bold text-xs transition ${mineCount > 0 ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                            style={{ minWidth: '54px', flexShrink: 0 }}
+                          >👤 {mineCount}</button>
+                          <button
+                            onClick={() => approveDrafts(city.id, cityLocs, `${t('settings.allDrafts') || 'drafts'} (${city.nameEn || city.name || city.id})`)}
+                            disabled={totalDrafts === 0}
+                            title={t('settings.approveAll') || 'Approve all'}
+                            className={`px-2 py-1 rounded-md font-bold text-xs transition ${totalDrafts > 0 ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                            style={{ minWidth: '54px', flexShrink: 0 }}
+                          >👑 {totalDrafts}</button>
+                        </div>
+                      );
+                    })}
                   </div>
-                  );
-                })()}
+                </div>
               </div>
-            </div>
-            )}
+              );
+            })()}
 
 
             

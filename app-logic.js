@@ -1688,8 +1688,6 @@
   const [feedbackSenderEmail, setFeedbackSenderEmail] = useState('');
   const [feedbackList, setFeedbackList] = useState([]);
   const [myFeedbackList, setMyFeedbackList] = useState([]); // own feedback for non-admin users
-  const [showFeedbackList, setShowFeedbackList] = useState(false);
-  const [hasNewFeedback, setHasNewFeedback] = useState(false);
   const [feedbackUnreadCount, setFeedbackUnreadCount] = useState(0); // v3.23.16: # threads with unread for this viewer
   const [feedbackSelectedThreadId, setFeedbackSelectedThreadId] = useState(null); // v3.23.16: which thread is open in detail view
   const [feedbackMode, setFeedbackMode] = useState('list'); // v3.23.16: 'list' | 'thread' | 'new'
@@ -4243,14 +4241,12 @@
   // Admin listens on /feedback (nested by uid). Non-admin listens on own slot.
   // Thread shape: { ..., messages: { msgId: {...} }, lastFrom, unreadByUser, unreadByAdmin }
   // Legacy flat entries (pre-v3.23.16) surface with _legacy:true and no messages — read-only.
-  const feedbackCountRef = useRef(null);
   useEffect(() => {
     if (!isFirebaseAvailable || !database) return;
     if (!authUser || authUser.isAnonymous) {
       setFeedbackList([]);
       setMyFeedbackList([]);
       setFeedbackUnreadCount(0);
-      feedbackCountRef.current = 0;
       return;
     }
 
@@ -4299,11 +4295,6 @@
         setMyFeedbackList(arr.filter(f => f.userId === authUser.uid));
         const unread = arr.filter(t => !t._legacy && t.unreadByAdmin === true).length;
         setFeedbackUnreadCount(unread);
-        const prevCount = feedbackCountRef.current;
-        if (prevCount !== null && arr.length > prevCount) {
-          setHasNewFeedback(true);
-        }
-        feedbackCountRef.current = arr.length;
       };
     } else {
       feedbackRef = database.ref(`feedback/${authUser.uid}`);
@@ -4319,11 +4310,6 @@
     feedbackRef.on('value', onValue);
     return () => feedbackRef.off('value', onValue);
   }, [isCurrentUserAdmin, authUser?.uid, authUser?.isAnonymous]);
-
-  const markFeedbackAsSeen = () => {
-    localStorage.setItem('foufou_last_seen_feedback', String(Date.now()));
-    setHasNewFeedback(false);
-  };
 
   // Config - loaded from config.js, re-read on city change via selectedCityId dependency
   // interestOptions: now sourced from customInterests (Firebase) — city files no longer carry interests
