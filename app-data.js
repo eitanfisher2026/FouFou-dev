@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.24
+// FouFou app-data.js v3.23.25
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -802,6 +802,8 @@ toast: {
   addressSearchError: 'שגיאה בחיפוש כתובת',
   routeSaveError: 'שגיאה בשמירת מסלול',
   routeSavedAs: 'נשמר בשם ״{0}״',
+  routeCapReached: '⚠️ יש לך {0}/{1} נתיבים שמורים בעיר הזו. יש למחוק נתיב קיים לפני שמירה נוספת.',
+  routePublicCapReached: '⚠️ יש לך {0}/{1} נתיבים ציבוריים בעיר הזו. יש לבטל שיתוף של אחד כדי לשתף נתיב נוסף.',
   imageUploadError: 'שגיאה בהעלאת התמונה',
   uploadingImage: 'מעלה תמונה...',
   imageUploaded: 'התמונה הועלתה בהצלחה',
@@ -1151,6 +1153,10 @@ help: {
     tabTitle: 'פרמטרים',
     title: 'פרמטרי מערכת (אלגוריתם)',
     subtitle: 'ערכים אלה משפיעים על חיפוש, בניית מסלול ותיעדוף.',
+    maxRoutesPerUserPerCity: 'מקסימום נתיבים שמורים למשתמש (לכל עיר)',
+    maxRoutesPerUserPerCityDesc: 'תקרה על מספר הנתיבים השמורים שמשתמש רגיל יכול לשמור בעיר אחת. מנהלים חורגים מהתקרה. ברירת מחדל: 50',
+    maxPublicRoutesPerUserPerCity: 'מקסימום נתיבים ציבוריים למשתמש (לכל עיר)',
+    maxPublicRoutesPerUserPerCityDesc: 'תקרה על מספר הנתיבים הציבוריים שמשתמש רגיל יכול לשתף בעיר אחת. מנהלים חורגים מהתקרה. ברירת מחדל: 10',
     sectionApp: 'הגדרות אפליקציה',
     sectionDedup: 'זיהוי כפילויות',
     sectionAlgo: 'אלגוריתם מסלול',
@@ -1991,6 +1997,8 @@ toast: {
   addressSearchError: 'Address search error',
   routeSaveError: 'Route save error',
   routeSavedAs: 'Saved as "{0}"',
+  routeCapReached: '⚠️ You have {0}/{1} saved trails in this city. Delete one before saving another.',
+  routePublicCapReached: '⚠️ You have {0}/{1} public trails in this city. Unshare one to make another public.',
   imageUploadError: 'Image upload error',
   uploadingImage: 'Uploading image...',
   imageUploaded: 'Image uploaded successfully',
@@ -2336,6 +2344,10 @@ help: {
     tabTitle: 'Parameters',
     title: 'System Parameters (Algorithm)',
     subtitle: 'These values affect search, route building, and prioritization.',
+    maxRoutesPerUserPerCity: 'Max saved trails per user (per city)',
+    maxRoutesPerUserPerCityDesc: 'Cap on total saved trails a non-admin user can store in a single city. Admins bypass. Default: 50',
+    maxPublicRoutesPerUserPerCity: 'Max public trails per user (per city)',
+    maxPublicRoutesPerUserPerCityDesc: 'Cap on public (locked) trails a non-admin user can share in a single city. Admins bypass. Default: 10',
     sectionApp: 'App Settings',
     sectionDedup: 'Duplicate Detection',
     sectionAlgo: 'Route Algorithm',
@@ -3592,7 +3604,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.24';
+window.BKK.VERSION = '3.23.25';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));

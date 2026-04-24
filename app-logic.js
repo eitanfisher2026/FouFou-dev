@@ -967,6 +967,9 @@
       googleTextRankPreference: 'RELEVANCE',
       // System alerts — how often to send automated system feedback (hours)
       systemAlertIntervalHours: 1,
+      // v3.23.25: per-user saved-routes caps (per city). Admins bypass both.
+      maxRoutesPerUserPerCity: 50,
+      maxPublicRoutesPerUserPerCity: 10,
       // GPS timeout (ms) — max time to wait for a device GPS reading before giving up.
       // Used by both the proactive prefetch on wizard step 3 and the click-time fallback
       // on "Open in Google Maps". Most modern devices return a fix within a second or
@@ -7435,8 +7438,20 @@
   };
 
   const quickSaveRoute = () => {
+    // v3.23.25: per-city cap on total saved routes per user (admins bypass)
+    if (!isRealAdmin && authUser?.uid) {
+      const sp = window.BKK.systemParams || window.BKK._defaultSystemParams || {};
+      const maxTotal = sp.maxRoutesPerUserPerCity ?? 50;
+      const { total } = countUserRoutesInCity(selectedCityId, authUser.uid);
+      if (total >= maxTotal) {
+        showToast((t('toast.routeCapReached') || 'You have {0}/{1} saved trails in this city. Delete some to save more.')
+          .replace('{0}', total).replace('{1}', maxTotal), 'warning', 'sticky');
+        return;
+      }
+    }
+
     const name = route.defaultName || route.name || `Route ${Date.now()}`;
-    
+
     const routeToSave = {
       ...route,
       name: name,
@@ -7501,6 +7516,22 @@
   };
 
   const updateRoute = (routeId, updates) => {
+    // v3.23.25: block public-cap violations when a non-admin user flips locked false→true
+    if (!isRealAdmin && updates && updates.locked === true && authUser?.uid) {
+      const existing = (savedRoutes || []).find(r => r.id === routeId);
+      const wasLocked = existing?.locked === true;
+      if (!wasLocked && existing?.savedBy === authUser.uid) {
+        const sp = window.BKK.systemParams || window.BKK._defaultSystemParams || {};
+        const maxPublic = sp.maxPublicRoutesPerUserPerCity ?? 10;
+        const cityId = existing.cityId || selectedCityId;
+        const { publicCount } = countUserRoutesInCity(cityId, authUser.uid);
+        if (publicCount >= maxPublic) {
+          showToast((t('toast.routePublicCapReached') || 'You have {0}/{1} public trails in this city. Unshare one to make another public.')
+            .replace('{0}', publicCount).replace('{1}', maxPublic), 'warning', 'sticky');
+          return;
+        }
+      }
+    }
     if (isFirebaseAvailable && database) {
       const routeToUpdate = savedRoutes.find(r => r.id === routeId);
       if (routeToUpdate && routeToUpdate.firebaseId) {
@@ -7555,6 +7586,17 @@
     window.scrollTo(0, 0);
   };
 
+  // v3.23.25: count how many routes the current user owns in a given city.
+  // Used to enforce maxRoutesPerUserPerCity / maxPublicRoutesPerUserPerCity.
+  // Admins bypass the cap check; the caller gates on `isRealAdmin` before calling enforcement.
+  const countUserRoutesInCity = (cityId, uid) => {
+    const rs = (savedRoutes || []).filter(r => {
+      const rc = r.cityId || 'bangkok';
+      return rc === cityId && r.savedBy === uid;
+    });
+    return { total: rs.length, publicCount: rs.filter(r => r.locked === true).length };
+  };
+
   // v3.23.24: overwrite the currently-loaded saved route in Firebase. Only valid when
   // the user owns the route (savedBy === auth.uid) and it has a firebaseId.
   const updateCurrentRoute = () => {
@@ -7605,6 +7647,17 @@
     if (!route) return;
     if (!authUser || authUser.isAnonymous) { showToast(t('auth.signInToSave') || t('auth.saveLoginRequired'), 'warning'); return; }
     if (!isFirebaseAvailable || !database) { showToast(t('toast.firebaseUnavailable') || 'Firebase unavailable', 'error'); return; }
+    // v3.23.25: per-city cap on total saved routes per user (admins bypass)
+    if (!isRealAdmin) {
+      const sp = window.BKK.systemParams || window.BKK._defaultSystemParams || {};
+      const maxTotal = sp.maxRoutesPerUserPerCity ?? 50;
+      const { total } = countUserRoutesInCity(selectedCityId, authUser.uid);
+      if (total >= maxTotal) {
+        showToast((t('toast.routeCapReached') || 'You have {0}/{1} saved trails in this city. Delete some to save more.')
+          .replace('{0}', total).replace('{1}', maxTotal), 'warning', 'sticky');
+        return;
+      }
+    }
     const finalName = makeUniqueRouteName(chosenName);
     if (!finalName) { showToast(t('route.nameRequired') || 'Name required', 'warning'); return; }
     const routeToSave = {
