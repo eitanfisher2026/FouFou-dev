@@ -2564,8 +2564,8 @@
         const isAnon = !authUser || authUser.isAnonymous;
         if (isAnon) {
           return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center p-0 sm:p-4" style={{ zIndex: 10300 }}>
-              <div className="bg-white rounded-t-2xl sm:rounded-xl w-full max-w-md shadow-2xl" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-0 sm:p-4 sm:pt-6" style={{ zIndex: 10300 }}>
+              <div className="bg-white rounded-b-2xl sm:rounded-xl w-full max-w-md shadow-2xl" style={{ display: 'flex', flexDirection: 'column' }}>
                 <div className="bg-gradient-to-r from-slate-600 to-slate-700 text-white p-3 rounded-t-2xl sm:rounded-t-xl flex justify-between items-center">
                   <h3 className="text-base font-bold">{`💬 ${t("settings.sendFeedback")}`}</h3>
                   <button onClick={() => { setShowFeedbackDialog(false); }} className="text-white opacity-70 hover:opacity-100 text-xl leading-none">✕</button>
@@ -2602,8 +2602,8 @@
         const handleClose = () => { setShowFeedbackDialog(false); setFeedbackMode('list'); setFeedbackSelectedThreadId(null); };
 
         return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center p-0 sm:p-4" style={{ zIndex: 10300 }}>
-          <div className="bg-white rounded-t-2xl sm:rounded-xl w-full max-w-md shadow-2xl" style={{ maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-0 sm:p-4 sm:pt-6" style={{ zIndex: 10300 }}>
+          <div className="bg-white rounded-b-2xl sm:rounded-xl w-full max-w-md shadow-2xl" style={{ maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
             <div className="bg-gradient-to-r from-slate-600 to-slate-700 text-white p-3 rounded-t-2xl sm:rounded-t-xl flex items-center gap-2">
               {feedbackMode !== 'list' && (
                 <button onClick={goBack} className="text-white opacity-80 hover:opacity-100 text-lg leading-none" style={{ padding: '0 4px' }}>‹</button>
@@ -2717,55 +2717,51 @@
                   })}
                 </div>
 
-                {/* Composer / turn indicator */}
-                {!selectedThread._legacy && (
-                  <div style={{ borderTop: '1px solid #e5e7eb', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {threadFull ? (
-                      <div style={{ fontSize: '11px', color: '#b91c1c', textAlign: 'center' }}>{t('feedback.threadFull') || 'Conversation full (10/10) — end it or start a new one'}</div>
-                    ) : isMyTurn ? (
-                      <>
-                        <textarea value={feedbackText}
-                          onChange={(e) => setFeedbackText(e.target.value)}
-                          placeholder={t('feedback.replyHere') || 'Reply here...'}
-                          rows={2}
-                          maxLength={3000}
-                          style={{ width: '100%', padding: '8px 10px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', resize: 'none', outline: 'none', boxSizing: 'border-box', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', fontFamily: 'inherit' }}
-                        />
-                        <button onClick={() => { replyToFeedbackThread(selectedThread, feedbackText, myRole); setFeedbackText(''); }}
-                          disabled={!feedbackText.trim()}
-                          style={{ padding: '8px 12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: feedbackText.trim() ? 'pointer' : 'not-allowed', background: feedbackText.trim() ? '#3b82f6' : '#e5e7eb', color: feedbackText.trim() ? 'white' : '#9ca3af', border: 'none' }}>
-                          📨 {t('settings.send')}
-                        </button>
-                      </>
-                    ) : (
-                      <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center', fontStyle: 'italic' }}>
-                        {myRole === 'user' ? (t('feedback.waitingForAdmin') || 'Waiting for admin reply…') : (t('feedback.waitingForUser') || 'Waiting for user reply…')}
-                      </div>
+                {/* Composer / turn indicator + action row */}
+                <div style={{ borderTop: '1px solid #e5e7eb', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selectedThread._legacy ? null : threadFull ? (
+                    <div style={{ fontSize: '11px', color: '#b91c1c', textAlign: 'center' }}>{t('feedback.threadFull') || 'Conversation full (10/10) — end it or start a new one'}</div>
+                  ) : isMyTurn ? (
+                    <textarea value={feedbackText}
+                      onChange={(e) => setFeedbackText(e.target.value)}
+                      placeholder={t('feedback.replyHere') || 'Reply here...'}
+                      rows={2}
+                      maxLength={3000}
+                      style={{ width: '100%', padding: '8px 10px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', resize: 'none', outline: 'none', boxSizing: 'border-box', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', fontFamily: 'inherit' }}
+                    />
+                  ) : (
+                    <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center', fontStyle: 'italic' }}>
+                      {myRole === 'user' ? (t('feedback.waitingForAdmin') || 'Waiting for admin reply…') : (t('feedback.waitingForUser') || 'Waiting for user reply…')}
+                    </div>
+                  )}
+                  {/* Button row — auto-reverses in RTL so Send sits on the natural "forward" side */}
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch', flexDirection: window.BKK.i18n.isRTL() ? 'row-reverse' : 'row' }}>
+                    {!selectedThread._legacy && isMyTurn && !threadFull && (
+                      <button onClick={() => { replyToFeedbackThread(selectedThread, feedbackText, myRole); setFeedbackText(''); }}
+                        disabled={!feedbackText.trim()}
+                        style={{ flex: 2, padding: '11px 12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px',
+                          cursor: feedbackText.trim() ? 'pointer' : 'not-allowed',
+                          background: feedbackText.trim() ? '#16a34a' : '#e5e7eb',
+                          color: feedbackText.trim() ? 'white' : '#9ca3af', border: 'none' }}>
+                        📨 {t('settings.send')}
+                      </button>
                     )}
+                    <button onClick={handleClose}
+                      style={{ flex: 1, padding: '11px 10px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', cursor: 'pointer' }}>
+                      {t('general.close') || 'Close'}
+                    </button>
                     <button onClick={() => {
                       showConfirm(
                         t('feedback.endConversationConfirm') || 'End conversation? This deletes it for both sides.',
                         () => { endFeedbackConversation(selectedThread); goBack(); },
                         { confirmLabel: t('feedback.endConversation') || 'End conversation', confirmColor: '#ef4444' }
                       );
-                    }} style={{ padding: '6px 10px', borderRadius: '8px', fontSize: '11px', background: 'transparent', color: '#dc2626', border: '1px solid #fca5a5', cursor: 'pointer' }}>
-                      🗑️ {t('feedback.endConversation') || 'End conversation'}
+                    }} title={t('feedback.endConversation') || 'End conversation'}
+                    style={{ flexShrink: 0, padding: '8px 10px', borderRadius: '8px', fontSize: '13px', background: 'transparent', color: '#dc2626', border: '1px solid #fca5a5', cursor: 'pointer', minWidth: '40px' }}>
+                      🗑️
                     </button>
                   </div>
-                )}
-                {selectedThread._legacy && (
-                  <div style={{ borderTop: '1px solid #e5e7eb', padding: '10px 12px' }}>
-                    <button onClick={() => {
-                      showConfirm(
-                        t('feedback.endConversationConfirm') || 'End conversation? This deletes it for both sides.',
-                        () => { endFeedbackConversation(selectedThread); goBack(); },
-                        { confirmLabel: t('feedback.endConversation') || 'End conversation', confirmColor: '#ef4444' }
-                      );
-                    }} style={{ width: '100%', padding: '8px', borderRadius: '8px', fontSize: '12px', background: 'transparent', color: '#dc2626', border: '1px solid #fca5a5', cursor: 'pointer' }}>
-                      🗑️ {t('feedback.endConversation') || 'End conversation'}
-                    </button>
-                  </div>
-                )}
+                </div>
               </>);
             })()}
 
@@ -2790,12 +2786,13 @@
                 <input type="text" value={feedbackSubject}
                   onChange={(e) => setFeedbackSubject(e.target.value)}
                   placeholder={t('settings.feedbackSubject') || 'Subject'}
+                  autoFocus
                   style={{ width: '100%', padding: '8px 10px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', fontFamily: 'inherit' }} />
                 {/* Text */}
                 <textarea value={feedbackText}
                   onChange={(e) => setFeedbackText(e.target.value)}
                   placeholder={t('settings.feedbackPlaceholder')}
-                  rows={5} autoFocus
+                  rows={5}
                   maxLength={3000}
                   style={{ width: '100%', padding: '10px', border: '2px solid #e5e7eb', borderRadius: '10px', fontSize: '13px', resize: 'none', outline: 'none', lineHeight: '1.5', boxSizing: 'border-box', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', wordBreak: 'break-word', fontFamily: 'inherit' }} />
                 {/* Single image */}
@@ -2822,20 +2819,26 @@
                     </label>
                   )}
                 </div>
-                {/* Send */}
-                <button onClick={() => {
-                  const key = openFeedbackThread({ subject: feedbackSubject, category: feedbackCategory, text: feedbackText, image: feedbackImages[0] || null });
-                  if (key) {
-                    setFeedbackText(''); setFeedbackSubject(''); setFeedbackImages([]);
-                    setFeedbackSelectedThreadId(key);
-                    setFeedbackMode('thread');
-                  }
-                }} disabled={!feedbackText.trim()}
-                  style={{ width: '100%', padding: '12px', borderRadius: '10px', fontWeight: 'bold', fontSize: '14px', cursor: feedbackText.trim() ? 'pointer' : 'not-allowed',
-                    background: feedbackText.trim() ? '#3b82f6' : '#e5e7eb',
-                    color: feedbackText.trim() ? 'white' : '#9ca3af', border: 'none' }}>
-                  📨 {t('settings.send')}
-                </button>
+                {/* Action row — auto-reverses in RTL */}
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch', flexDirection: window.BKK.i18n.isRTL() ? 'row-reverse' : 'row' }}>
+                  <button onClick={() => {
+                    const key = openFeedbackThread({ subject: feedbackSubject, category: feedbackCategory, text: feedbackText, image: feedbackImages[0] || null });
+                    if (key) {
+                      setFeedbackText(''); setFeedbackSubject(''); setFeedbackImages([]);
+                      setFeedbackSelectedThreadId(key);
+                      setFeedbackMode('thread');
+                    }
+                  }} disabled={!feedbackText.trim()}
+                    style={{ flex: 2, padding: '11px 12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', cursor: feedbackText.trim() ? 'pointer' : 'not-allowed',
+                      background: feedbackText.trim() ? '#16a34a' : '#e5e7eb',
+                      color: feedbackText.trim() ? 'white' : '#9ca3af', border: 'none' }}>
+                    📨 {t('settings.send')}
+                  </button>
+                  <button onClick={handleClose}
+                    style={{ flex: 1, padding: '11px 10px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', cursor: 'pointer' }}>
+                    {t('general.close') || 'Close'}
+                  </button>
+                </div>
               </div>
             )}
 
