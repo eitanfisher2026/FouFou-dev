@@ -3198,7 +3198,12 @@
                             showToast(tLabel(city) + (newActive ? ' ✓' : ' ✗'), 'info');
                           }} style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: isActive ? '#dcfce7' : '#fee2e2', color: isActive ? '#16a34a' : '#ef4444', fontWeight: 'bold' }}
                           >{isActive ? `▶️ ${t('general.active')}` : `⏸️ ${t('general.inactive')}`}</button>
-                          <button onClick={() => { window.BKK.exportCityFile(city); showToast(`📥 city-${city.id}.js`, 'success'); setCityModified(false); }}
+                          <button onClick={() => {
+                              window.BKK.exportCityFile(city);
+                              const reg = window.BKK.cityRegistry || {};
+                              let key = city.id; for (const k in reg) { if (reg[k]?.id === city.id) { key = k; break; } }
+                              showToast(`📥 city-${key}.js`, 'success'); setCityModified(false);
+                            }}
                             style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '6px', border: '1px solid #d1d5db', cursor: 'pointer', background: 'white', color: '#6b7280' }}
                           >📥 {t('settings.exportCity')}</button>
                           {Object.keys(window.BKK.cities || {}).length > 1 && (
@@ -3279,9 +3284,14 @@
                 {cityModified && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', padding: '6px 10px', background: '#fef3c7', borderRadius: '8px', border: '1px solid #fcd34d' }}>
                     <span style={{ fontSize: '11px', color: '#92400e', fontWeight: 'bold' }}>⚠️ {t('settings.unsavedChanges')}</span>
-                    <button onClick={() => { 
+                    <button onClick={() => {
                       const city = window.BKK.selectedCity;
-                      if (city) { window.BKK.exportCityFile(city); showToast(`📥 city-${city.id}.js`, 'success'); setCityModified(false); }
+                      if (city) {
+                        window.BKK.exportCityFile(city);
+                        const reg = window.BKK.cityRegistry || {};
+                        let key = city.id; for (const k in reg) { if (reg[k]?.id === city.id) { key = k; break; } }
+                        showToast(`📥 city-${key}.js`, 'success'); setCityModified(false);
+                      }
                     }} style={{ fontSize: '10px', padding: '3px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer', background: '#f59e0b', color: 'white', fontWeight: 'bold' }}
                     >📥 {t('settings.exportCity')}</button>
                   </div>

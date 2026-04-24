@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.25
+// FouFou app-data.js v3.23.26
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -3061,140 +3061,6 @@ window.BKK.seedSystemRoutes = function(database) {
   });
 };
 
-// City data: Tel Aviv
-window.BKK.cityData = window.BKK.cityData || {};
-window.BKK.cityData.gushdan = {
-  "id": "gushdan",
-  "name": "תל אביב",
-  "nameEn": "Tel Aviv",
-  "country": "Israel",
-  "icon": "🏖️",
-  "theme": {
-    "color": "#2980b9",
-    "iconLeft": "",
-    "iconRight": ""
-  },
-  "active": true,
-  "distanceMultiplier": 1.2,
-  "dayStartHour": 7,
-  "nightStartHour": 18,
-  "center": {
-    "lat": 32.0418,
-    "lng": 34.8761
-  },
-  "allCityRadius": 15000,
-  "areas": [
-    {
-      "id": "tlv-north",
-      "label": "צפון תל אביב",
-      "labelEn": "North Tel Aviv",
-      "desc": "הנמל, פארק הירקון, בזל",
-      "descEn": "Port, Yarkon Park, Basel",
-      "lat": 32.1111,
-      "lng": 34.804,
-      "radius": 3400,
-      "size": "large",
-      "safety": "safe"
-    },
-    {
-      "id": "tlv-center",
-      "label": "מרכז תל אביב",
-      "labelEn": "Central Tel Aviv",
-      "desc": "רוטשילד, דיזנגוף, הבימה",
-      "descEn": "Rothschild, Dizengoff, Habima",
-      "lat": 32.0803,
-      "lng": 34.7779,
-      "radius": 2000,
-      "size": "large",
-      "safety": "safe"
-    },
-    {
-      "id": "tlv-south",
-      "label": "דרום ת\"א ויפו",
-      "labelEn": "South TLV & Jaffa",
-      "desc": "שוק הפשפשים, נמל יפו, פלורנטין",
-      "descEn": "Flea market, Jaffa port, Florentin",
-      "lat": 32.0523,
-      "lng": 34.7621,
-      "radius": 2200,
-      "size": "large",
-      "safety": "caution"
-    },
-    {
-      "id": "holon",
-      "label": "חולון",
-      "labelEn": "Holon",
-      "desc": "מוזיאון הילדים, עיצוב, פארקים",
-      "descEn": "Children museum, design, parks",
-      "lat": 32.0148,
-      "lng": 34.7872,
-      "radius": 2500,
-      "size": "large",
-      "safety": "safe"
-    },
-    {
-      "id": "bat-yam",
-      "label": "בת ים",
-      "labelEn": "Bat Yam",
-      "desc": "חוף, טיילת, אוכל",
-      "descEn": "Beach, boardwalk, food",
-      "lat": 32.0162,
-      "lng": 34.741,
-      "radius": 2200,
-      "size": "medium",
-      "safety": "safe"
-    },
-    {
-      "id": "petah-tikva",
-      "label": "פתח תקווה",
-      "labelEn": "Petah Tikva",
-      "desc": "מסעדות, פארקים, קניונים",
-      "descEn": "Restaurants, parks, malls",
-      "lat": 32.1047,
-      "lng": 34.8843,
-      "radius": 4100,
-      "size": "large",
-      "safety": "safe"
-    },
-    {
-      "id": "herzliya",
-      "label": "הרצליה",
-      "labelEn": "Herzliya",
-      "desc": "מרינה, חופים, הייטק",
-      "descEn": "Marina, beaches, hi-tech",
-      "lat": 32.1564,
-      "lng": 34.8294,
-      "radius": 3700,
-      "size": "large",
-      "safety": "safe"
-    },
-    {
-      "id": "ramat-gan",
-      "label": "רמת גן וגבעתיים",
-      "labelEn": "Ramat Gan & Givatayim",
-      "desc": "הבורסה, ספארי, פארקים",
-      "lat": 32.0546,
-      "lng": 34.815,
-      "radius": 2800,
-      "size": "large",
-      "safety": "safe"
-    },
-    {
-      "id": "bnei-brak",
-      "label": "בני ברק",
-      "labelEn": "Bnei Brak",
-      "desc": "שווקים, אוכל, תרבות חרדית",
-      "descEn": "Markets, food, ultra-orthodox culture",
-      "lat": 32.0861,
-      "lng": 34.8335,
-      "radius": 1200,
-      "size": "medium",
-      "safety": "safe"
-    }
-  ],
-  "systemRoutes": []
-};
-
 // City data: Malaga
 window.BKK.cityData = window.BKK.cityData || {};
 window.BKK.cityData.malaga = {
@@ -3604,7 +3470,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.25';
+window.BKK.VERSION = '3.23.26';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -3696,6 +3562,11 @@ window.BKK.unloadCity = function(cityId) {
  */
 window.BKK.exportCityFile = function(city) {
   var cityId = city.id;
+  var registryKey = cityId;
+  var reg = window.BKK.cityRegistry || {};
+  for (var k in reg) {
+    if (reg[k] && reg[k].id === cityId) { registryKey = k; break; }
+  }
   var cleanCity = JSON.parse(JSON.stringify(city));
   if (cleanCity.icon && cleanCity.icon.startsWith('data:')) cleanCity.icon = '📍';
   if (cleanCity.theme) {
@@ -3706,13 +3577,13 @@ window.BKK.exportCityFile = function(city) {
   lines.push('// City data: ' + city.nameEn);
   lines.push('window.BKK.cityData = window.BKK.cityData || {};');
   lines.push('window.BKK.cityData.' + cityId + ' = ' + JSON.stringify(cleanCity, null, 2) + ';');
-  
+
   var content = lines.join('\n') + '\n';
   var blob = new Blob([content], { type: 'text/javascript' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = 'city-' + cityId + '.js';
+  a.download = 'city-' + registryKey + '.js';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

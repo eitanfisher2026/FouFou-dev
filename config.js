@@ -57,7 +57,7 @@ window.BKK.mapConfig = {
 })();
 
 // App Version
-window.BKK.VERSION = '3.23.25';
+window.BKK.VERSION = '3.23.26';
 // Convert stop index (0-based) to letter label: 0→A, 1→B, ..., 25→Z, 26→AA
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
@@ -162,6 +162,14 @@ window.BKK.unloadCity = function(cityId) {
  */
 window.BKK.exportCityFile = function(city) {
   var cityId = city.id;
+  // v3.23.26: prefer the registry KEY for the filename, falling back to id.
+  // Lets legacy ids (e.g. "gushdan") export as the modern filename ("city-telaviv.js")
+  // so the export matches the file actually loaded by cityRegistry.
+  var registryKey = cityId;
+  var reg = window.BKK.cityRegistry || {};
+  for (var k in reg) {
+    if (reg[k] && reg[k].id === cityId) { registryKey = k; break; }
+  }
   // Strip data: URLs before saving to file — they belong in Firebase/theme, not in city files
   // Data URLs make city files huge and cause display bugs
   var cleanCity = JSON.parse(JSON.stringify(city));
@@ -173,19 +181,20 @@ window.BKK.exportCityFile = function(city) {
   var lines = [];
   lines.push('// City data: ' + city.nameEn);
   lines.push('window.BKK.cityData = window.BKK.cityData || {};');
+  // Inner assignment still uses the id so existing Firebase data under cities/{id} keeps working
   lines.push('window.BKK.cityData.' + cityId + ' = ' + JSON.stringify(cleanCity, null, 2) + ';');
-  
+
   var content = lines.join('\n') + '\n';
   var blob = new Blob([content], { type: 'text/javascript' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = 'city-' + cityId + '.js';
+  a.download = 'city-' + registryKey + '.js';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  console.log('[CONFIG] Exported city file: city-' + cityId + '.js');
+  console.log('[CONFIG] Exported city file: city-' + registryKey + '.js');
 };
 
 /**
