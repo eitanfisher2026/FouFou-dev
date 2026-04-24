@@ -3887,7 +3887,6 @@
             </div>
             )}
 
-            )}
             {/* Bulk Approve Drafts — per-city scrollable list, editor/admin only */}
             {isUnlocked && (() => {
               const allCities = Object.values(window.BKK.cities || {});
