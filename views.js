@@ -2095,13 +2095,33 @@
                             },
                             disabled: !route?.optimized || !!route.name || isOthersRoute };
                         })(),
-                      ].map((item, idx) => (
+                        // v3.23.23: Save as new — signed-in users only, always available for any loaded route
+                        (authUser && !authUser.isAnonymous && route?.optimized) ? {
+                          icon: '📋',
+                          label: t('route.saveAsNew') || 'Save as new',
+                          action: () => {
+                            setShowRouteMenu(false);
+                            setSaveAsNewName(`${route.name || route.defaultName || t('route.myRoute') || 'Route'} - ${t('general.copy') || 'copy'}`);
+                            setShowSaveAsNewDialog(true);
+                          }
+                        } : null,
+                        // v3.23.23: Back to Saved Trails — only shown when user arrived via a saved route
+                        (routeOpenedFromId || route?.firebaseId) ? {
+                          icon: '‹',
+                          label: t('route.backToSavedList') || 'Saved Trails',
+                          action: () => {
+                            setShowRouteMenu(false);
+                            setFocusRouteId(routeOpenedFromId || route?.firebaseId || null);
+                            setCurrentView('saved');
+                          }
+                        } : null,
+                      ].filter(Boolean).map((item, idx, arr) => (
                         <button
                           key={idx}
                           onClick={item.action}
                           disabled={item.disabled}
                           style={{
-                            width: '100%', padding: '10px 14px', border: 'none', borderBottom: idx < 4 ? '1px solid #f3f4f6' : 'none',
+                            width: '100%', padding: '10px 14px', border: 'none', borderBottom: idx < arr.length - 1 ? '1px solid #f3f4f6' : 'none',
                             background: 'white', cursor: item.disabled ? 'default' : 'pointer',
                             display: 'flex', alignItems: 'center', gap: '10px',
                             fontSize: '13px', fontWeight: '500', color: item.disabled ? '#9ca3af' : '#374151',
@@ -2453,8 +2473,9 @@
                           </div>
                         )}
                         <div
+                          data-route-fbid={savedRoute.firebaseId || ''}
                           className={`flex items-center justify-between gap-2 rounded-lg p-2 border cursor-pointer ${savedRoute.system ? 'border-amber-200 bg-amber-50 hover:bg-amber-100' : 'border-gray-200 bg-white hover:bg-blue-50'}`}
-                          style={{ overflow: 'hidden' }}
+                          style={{ overflow: 'hidden', ...(focusRouteId && focusRouteId === savedRoute.firebaseId ? { outline: '3px solid #fbbf24', background: '#fef3c7', transition: 'outline 0.3s, background 0.3s' } : {}) }}
                           onClick={() => loadSavedRoute(savedRoute)}
                         >
                           <div className="flex-1 min-w-0">

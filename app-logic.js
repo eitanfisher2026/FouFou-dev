@@ -779,6 +779,13 @@
 
   const [customLocations, setCustomLocations] = useState([]);
   const [savedRoutes, setSavedRoutes] = useState([]);
+  // v3.23.23: track source when a saved route is loaded into the editor (for "Back to Saved Trails" focus)
+  const [routeOpenedFromId, setRouteOpenedFromId] = useState(null);
+  // v3.23.23: when set, the Saved Trails list scrolls + highlights that route on mount
+  const [focusRouteId, setFocusRouteId] = useState(null);
+  // v3.23.23: Save-as-new dialog state
+  const [showSaveAsNewDialog, setShowSaveAsNewDialog] = useState(false);
+  const [saveAsNewName, setSaveAsNewName] = useState('');
   const [pendingLocations, setPendingLocations] = useState([]);
   const [pendingInterests, setPendingInterests] = useState([]);
   const [locationsLoading, setLocationsLoading] = useState(true);
@@ -7395,24 +7402,30 @@
     });
   };
 
-  // Strip heavy data (base64 images) from route before save - keep Storage URLs
+  // Strip heavy data (base64 images) from route before save — keep Storage URLs.
+  // v3.23.23: also filter out trailSkipped stops — skipped stops are runtime-only and
+  // should not persist on saved routes (matches the share-route behaviour).
   const stripRouteForStorage = (r) => {
     const stripped = { ...r };
     if (stripped.stops) {
-      stripped.stops = stripped.stops.map(s => {
-        const clean = { ...s };
-        // Remove base64 images
-        if (clean.uploadedImage && clean.uploadedImage.startsWith('data:')) {
-          delete clean.uploadedImage;
-        }
-        // Remove large Firebase Storage URLs from stops (they're in customLocations)
-        if (clean.uploadedImage && clean.uploadedImage.length > 200) {
-          delete clean.uploadedImage;
-        }
-        // Remove imageUrls array from stops (they're in customLocations)
-        delete clean.imageUrls;
-        return clean;
-      });
+      stripped.stops = stripped.stops
+        .filter(s => !s.trailSkipped)
+        .map(s => {
+          const clean = { ...s };
+          // Remove base64 images
+          if (clean.uploadedImage && clean.uploadedImage.startsWith('data:')) {
+            delete clean.uploadedImage;
+          }
+          // Remove large Firebase Storage URLs from stops (they're in customLocations)
+          if (clean.uploadedImage && clean.uploadedImage.length > 200) {
+            delete clean.uploadedImage;
+          }
+          // Remove imageUrls array from stops (they're in customLocations)
+          delete clean.imageUrls;
+          // Defensive: clear any stale runtime skip flag that slipped through
+          delete clean.trailSkipped;
+          return clean;
+        });
     }
     return stripped;
   };
@@ -7508,13 +7521,27 @@
     }
   };
 
+  // v3.23.23: when focusRouteId is set AND we're on the Saved view, scroll that row into
+  // view and clear the flag after a short highlight window (1.8s).
+  useEffect(() => {
+    if (!focusRouteId || currentView !== 'saved') return;
+    const tid = setTimeout(() => {
+      const el = document.querySelector(`[data-route-fbid="${focusRouteId}"]`);
+      if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+    const clearT = setTimeout(() => setFocusRouteId(null), 1800);
+    return () => { clearTimeout(tid); clearTimeout(clearT); };
+  }, [focusRouteId, currentView]);
+
   const loadSavedRoute = (savedRoute) => {
     setRoute(savedRoute);
+    // v3.23.23: remember where this came from so "Back to Saved Trails" can focus the right row
+    setRouteOpenedFromId(savedRoute?.firebaseId || null);
     // Restore startPoint: prefer startPointCoords.address (validated), then route.startPoint, then preferences
     const coords = savedRoute.startPointCoords || null;
     const validatedAddress = coords?.address || '';
-    const startPointText = validatedAddress || 
-      (savedRoute.startPoint !== t('form.startPointFirst') ? savedRoute.startPoint : '') || 
+    const startPointText = validatedAddress ||
+      (savedRoute.startPoint !== t('form.startPointFirst') ? savedRoute.startPoint : '') ||
       '';
     if (savedRoute.preferences) {
       setFormData({...savedRoute.preferences, startPoint: startPointText });
@@ -7526,6 +7553,59 @@
     setCurrentView('form');
     setWizardStep(3);
     window.scrollTo(0, 0);
+  };
+
+  // v3.23.23: pick a name that doesn't collide with the user's existing saved-route names
+  // in the current city. If `base` exists, append " #1", " #2", ... until unique.
+  const makeUniqueRouteName = (base) => {
+    const trimmed = (base || '').trim();
+    if (!trimmed) return trimmed;
+    const mine = (savedRoutes || []).filter(r => r.cityId === selectedCityId || !r.cityId);
+    const existing = new Set(mine.map(r => (r.name || '').trim()));
+    if (!existing.has(trimmed)) return trimmed;
+    for (let i = 1; i < 1000; i++) {
+      const candidate = `${trimmed} #${i}`;
+      if (!existing.has(candidate)) return candidate;
+    }
+    return `${trimmed} #${Date.now()}`;
+  };
+
+  // v3.23.23: save the current in-memory route as a brand-new Firebase entry under the current user.
+  // Does NOT touch the original (firebaseId) the user loaded from — always a fresh push.
+  // Requires signed-in, non-anonymous user.
+  const saveRouteAsNew = (chosenName) => {
+    if (!route) return;
+    if (!authUser || authUser.isAnonymous) { showToast(t('auth.signInToSave') || t('auth.saveLoginRequired'), 'warning'); return; }
+    if (!isFirebaseAvailable || !database) { showToast(t('toast.firebaseUnavailable') || 'Firebase unavailable', 'error'); return; }
+    const finalName = makeUniqueRouteName(chosenName);
+    if (!finalName) { showToast(t('route.nameRequired') || 'Name required', 'warning'); return; }
+    const routeToSave = {
+      ...route,
+      name: finalName,
+      notes: '',
+      savedAt: new Date().toISOString(),
+      savedBy: authUser.uid,
+      savedByName: window.BKK.safeDisplayName(authUser),
+      locked: false,
+      cityId: selectedCityId
+    };
+    // Shed any firebaseId from the source route so the push creates a new key, never overwrites
+    delete routeToSave.firebaseId;
+    delete routeToSave.id;
+    const stripped = stripRouteForStorage(routeToSave);
+    database.ref(`cities/${selectedCityId}/routes`).push(stripped)
+      .then((ref) => {
+        console.log('[FIREBASE] Route saved as new');
+        const savedWithFbId = { ...routeToSave, firebaseId: ref.key };
+        setRoute(savedWithFbId);
+        setRouteOpenedFromId(ref.key);
+        showToast((t('toast.routeSavedAs') || 'Saved as "{0}"').replace('{0}', finalName), 'success');
+        window.BKK.logEvent?.('route_saved_as_new', { city: selectedCityId, stops: stripped.stops?.length || 0 });
+      })
+      .catch((error) => {
+        console.error('[FIREBASE] Error saving route as new:', error);
+        showToast(t('toast.routeSaveError'), 'error');
+      });
   };
 
   // NOTE: addCustomInterest logic is now inline in the dialog footer (see Add Interest Dialog)

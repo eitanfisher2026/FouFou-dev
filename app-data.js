@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.22
+// FouFou app-data.js v3.23.23
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -470,6 +470,11 @@ route: {
   helpMePlan: 'עזור לי לתכנן',
   smartSelected: '{selected} נבחרו, {disabled} הושבתו',
   saveRoute: 'שמור מסלול',
+  saveAsNew: 'שמור כחדש',
+  saveAsNewPrompt: 'הקלד שם לנתיב החדש',
+  saveAsNewPlaceholder: 'שם הנתיב',
+  backToSavedList: 'נתיבים שמורים',
+  nameRequired: 'נדרש שם',
   editSavedRoute: '🗺️ ערוך מסלול שמור',
   addSavedRoute: '🗺️ הוסף מסלול שמור',
   linear: 'ליניארי',
@@ -795,6 +800,7 @@ toast: {
   locationError: 'שגיאה באיתור מיקום',
   addressSearchError: 'שגיאה בחיפוש כתובת',
   routeSaveError: 'שגיאה בשמירת מסלול',
+  routeSavedAs: 'נשמר בשם ״{0}״',
   imageUploadError: 'שגיאה בהעלאת התמונה',
   uploadingImage: 'מעלה תמונה...',
   imageUploaded: 'התמונה הועלתה בהצלחה',
@@ -1647,6 +1653,11 @@ route: {
   helpMePlan: 'Help me plan',
   smartSelected: '{selected} selected, {disabled} disabled',
   saveRoute: 'Save route',
+  saveAsNew: 'Save as new',
+  saveAsNewPrompt: 'Enter a name for the new route',
+  saveAsNewPlaceholder: 'Route name',
+  backToSavedList: 'Saved Trails',
+  nameRequired: 'Name required',
   editSavedRoute: '🗺️ Edit saved route',
   addSavedRoute: '🗺️ Add saved route',
   linear: 'Linear',
@@ -1977,6 +1988,7 @@ toast: {
   locationError: 'Location detection error',
   addressSearchError: 'Address search error',
   routeSaveError: 'Route save error',
+  routeSavedAs: 'Saved as "{0}"',
   imageUploadError: 'Image upload error',
   uploadingImage: 'Uploading image...',
   imageUploaded: 'Image uploaded successfully',
@@ -3578,7 +3590,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.22';
+window.BKK.VERSION = '3.23.23';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));

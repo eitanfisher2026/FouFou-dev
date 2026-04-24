@@ -2958,6 +2958,42 @@
 
       {/* v3.23.16: legacy Feedback List dialog (admin-only) retired — unified into main feedback dialog */}
 
+      {/* v3.23.23: Save-as-new route — name prompt */}
+      {showSaveAsNewDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 10300 }}>
+          <div className="bg-white rounded-xl w-full max-w-sm shadow-2xl" style={{ direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}>
+            <div className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-2.5 rounded-t-xl flex items-center justify-between">
+              <h3 className="text-sm font-bold">{`📋 ${t('route.saveAsNew') || 'Save as new'}`}</h3>
+              <button onClick={() => setShowSaveAsNewDialog(false)} className="text-xl hover:bg-white hover:bg-opacity-20 rounded-full w-7 h-7 flex items-center justify-center">✕</button>
+            </div>
+            <div className="p-4" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <p style={{ fontSize: '12px', color: '#4b5563', margin: 0 }}>{t('route.saveAsNewPrompt') || 'Enter a name for the new route'}</p>
+              <input type="text"
+                value={saveAsNewName}
+                onChange={(e) => setSaveAsNewName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && saveAsNewName.trim()) { saveRouteAsNew(saveAsNewName); setShowSaveAsNewDialog(false); } }}
+                placeholder={t('route.saveAsNewPlaceholder') || 'Route name'}
+                autoFocus
+                style={{ width: '100%', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', fontFamily: 'inherit' }} />
+              <div style={{ display: 'flex', gap: '6px', flexDirection: window.BKK.i18n.isRTL() ? 'row-reverse' : 'row' }}>
+                <button onClick={() => { saveRouteAsNew(saveAsNewName); setShowSaveAsNewDialog(false); }}
+                  disabled={!saveAsNewName.trim()}
+                  style={{ flex: 2, padding: '10px 12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px',
+                    cursor: saveAsNewName.trim() ? 'pointer' : 'not-allowed',
+                    background: saveAsNewName.trim() ? '#16a34a' : '#e5e7eb',
+                    color: saveAsNewName.trim() ? 'white' : '#9ca3af', border: 'none' }}>
+                  📋 {t('route.saveAsNew') || 'Save as new'}
+                </button>
+                <button onClick={() => setShowSaveAsNewDialog(false)}
+                  style={{ flex: 1, padding: '10px 10px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', cursor: 'pointer' }}>
+                  {t('general.cancel') || 'Cancel'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Import Confirmation Dialog */}
       {showImportDialog && importedData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
