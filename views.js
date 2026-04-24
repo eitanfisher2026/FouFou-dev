@@ -2082,18 +2082,26 @@
                         }, disabled: !route?.optimized },
                         (() => {
                           const isOthersRoute = route?.savedBy && authUser?.uid && route.savedBy !== authUser.uid;
-                          return { icon: route.name ? '✓' : (isOthersRoute ? '🚫' : '⬇'),
-                            label: route.name
-                              ? `${t('route.savedAs')} ${route.name}`
-                              : isOthersRoute
+                          const isOwnSaved = !!route?.firebaseId && route?.savedBy && authUser?.uid && route.savedBy === authUser.uid;
+                          // v3.23.24: own saved route → "Update route" (enabled); fresh route → "Save route"; others' → viewing shared
+                          if (isOwnSaved) {
+                            return {
+                              icon: '🔄',
+                              label: t('route.updateRoute') || 'Update route',
+                              action: () => { setShowRouteMenu(false); if (route?.optimized) updateCurrentRoute(); },
+                              disabled: !route?.optimized
+                            };
+                          }
+                          return { icon: isOthersRoute ? '🚫' : '⬇',
+                            label: isOthersRoute
                                 ? t('route.viewingShared')
                                 : ((!authUser || authUser.isAnonymous) ? (t('auth.loginToSave')) : t('route.saveRoute')),
                             action: () => {
                               if (!authUser || authUser.isAnonymous) { setShowLoginDialog(true); return; }
                               setShowRouteMenu(false);
-                              if (!route.name && !isOthersRoute && route?.optimized) quickSaveRoute();
+                              if (!isOthersRoute && route?.optimized) quickSaveRoute();
                             },
-                            disabled: !route?.optimized || !!route.name || isOthersRoute };
+                            disabled: !route?.optimized || isOthersRoute };
                         })(),
                         // v3.23.23: Save as new — signed-in users only, always available for any loaded route
                         (authUser && !authUser.isAnonymous && route?.optimized) ? {
@@ -2108,7 +2116,7 @@
                         // v3.23.23: Back to Saved Trails — only shown when user arrived via a saved route
                         (routeOpenedFromId || route?.firebaseId) ? {
                           icon: '‹',
-                          label: t('route.backToSavedList') || 'Saved Trails',
+                          label: t('route.backToSavedList') || 'Back to Saved Trails',
                           action: () => {
                             setShowRouteMenu(false);
                             setFocusRouteId(routeOpenedFromId || route?.firebaseId || null);

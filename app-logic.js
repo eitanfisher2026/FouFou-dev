@@ -7555,6 +7555,34 @@
     window.scrollTo(0, 0);
   };
 
+  // v3.23.24: overwrite the currently-loaded saved route in Firebase. Only valid when
+  // the user owns the route (savedBy === auth.uid) and it has a firebaseId.
+  const updateCurrentRoute = () => {
+    if (!route || !route.firebaseId) { showToast(t('toast.updateError') || 'Update failed', 'warning'); return; }
+    if (!authUser || authUser.isAnonymous) { setShowLoginDialog(true); return; }
+    if (route.savedBy && route.savedBy !== authUser.uid) { showToast(t('route.notOwner') || 'Not the owner', 'warning'); return; }
+    if (!isFirebaseAvailable || !database) { showToast(t('toast.firebaseUnavailable') || 'Firebase unavailable', 'error'); return; }
+    const routeToSave = {
+      ...route,
+      savedAt: new Date().toISOString(),
+      savedBy: authUser.uid,
+      savedByName: window.BKK.safeDisplayName(authUser),
+      cityId: selectedCityId
+    };
+    const stripped = stripRouteForStorage(routeToSave);
+    delete stripped.firebaseId;
+    database.ref(`cities/${selectedCityId}/routes/${route.firebaseId}`).set(stripped)
+      .then(() => {
+        setRoute({ ...routeToSave, firebaseId: route.firebaseId });
+        showToast(t('route.routeUpdated'), 'success');
+        window.BKK.logEvent?.('route_updated', { city: selectedCityId, stops: stripped.stops?.length || 0 });
+      })
+      .catch((err) => {
+        console.error('[FIREBASE] Error updating route:', err);
+        showToast(t('toast.routeSaveError'), 'error');
+      });
+  };
+
   // v3.23.23: pick a name that doesn't collide with the user's existing saved-route names
   // in the current city. If `base` exists, append " #1", " #2", ... until unique.
   const makeUniqueRouteName = (base) => {

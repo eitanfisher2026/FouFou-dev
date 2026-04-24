@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.23
+// FouFou app-data.js v3.23.24
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -316,7 +316,7 @@ general: {
   clearLog: 'נקה לוג',
   shareRoute: 'שתף מסלול',
   sharePoi: 'שתף נקודות עניין',
-  openRoute: 'פתח מסלול',
+  openRoute: 'פתח נתיב',
   restoreActive: 'החזר כמקום פעיל',
   skipPermanent: 'דלג לצמיתות',
   update: 'עדכן',
@@ -470,10 +470,11 @@ route: {
   helpMePlan: 'עזור לי לתכנן',
   smartSelected: '{selected} נבחרו, {disabled} הושבתו',
   saveRoute: 'שמור מסלול',
+  updateRoute: 'עדכן מסלול',
   saveAsNew: 'שמור כחדש',
   saveAsNewPrompt: 'הקלד שם לנתיב החדש',
   saveAsNewPlaceholder: 'שם הנתיב',
-  backToSavedList: 'נתיבים שמורים',
+  backToSavedList: 'חזור למסלולים שמורים',
   nameRequired: 'נדרש שם',
   editSavedRoute: '🗺️ ערוך מסלול שמור',
   addSavedRoute: '🗺️ הוסף מסלול שמור',
@@ -1503,7 +1504,7 @@ general: {
   clearLog: 'Clear log',
   shareRoute: 'Share route',
   sharePoi: 'Share POI',
-  openRoute: 'Open route',
+  openRoute: 'Open trail',
   restoreActive: 'Restore as active',
   skipPermanent: 'Skip permanently',
   update: 'Update',
@@ -1653,10 +1654,11 @@ route: {
   helpMePlan: 'Help me plan',
   smartSelected: '{selected} selected, {disabled} disabled',
   saveRoute: 'Save route',
+  updateRoute: 'Update route',
   saveAsNew: 'Save as new',
   saveAsNewPrompt: 'Enter a name for the new route',
   saveAsNewPlaceholder: 'Route name',
-  backToSavedList: 'Saved Trails',
+  backToSavedList: 'Back to Saved Trails',
   nameRequired: 'Name required',
   editSavedRoute: '🗺️ Edit saved route',
   addSavedRoute: '🗺️ Add saved route',
@@ -3590,7 +3592,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.23';
+window.BKK.VERSION = '3.23.24';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
