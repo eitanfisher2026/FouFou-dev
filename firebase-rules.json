@@ -156,6 +156,9 @@
               },
               "text": {
                 ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 3000"
+              },
+              "image": {
+                ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 1200000 && (!data.exists() || data.val() === newData.val()))"
               }
             }
           }

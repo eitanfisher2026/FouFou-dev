@@ -884,6 +884,7 @@ toast: {
   feedbackTooManyImages: '⚠️ מותר לצרף עד 3 תמונות',
   feedbackImageTooLarge: '⚠️ תמונה גדולה מדי (עד ~900KB לכל תמונה)',
   feedbackCapReached: '⚠️ יש לך 10 פניות פתוחות. יש להמתין לבדיקה לפני שליחת פניות נוספות',
+  feedbackImageCapReached: '⚠️ מותר לצרף עד 5 תמונות לשיחה',
 },
 
 // --- Settings ---
@@ -2049,6 +2050,7 @@ toast: {
   feedbackTooManyImages: '⚠️ Up to 3 images allowed',
   feedbackImageTooLarge: '⚠️ Image too large (max ~900KB per image)',
   feedbackCapReached: '⚠️ You have 10 open feedback entries. Please wait for review before sending more',
+  feedbackImageCapReached: '⚠️ Max 5 images per conversation',
 },
 
 settings: {

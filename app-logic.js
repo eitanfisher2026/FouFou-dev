@@ -1704,6 +1704,7 @@
   const [feedbackMode, setFeedbackMode] = useState('list'); // v3.23.16: 'list' | 'thread' | 'new'
   const [feedbackEditingMsgId, setFeedbackEditingMsgId] = useState(null); // v3.23.16: which message is being edited
   const [feedbackEditDraft, setFeedbackEditDraft] = useState(''); // v3.23.16: edit buffer
+  const [feedbackReplyImage, setFeedbackReplyImage] = useState(null); // v3.23.18: image attached to the reply being composed
 
   // Confirm Dialog (replaces browser confirm)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -4079,6 +4080,7 @@
   const MAX_MESSAGES_PER_THREAD = 10;
   const MAX_TEXT_LEN = 3000;
   const MAX_IMAGE_LEN = 1200000;
+  const MAX_IMAGES_PER_THREAD = 5;
 
   const handleFeedbackError = (err) => {
     const code = err?.code || '';
@@ -4133,11 +4135,13 @@
 
   // Append a reply to an existing thread. asRole must match the caller's role.
   // Alternation: caller can only reply if it's not their turn (client-side guard only).
-  const replyToFeedbackThread = (thread, text, asRole) => {
+  // image is optional — if provided, attached to this message only (immutable after).
+  const replyToFeedbackThread = (thread, text, asRole, image) => {
     const trimmed = (text || '').trim();
     if (!trimmed) return;
     if (!authUser || !authUser.uid) return;
     if (trimmed.length > MAX_TEXT_LEN) { showToast(t('toast.feedbackTooLong'), 'warning'); return; }
+    if (image && typeof image === 'string' && image.length > MAX_IMAGE_LEN) { showToast(t('toast.feedbackImageTooLarge'), 'warning'); return; }
     if (!isFirebaseAvailable || !database) { showToast(t('toast.firebaseUnavailable'), 'error'); return; }
     const threadUid = thread.userId || thread._threadUid;
     if (!threadUid || !thread.firebaseId) return;
@@ -4151,16 +4155,23 @@
       showToast(t('toast.feedbackNotYourTurn') || 'Waiting for the other side to reply', 'info');
       return;
     }
+    if (image) {
+      // Count existing images across thread + thread-level image; cap at MAX_IMAGES_PER_THREAD
+      const existingImgCount = (thread.image ? 1 : 0) +
+        Object.values(thread.messages || {}).filter(m => m && m.image).length;
+      if (existingImgCount >= MAX_IMAGES_PER_THREAD) {
+        showToast(t('toast.feedbackImageCapReached') || `Max ${MAX_IMAGES_PER_THREAD} images per conversation`, 'warning');
+        return;
+      }
+    }
 
     const now = Date.now();
     const basePath = `feedback/${threadUid}/${thread.firebaseId}`;
     const msgRef = database.ref(`${basePath}/messages`).push();
     const updates = {};
-    updates[`${basePath}/messages/${msgRef.key}`] = {
-      from: asRole,
-      text: trimmed,
-      timestamp: now
-    };
+    const msgData = { from: asRole, text: trimmed, timestamp: now };
+    if (image) msgData.image = image;
+    updates[`${basePath}/messages/${msgRef.key}`] = msgData;
     updates[`${basePath}/lastActivityAt`] = now;
     updates[`${basePath}/lastFrom`] = asRole;
     updates[`${basePath}/unreadByUser`]  = (asRole === 'admin');

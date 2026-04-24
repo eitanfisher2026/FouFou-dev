@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.17
+// FouFou app-data.js v3.23.18
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -885,6 +885,7 @@ toast: {
   feedbackTooManyImages: '⚠️ מותר לצרף עד 3 תמונות',
   feedbackImageTooLarge: '⚠️ תמונה גדולה מדי (עד ~900KB לכל תמונה)',
   feedbackCapReached: '⚠️ יש לך 10 פניות פתוחות. יש להמתין לבדיקה לפני שליחת פניות נוספות',
+  feedbackImageCapReached: '⚠️ מותר לצרף עד 5 תמונות לשיחה',
 },
 
 // --- Settings ---
@@ -2050,6 +2051,7 @@ toast: {
   feedbackTooManyImages: '⚠️ Up to 3 images allowed',
   feedbackImageTooLarge: '⚠️ Image too large (max ~900KB per image)',
   feedbackCapReached: '⚠️ You have 10 open feedback entries. Please wait for review before sending more',
+  feedbackImageCapReached: '⚠️ Max 5 images per conversation',
 },
 
 settings: {
@@ -3544,7 +3546,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.17';
+window.BKK.VERSION = '3.23.18';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));

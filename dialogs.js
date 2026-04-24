@@ -2529,7 +2529,7 @@
 
       {/* Confirm Dialog */}
       {showConfirmDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 10200 }}>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4" style={{ zIndex: 10450 }}>
           <div className="bg-white rounded-xl p-4 max-w-sm w-full shadow-2xl">
             <p className="text-sm text-gray-800 mb-4 text-center font-medium" style={{ whiteSpace: 'pre-line' }}>{confirmConfig.message}</p>
             <div className="flex gap-2">
@@ -2598,8 +2598,18 @@
           : feedbackMode === 'new'
             ? `💬 ${t('feedback.newConversation') || 'New conversation'}`
             : (selectedThread?.subject || `💬 ${t('feedback.conversation') || 'Conversation'}`);
-        const goBack = () => { setFeedbackMode('list'); setFeedbackSelectedThreadId(null); };
-        const handleClose = () => { setShowFeedbackDialog(false); setFeedbackMode('list'); setFeedbackSelectedThreadId(null); };
+        const goBack = () => { setFeedbackMode('list'); setFeedbackSelectedThreadId(null); setFeedbackReplyImage(null); setFeedbackText(''); };
+        const handleClose = () => { setShowFeedbackDialog(false); setFeedbackMode('list'); setFeedbackSelectedThreadId(null); setFeedbackReplyImage(null); setFeedbackText(''); };
+        // Admin: after sending a reply, jump to next unread thread (or close if none)
+        const advanceAdminAfterSend = () => {
+          const next = threadsForMe.find(th => th.firebaseId !== selectedThread?.firebaseId && th.unreadByAdmin);
+          if (next) { setFeedbackSelectedThreadId(next.firebaseId); setFeedbackText(''); setFeedbackReplyImage(null); }
+          else { handleClose(); }
+        };
+        // Admin-side subtitle (sender name) — only in thread mode
+        const adminSubtitle = (feedbackMode === 'thread' && isCurrentUserAdmin && selectedThread)
+          ? (selectedThread.senderName || (selectedThread.userId ? `uid: ${String(selectedThread.userId).slice(0, 8)}` : ''))
+          : '';
 
         return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center p-0 sm:p-4 sm:pt-6" style={{ zIndex: 10300 }}>
@@ -2608,7 +2618,14 @@
               {feedbackMode !== 'list' && (
                 <button onClick={goBack} className="text-white opacity-80 hover:opacity-100 text-lg leading-none" style={{ padding: '0 4px' }}>‹</button>
               )}
-              <h3 className="text-base font-bold flex-1" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{navTitle}</h3>
+              <div className="flex-1" style={{ minWidth: 0 }}>
+                <h3 className="text-base font-bold" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{navTitle}</h3>
+                {adminSubtitle && (
+                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>
+                    👤 {adminSubtitle}
+                  </div>
+                )}
+              </div>
               <button onClick={handleClose} className="text-white opacity-70 hover:opacity-100 text-xl leading-none">✕</button>
             </div>
 
@@ -2701,6 +2718,12 @@
                             </div>
                           ) : (
                             <>
+                              {m.image && (
+                                <div style={{ marginBottom: m.text ? '6px' : 0 }}>
+                                  <img src={m.image} alt="" onClick={() => setModalImage(m.image)}
+                                    style={{ maxWidth: '100%', maxHeight: '180px', borderRadius: '6px', cursor: 'pointer', display: 'block' }} />
+                                </div>
+                              )}
                               {m.text}
                               {m.editedAt && <span style={{ fontSize: '10px', color: '#9ca3af', marginLeft: '6px' }}>({t('feedback.edited') || 'edited'})</span>}
                             </>
@@ -2718,17 +2741,48 @@
                 </div>
 
                 {/* Composer / turn indicator + action row */}
+                {(() => {
+                  const imgCount = (selectedThread.image ? 1 : 0) + msgs.filter(m => m.image).length;
+                  const imgCapReached = imgCount >= 5;
+                  return (
                 <div style={{ borderTop: '1px solid #e5e7eb', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {selectedThread._legacy ? null : threadFull ? (
                     <div style={{ fontSize: '11px', color: '#b91c1c', textAlign: 'center' }}>{t('feedback.threadFull') || 'Conversation full (10/10) — end it or start a new one'}</div>
                   ) : isMyTurn ? (
-                    <textarea value={feedbackText}
-                      onChange={(e) => setFeedbackText(e.target.value)}
-                      placeholder={t('feedback.replyHere') || 'Reply here...'}
-                      rows={2}
-                      maxLength={3000}
-                      style={{ width: '100%', padding: '8px 10px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', resize: 'none', outline: 'none', boxSizing: 'border-box', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', fontFamily: 'inherit' }}
-                    />
+                    <>
+                      <textarea value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                        placeholder={t('feedback.replyHere') || 'Reply here...'}
+                        rows={2}
+                        maxLength={3000}
+                        style={{ width: '100%', padding: '8px 10px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', resize: 'none', outline: 'none', boxSizing: 'border-box', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', fontFamily: 'inherit' }}
+                      />
+                      {/* Image attach + preview */}
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {feedbackReplyImage ? (
+                          <div style={{ position: 'relative', flexShrink: 0 }}>
+                            <img src={feedbackReplyImage} alt="" style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer' }} onClick={() => setModalImage(feedbackReplyImage)} />
+                            <button onClick={() => setFeedbackReplyImage(null)}
+                              style={{ position: 'absolute', top: '-5px', right: '-5px', width: '18px', height: '18px', borderRadius: '50%', background: '#ef4444', color: 'white', border: '2px solid white', cursor: 'pointer', fontSize: '9px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>✕</button>
+                          </div>
+                        ) : (
+                          <label title={imgCapReached ? (t('toast.feedbackImageCapReached') || 'Image cap reached') : (t('feedback.addImage') || 'Attach image')}
+                            style={{ width: '56px', height: '56px', border: '2px dashed #d1d5db', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: imgCapReached ? 'not-allowed' : 'pointer', color: imgCapReached ? '#e5e7eb' : '#9ca3af', fontSize: '18px', flexShrink: 0, opacity: imgCapReached ? 0.5 : 1 }}>
+                            📎
+                            <input type="file" accept="image/*" disabled={imgCapReached} style={{ display: 'none' }} onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              try {
+                                const compressed = await window.BKK.compressImage(file, 480);
+                                if (compressed) setFeedbackReplyImage(compressed);
+                              } catch(err) { showToast(t('toast.imageLoadError') || 'Image load error', 'error'); }
+                              e.target.value = '';
+                            }} />
+                          </label>
+                        )}
+                        <div style={{ fontSize: '10px', color: '#9ca3af' }}>{imgCount}/5 🖼️</div>
+                      </div>
+                    </>
                   ) : (
                     <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center', fontStyle: 'italic' }}>
                       {myRole === 'user' ? (t('feedback.waitingForAdmin') || 'Waiting for admin reply…') : (t('feedback.waitingForUser') || 'Waiting for user reply…')}
@@ -2737,7 +2791,13 @@
                   {/* Button row — auto-reverses in RTL so Send sits on the natural "forward" side */}
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch', flexDirection: window.BKK.i18n.isRTL() ? 'row-reverse' : 'row' }}>
                     {!selectedThread._legacy && isMyTurn && !threadFull && (
-                      <button onClick={() => { replyToFeedbackThread(selectedThread, feedbackText, myRole); setFeedbackText(''); }}
+                      <button onClick={() => {
+                          replyToFeedbackThread(selectedThread, feedbackText, myRole, feedbackReplyImage);
+                          setFeedbackText('');
+                          setFeedbackReplyImage(null);
+                          if (myRole === 'admin') advanceAdminAfterSend();
+                          else handleClose();
+                        }}
                         disabled={!feedbackText.trim()}
                         style={{ flex: 2, padding: '11px 12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px',
                           cursor: feedbackText.trim() ? 'pointer' : 'not-allowed',
@@ -2762,6 +2822,8 @@
                     </button>
                   </div>
                 </div>
+                  );
+                })()}
               </>);
             })()}
 
@@ -2825,8 +2887,7 @@
                     const key = openFeedbackThread({ subject: feedbackSubject, category: feedbackCategory, text: feedbackText, image: feedbackImages[0] || null });
                     if (key) {
                       setFeedbackText(''); setFeedbackSubject(''); setFeedbackImages([]);
-                      setFeedbackSelectedThreadId(key);
-                      setFeedbackMode('thread');
+                      handleClose();
                     }
                   }} disabled={!feedbackText.trim()}
                     style={{ flex: 2, padding: '11px 12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', cursor: feedbackText.trim() ? 'pointer' : 'not-allowed',
