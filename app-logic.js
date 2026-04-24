@@ -4188,7 +4188,7 @@
     else                                    path = `${basePath}/messages/${msgId}/images/${idx}`;
     database.ref(path).remove()
       .then(() => { database.ref(`${basePath}/lastActivityAt`).set(Date.now()); })
-      .catch(handleFeedbackError);
+      .catch(err => { showToast(`${t('toast.sendError') || 'Error'}: ${err.message || err}`, 'error'); });
   };
 
   // Admin-only: wipe all feedback entries for all users.
@@ -4197,7 +4197,7 @@
     if (!isCurrentUserAdmin) return;
     database.ref('feedback').remove()
       .then(() => { showToast(t('toast.allFeedbackDeleted') || 'All feedback deleted', 'success'); })
-      .catch(handleFeedbackError);
+      .catch(err => { showToast(`${t('toast.sendError') || 'Error'}: ${err.message || err}`, 'error'); });
   };
 
   // Edit the caller's own latest message (only if still their turn — not yet responded to)
