@@ -1699,6 +1699,11 @@
   const [myFeedbackList, setMyFeedbackList] = useState([]); // own feedback for non-admin users
   const [showFeedbackList, setShowFeedbackList] = useState(false);
   const [hasNewFeedback, setHasNewFeedback] = useState(false);
+  const [feedbackUnreadCount, setFeedbackUnreadCount] = useState(0); // v3.23.16: # threads with unread for this viewer
+  const [feedbackSelectedThreadId, setFeedbackSelectedThreadId] = useState(null); // v3.23.16: which thread is open in detail view
+  const [feedbackMode, setFeedbackMode] = useState('list'); // v3.23.16: 'list' | 'thread' | 'new'
+  const [feedbackEditingMsgId, setFeedbackEditingMsgId] = useState(null); // v3.23.16: which message is being edited
+  const [feedbackEditDraft, setFeedbackEditDraft] = useState(''); // v3.23.16: edit buffer
 
   // Confirm Dialog (replaces browser confirm)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -4062,121 +4067,193 @@
     return () => listeners.forEach(({ ref, handler }) => ref.off('value', handler));
   }, []);
 
-  const submitFeedback = () => {
-    if (!feedbackText.trim()) {
-      showToast(t('settings.writeFeedback'), 'warning');
-      return;
-    }
-    // Auth guard — anon blocked (rule also enforces)
-    if (!authUser || authUser.isAnonymous || !authUser.uid) {
-      showToast(t('auth.feedbackSignInRequired'), 'warning');
-      return;
-    }
-    // Client-side validation mirroring Firebase rules
-    const trimmedText = feedbackText.trim();
-    if (trimmedText.length > 3000) {
-      showToast(t('toast.feedbackTooLong'), 'warning');
-      return;
-    }
-    if (feedbackImages && feedbackImages.length > 3) {
-      showToast(t('toast.feedbackTooManyImages'), 'warning');
-      return;
-    }
-    if (feedbackImages && feedbackImages.some(img => typeof img === 'string' && img.length > 1200000)) {
-      showToast(t('toast.feedbackImageTooLarge'), 'warning');
-      return;
-    }
+  // ═══════════════════════════════════════════════════════════════════
+  // Feedback conversations (v3.23.16)
+  // Data model: /feedback/{uid}/{entryId} = { subject, category, createdAt,
+  //   lastActivityAt, lastFrom: 'user'|'admin', unreadByUser, unreadByAdmin,
+  //   image?, messages: { $pushKey: { from, text, timestamp, editedAt? } } }
+  // Alternation + 10-msg cap + single image enforced client-side.
+  // ═══════════════════════════════════════════════════════════════════
 
-    const uid = authUser.uid;
-    const existingEntry = myFeedbackList.length > 0 ? myFeedbackList[0] : null;
+  const MAX_THREADS_PER_USER = 10;
+  const MAX_MESSAGES_PER_THREAD = 10;
+  const MAX_TEXT_LEN = 3000;
+  const MAX_IMAGE_LEN = 1200000;
 
-    const feedbackEntry = {
-      category: feedbackCategory,
-      subject: feedbackSubject.trim() || null,
-      senderName: feedbackSenderName.trim() || null,
-      senderEmail: feedbackSenderEmail.trim() || null,
-      text: trimmedText,
-      images: feedbackImages.length > 0 ? feedbackImages : null,
-      userId: uid,
-      userEmail: authUser.email || '',
-      currentView: currentView || 'unknown',
-      wizardStep: wizardStep || 0,
-      cityId: selectedCityId || '',
-      timestamp: Date.now(),
-      date: new Date().toISOString(),
-      resolved: false
-    };
-
-    const handleError = (err) => {
-      const code = err?.code || '';
-      if (code === 'PERMISSION_DENIED') {
-        showToast(t('toast.feedbackCapReached'), 'warning', 'sticky');
-      } else {
-        showToast(`${t('toast.sendError')}: ${err.message || err}`, 'error');
-      }
-    };
-    const resetForm = () => {
-      setFeedbackText(''); setFeedbackImages([]); setFeedbackSubject(''); setFeedbackSenderName(''); setFeedbackSenderEmail('');
-      try { localStorage.removeItem('feedback_draft'); } catch(e) {}
-      setFeedbackCategory('general');
-      setShowFeedbackDialog(false);
-    };
-
-    if (isFirebaseAvailable && database) {
-      if (existingEntry && existingEntry.firebaseId) {
-        // Update existing feedback (nested path)
-        database.ref(`feedback/${uid}/${existingEntry.firebaseId}`).update(feedbackEntry)
-          .then(() => { showToast(t('toast.feedbackThanks'), 'success'); resetForm(); })
-          .catch(handleError);
-      } else {
-        // New feedback entry under /feedback/{uid}/{pushId}
-        database.ref(`feedback/${uid}`).push(feedbackEntry)
-          .then((ref) => {
-            showToast(t('toast.feedbackThanks'), 'success');
-            setMyFeedbackList(prev => [{ ...feedbackEntry, firebaseId: ref.key }, ...prev].slice(0, 10));
-            resetForm();
-          })
-          .catch(handleError);
-      }
+  const handleFeedbackError = (err) => {
+    const code = err?.code || '';
+    if (code === 'PERMISSION_DENIED') {
+      showToast(t('toast.feedbackCapReached'), 'warning', 'sticky');
     } else {
-      showToast(t('toast.firebaseUnavailable'), 'error');
+      showToast(`${t('toast.sendError')}: ${err.message || err}`, 'error');
     }
   };
 
-  // Load feedback list.
-  // Admin: listens on /feedback (nested by uid, with legacy flat entries dual-detected).
-  // Non-admin signed-in: listens only on /feedback/{own-uid}.
-  // Anonymous: no listener (and can't read feedback per rules).
+  // Open a new conversation (user's first message in a thread)
+  const openFeedbackThread = ({ subject, category, text, image }) => {
+    const trimmed = (text || '').trim();
+    if (!trimmed) { showToast(t('settings.writeFeedback'), 'warning'); return; }
+    if (!authUser || authUser.isAnonymous || !authUser.uid) { showToast(t('auth.feedbackSignInRequired'), 'warning'); return; }
+    if (trimmed.length > MAX_TEXT_LEN) { showToast(t('toast.feedbackTooLong'), 'warning'); return; }
+    if (image && typeof image === 'string' && image.length > MAX_IMAGE_LEN) { showToast(t('toast.feedbackImageTooLarge'), 'warning'); return; }
+    if ((myFeedbackList || []).length >= MAX_THREADS_PER_USER) {
+      showToast(t('toast.feedbackCapReached'), 'warning', 'sticky');
+      return;
+    }
+    if (!isFirebaseAvailable || !database) { showToast(t('toast.firebaseUnavailable'), 'error'); return; }
+
+    const uid = authUser.uid;
+    const now = Date.now();
+    const nowIso = new Date(now).toISOString();
+    const thread = {
+      subject: (subject || '').trim() || null,
+      category: category || 'general',
+      senderName: (feedbackSenderName || '').trim() || (authUser.displayName || null),
+      senderEmail: (feedbackSenderEmail || '').trim() || (authUser.email || null),
+      userId: uid,
+      currentView: currentView || 'unknown',
+      wizardStep: wizardStep || 0,
+      cityId: selectedCityId || '',
+      createdAt: nowIso,
+      lastActivityAt: now,
+      lastFrom: 'user',
+      unreadByUser: false,
+      unreadByAdmin: true,
+      ...(image ? { image } : {}),
+      messages: {
+        __msg0: { from: 'user', text: trimmed, timestamp: now }
+      }
+    };
+    const newRef = database.ref(`feedback/${uid}`).push();
+    newRef.set(thread)
+      .then(() => { showToast(t('toast.feedbackThanks'), 'success'); })
+      .catch(handleFeedbackError);
+    return newRef.key;
+  };
+
+  // Append a reply to an existing thread. asRole must match the caller's role.
+  // Alternation: caller can only reply if it's not their turn (client-side guard only).
+  const replyToFeedbackThread = (thread, text, asRole) => {
+    const trimmed = (text || '').trim();
+    if (!trimmed) return;
+    if (!authUser || !authUser.uid) return;
+    if (trimmed.length > MAX_TEXT_LEN) { showToast(t('toast.feedbackTooLong'), 'warning'); return; }
+    if (!isFirebaseAvailable || !database) { showToast(t('toast.firebaseUnavailable'), 'error'); return; }
+    const threadUid = thread.userId || thread._threadUid;
+    if (!threadUid || !thread.firebaseId) return;
+    const msgCount = Object.keys(thread.messages || {}).length;
+    if (msgCount >= MAX_MESSAGES_PER_THREAD) {
+      showToast(t('toast.feedbackThreadFull') || 'Conversation full — end it or start a new one', 'warning');
+      return;
+    }
+    if (thread.lastFrom === asRole) {
+      // Client-side alternation check — should be prevented by UI but be defensive.
+      showToast(t('toast.feedbackNotYourTurn') || 'Waiting for the other side to reply', 'info');
+      return;
+    }
+
+    const now = Date.now();
+    const basePath = `feedback/${threadUid}/${thread.firebaseId}`;
+    const msgRef = database.ref(`${basePath}/messages`).push();
+    const updates = {};
+    updates[`${basePath}/messages/${msgRef.key}`] = {
+      from: asRole,
+      text: trimmed,
+      timestamp: now
+    };
+    updates[`${basePath}/lastActivityAt`] = now;
+    updates[`${basePath}/lastFrom`] = asRole;
+    updates[`${basePath}/unreadByUser`]  = (asRole === 'admin');
+    updates[`${basePath}/unreadByAdmin`] = (asRole === 'user');
+    database.ref().update(updates).catch(handleFeedbackError);
+  };
+
+  // Edit the caller's own latest message (only if still their turn — not yet responded to)
+  const editFeedbackMessage = (thread, msgId, newText) => {
+    const trimmed = (newText || '').trim();
+    if (!trimmed) return;
+    if (trimmed.length > MAX_TEXT_LEN) { showToast(t('toast.feedbackTooLong'), 'warning'); return; }
+    if (!isFirebaseAvailable || !database) return;
+    const threadUid = thread.userId || thread._threadUid;
+    if (!threadUid || !thread.firebaseId) return;
+    const basePath = `feedback/${threadUid}/${thread.firebaseId}`;
+    const updates = {};
+    updates[`${basePath}/messages/${msgId}/text`] = trimmed;
+    updates[`${basePath}/messages/${msgId}/editedAt`] = new Date().toISOString();
+    updates[`${basePath}/lastActivityAt`] = Date.now();
+    // Re-trigger unread on the other side (per your spec: edits turn on the red dot)
+    const myRole = isCurrentUserAdmin ? 'admin' : 'user';
+    updates[`${basePath}/unreadByUser`]  = (myRole === 'admin');
+    updates[`${basePath}/unreadByAdmin`] = (myRole === 'user');
+    database.ref().update(updates).catch(handleFeedbackError);
+  };
+
+  // Mark a thread as read for the current viewer
+  const markFeedbackThreadRead = (thread) => {
+    if (!isFirebaseAvailable || !database) return;
+    const threadUid = thread.userId || thread._threadUid;
+    if (!threadUid || !thread.firebaseId) return;
+    const field = isCurrentUserAdmin ? 'unreadByAdmin' : 'unreadByUser';
+    database.ref(`feedback/${threadUid}/${thread.firebaseId}/${field}`).set(false).catch(() => {});
+  };
+
+  // End (delete) a conversation entirely
+  const endFeedbackConversation = (thread) => {
+    if (!isFirebaseAvailable || !database) return;
+    const threadUid = thread.userId || thread._threadUid;
+    if (!threadUid || !thread.firebaseId) return;
+    database.ref(`feedback/${threadUid}/${thread.firebaseId}`).remove()
+      .then(() => { showToast(t('toast.feedbackDeleted') || 'Conversation ended', 'success'); })
+      .catch(handleFeedbackError);
+  };
+
+  // Load feedback threads.
+  // Admin listens on /feedback (nested by uid). Non-admin listens on own slot.
+  // Thread shape: { ..., messages: { msgId: {...} }, lastFrom, unreadByUser, unreadByAdmin }
+  // Legacy flat entries (pre-v3.23.16) surface with _legacy:true and no messages — read-only.
   const feedbackCountRef = useRef(null);
   useEffect(() => {
     if (!isFirebaseAvailable || !database) return;
     if (!authUser || authUser.isAnonymous) {
       setFeedbackList([]);
       setMyFeedbackList([]);
+      setFeedbackUnreadCount(0);
       feedbackCountRef.current = 0;
       return;
     }
 
-    // Flatten /feedback nested-by-uid structure while also surfacing legacy flat entries
-    const flatten = (raw) => {
+    const normalizeThreads = (raw, topKeyIsUid) => {
+      // If topKeyIsUid, raw is the full /feedback tree: { uid1: { entryId1: {...} }, ... }
+      // Else raw is /feedback/{uid}: { entryId1: {...}, ... }
       const arr = [];
       if (!raw) return arr;
-      Object.keys(raw).forEach(topKey => {
-        const topVal = raw[topKey];
-        if (topVal && typeof topVal.text === 'string') {
-          // Legacy flat entry: /feedback/{entryId} = {text, timestamp, ...}
-          arr.push({ ...topVal, firebaseId: topKey, _legacy: true });
-        } else if (topVal && typeof topVal === 'object') {
-          // Uid grouping: /feedback/{uid}/{entryId} = {text, ...}
-          Object.keys(topVal).forEach(entryKey => {
-            const entry = topVal[entryKey];
-            if (entry && typeof entry === 'object') {
-              arr.push({ ...entry, firebaseId: entryKey, userId: entry.userId || topKey });
-            }
+      const collect = (uid, entries) => {
+        Object.keys(entries || {}).forEach(entryKey => {
+          const entry = entries[entryKey];
+          if (!entry || typeof entry !== 'object') return;
+          // v3.23.16 thread shape requires messages + lastFrom. Flat legacy entries lack them.
+          const isLegacy = !entry.messages;
+          arr.push({
+            ...entry,
+            firebaseId: entryKey,
+            userId: entry.userId || uid,
+            _threadUid: uid,
+            _legacy: isLegacy
           });
-        }
-      });
-      return arr.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        });
+      };
+      if (topKeyIsUid) {
+        Object.keys(raw).forEach(uid => {
+          const val = raw[uid];
+          if (val && typeof val === 'object' && !val.text) collect(uid, val);
+          else if (val && typeof val.text === 'string') {
+            arr.push({ ...val, firebaseId: uid, userId: null, _threadUid: null, _legacy: true });
+          }
+        });
+      } else {
+        collect(authUser.uid, raw);
+      }
+      return arr.sort((a, b) => (b.lastActivityAt || b.timestamp || 0) - (a.lastActivityAt || a.timestamp || 0));
     };
 
     let feedbackRef;
@@ -4185,33 +4262,25 @@
     if (isCurrentUserAdmin) {
       feedbackRef = database.ref('feedback');
       onValue = (snapshot) => {
-        const arr = flatten(snapshot.val());
+        const arr = normalizeThreads(snapshot.val(), true);
         setFeedbackList(arr);
         setMyFeedbackList(arr.filter(f => f.userId === authUser.uid));
+        const unread = arr.filter(t => !t._legacy && t.unreadByAdmin === true).length;
+        setFeedbackUnreadCount(unread);
         const prevCount = feedbackCountRef.current;
         if (prevCount !== null && arr.length > prevCount) {
-          const newest = arr[0];
           setHasNewFeedback(true);
-          showToast(`💬 ${t('settings.newFeedback')}: "${(newest.text || '').slice(0, 40)}${(newest.text || '').length > 40 ? '...' : ''}"`, 'info', 5000);
         }
         feedbackCountRef.current = arr.length;
-        if (prevCount === null) {
-          const lastSeen = parseInt(localStorage.getItem('foufou_last_seen_feedback') || '0');
-          const hasUnseen = arr.some(f => (f.timestamp || 0) > lastSeen);
-          if (hasUnseen) setHasNewFeedback(true);
-        }
       };
     } else {
-      // Non-admin: listen on own slot only
-      feedbackRef = database.ref(`feedback/${authUser.uid}`).orderByChild('timestamp').limitToLast(100);
+      feedbackRef = database.ref(`feedback/${authUser.uid}`);
       onValue = (snapshot) => {
-        const data = snapshot.val();
-        const arr = data
-          ? Object.keys(data).map(k => ({ ...data[k], firebaseId: k, userId: authUser.uid }))
-              .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
-          : [];
-        setFeedbackList([]); // non-admin doesn't see the global list
+        const arr = normalizeThreads(snapshot.val(), false);
+        setFeedbackList([]);
         setMyFeedbackList(arr);
+        const unread = arr.filter(t => !t._legacy && t.unreadByUser === true).length;
+        setFeedbackUnreadCount(unread);
       };
     }
 
@@ -4219,37 +4288,9 @@
     return () => feedbackRef.off('value', onValue);
   }, [isCurrentUserAdmin, authUser?.uid, authUser?.isAnonymous]);
 
-    const markFeedbackAsSeen = () => {
-    const latest = feedbackList.length > 0 ? feedbackList[0].timestamp : Date.now();
-    localStorage.setItem('foufou_last_seen_feedback', latest.toString());
+  const markFeedbackAsSeen = () => {
+    localStorage.setItem('foufou_last_seen_feedback', String(Date.now()));
     setHasNewFeedback(false);
-  };
-
-  // Resolve path: legacy flat entries live at /feedback/{id}; new entries at /feedback/{uid}/{id}
-  const feedbackPath = (feedbackItem) => {
-    if (!feedbackItem?.firebaseId) return null;
-    if (feedbackItem._legacy) return `feedback/${feedbackItem.firebaseId}`;
-    const uid = feedbackItem.userId || authUser?.uid;
-    if (!uid) return null;
-    return `feedback/${uid}/${feedbackItem.firebaseId}`;
-  };
-
-  const toggleFeedbackResolved = (feedbackItem) => {
-    const path = feedbackPath(feedbackItem);
-    if (isFirebaseAvailable && database && path) {
-      database.ref(path).update({ resolved: !feedbackItem.resolved });
-    }
-  };
-
-  const deleteFeedback = (feedbackItem) => {
-    const path = feedbackPath(feedbackItem);
-    if (isFirebaseAvailable && database && path) {
-      database.ref(path).remove()
-        .then(() => {
-          showToast(t('toast.feedbackDeleted'), 'success');
-          setMyFeedbackList(prev => prev.filter(f => f.firebaseId !== feedbackItem.firebaseId));
-        });
-    }
   };
 
   // Config - loaded from config.js, re-read on city change via selectedCityId dependency

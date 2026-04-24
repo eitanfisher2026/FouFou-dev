@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.15
+// FouFou app-data.js v3.23.16
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -1254,6 +1254,22 @@ about: {
   noContent: 'לחץ על עריכה כדי להוסיף תוכן',
 },
 
+// v3.23.16: Feedback conversation keys
+feedback: {
+  newConversation: 'שיחה חדשה',
+  conversation: 'שיחה',
+  noConversations: 'אין שיחות עדיין',
+  waitingForAdmin: 'ממתין לתשובת מנהל…',
+  waitingForUser: 'ממתין לתשובת משתמש…',
+  replyHere: 'כתוב תשובה...',
+  endConversation: 'סיים שיחה',
+  endConversationConfirm: 'לסיים את השיחה? הפעולה תמחק את השיחה לשני הצדדים.',
+  edited: 'נערך',
+  legacyNotice: 'רשומה ישנה — לא ניתן להשיב',
+  threadFull: 'השיחה מלאה (10/10) — סיים אותה או התחל חדשה',
+  addImage: 'תמונה',
+},
+
 }, // end Hebrew
 
 
@@ -2409,6 +2425,22 @@ about: {
   noContent: 'Click edit to add content',
 },
 
+// v3.23.16: Feedback conversation keys
+feedback: {
+  newConversation: 'New conversation',
+  conversation: 'Conversation',
+  noConversations: 'No conversations yet',
+  waitingForAdmin: 'Waiting for admin reply…',
+  waitingForUser: 'Waiting for user reply…',
+  replyHere: 'Reply here...',
+  endConversation: 'End conversation',
+  endConversationConfirm: 'End conversation? This will delete it for both sides.',
+  edited: 'edited',
+  legacyNotice: 'Legacy entry — reply not available',
+  threadFull: 'Conversation full (10/10) — end it or start a new one',
+  addImage: '1 image',
+},
+
 } // end English
 
 }; // end strings
@@ -3512,7 +3544,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.15';
+window.BKK.VERSION = '3.23.16';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));

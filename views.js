@@ -213,7 +213,7 @@
               transition: 'background 0.2s'
             }}
             title={t("settings.sendFeedback")}
-          >💬{hasNewFeedback && isCurrentUserAdmin && <span style={{ position: 'absolute', top: '1px', right: '1px', width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', border: '1px solid white' }} />}</button>
+          >💬{feedbackUnreadCount > 0 && <span style={{ position: 'absolute', top: '-3px', right: '-3px', minWidth: '14px', height: '14px', padding: '0 3px', borderRadius: '7px', background: '#ef4444', border: '1.5px solid white', color: 'white', fontSize: '9px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{feedbackUnreadCount > 9 ? '9+' : feedbackUnreadCount}</span>}</button>
           {/* Hamburger menu button - right in RTL, left in LTR */}
           <button
             onClick={() => setShowHeaderMenu(prev => !prev)}
@@ -4022,17 +4022,7 @@
                   </div>
                 )}
                 
-                {/* Feedback Viewer Button */}
-                <button
-                  onClick={() => {
-                    markFeedbackAsSeen();
-                    setShowFeedbackList(true);
-                  }}
-                  className="w-full bg-purple-500 text-white py-2 rounded-lg font-bold text-sm hover:bg-purple-600 flex items-center justify-center gap-2 mt-2"
-                >
-                  💬 Feedback ({feedbackList.length})
-                  {hasNewFeedback && <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full">{t("general.new")}</span>}
-                </button>
+                {/* v3.23.16: Settings-level Feedback Viewer button retired — use header 💬 icon instead */}
               </div>
             </div>
             )}
