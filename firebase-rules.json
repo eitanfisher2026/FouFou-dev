@@ -148,6 +148,11 @@
           "image": {
             ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 1200000 && (!data.exists() || data.val() === newData.val()))"
           },
+          "images": {
+            "$idx": {
+              ".validate": "$idx.matches(/^[0-2]$/) && (!newData.exists() || (newData.isString() && newData.val().length <= 1200000 && (!data.exists() || data.val() === newData.val())))"
+            }
+          },
           "messages": {
             "$msgId": {
               ".validate": "!newData.exists() || newData.hasChildren(['from', 'text', 'timestamp'])",
@@ -159,6 +164,11 @@
               },
               "image": {
                 ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 1200000 && (!data.exists() || data.val() === newData.val()))"
+              },
+              "images": {
+                "$idx": {
+                  ".validate": "$idx.matches(/^[0-2]$/) && (!newData.exists() || (newData.isString() && newData.val().length <= 1200000 && (!data.exists() || data.val() === newData.val())))"
+                }
               }
             }
           }

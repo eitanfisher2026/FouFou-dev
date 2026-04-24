@@ -2560,7 +2560,13 @@
       {/* Toast Notification - Subtle */}
       {/* Feedback Dialog */}
       {showFeedbackDialog && (() => {
-        const maxImgs = sp.feedbackMaxImages || 3;
+        // v3.23.19: read images from either legacy singular `image` or new `images` map
+        const getImgs = (node) => {
+          if (!node) return [];
+          if (node.images) return Object.keys(node.images).sort((a, b) => Number(a) - Number(b)).map(k => node.images[k]).filter(Boolean);
+          if (node.image) return [node.image];
+          return [];
+        };
         const isAnon = !authUser || authUser.isAnonymous;
         if (isAnon) {
           return (
@@ -2598,12 +2604,12 @@
           : feedbackMode === 'new'
             ? `💬 ${t('feedback.newConversation') || 'New conversation'}`
             : (selectedThread?.subject || `💬 ${t('feedback.conversation') || 'Conversation'}`);
-        const goBack = () => { setFeedbackMode('list'); setFeedbackSelectedThreadId(null); setFeedbackReplyImage(null); setFeedbackText(''); };
-        const handleClose = () => { setShowFeedbackDialog(false); setFeedbackMode('list'); setFeedbackSelectedThreadId(null); setFeedbackReplyImage(null); setFeedbackText(''); };
+        const goBack = () => { setFeedbackMode('list'); setFeedbackSelectedThreadId(null); setFeedbackReplyImages([]); setFeedbackText(''); };
+        const handleClose = () => { setShowFeedbackDialog(false); setFeedbackMode('list'); setFeedbackSelectedThreadId(null); setFeedbackReplyImages([]); setFeedbackText(''); };
         // Admin: after sending a reply, jump to next unread thread (or close if none)
         const advanceAdminAfterSend = () => {
           const next = threadsForMe.find(th => th.firebaseId !== selectedThread?.firebaseId && th.unreadByAdmin);
-          if (next) { setFeedbackSelectedThreadId(next.firebaseId); setFeedbackText(''); setFeedbackReplyImage(null); }
+          if (next) { setFeedbackSelectedThreadId(next.firebaseId); setFeedbackText(''); setFeedbackReplyImages([]); }
           else { handleClose(); }
         };
         // Admin-side subtitle (sender name) — only in thread mode
@@ -2628,6 +2634,21 @@
               </div>
               <button onClick={handleClose} className="text-white opacity-70 hover:opacity-100 text-xl leading-none">✕</button>
             </div>
+
+            {/* List-mode admin toolbar: Delete all */}
+            {feedbackMode === 'list' && isCurrentUserAdmin && threadsForMe.length > 0 && (
+              <div style={{ padding: '6px 12px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', background: '#f9fafb' }}>
+                <button onClick={() => {
+                  showConfirm(
+                    (t('feedback.deleteAllConfirm') || 'Delete ALL feedback for ALL users? This cannot be undone.') + `\n(${threadsForMe.length})`,
+                    () => { deleteAllFeedback(); },
+                    { confirmLabel: t('feedback.deleteAll') || 'Delete all', confirmColor: '#dc2626' }
+                  );
+                }} style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '6px', background: 'transparent', color: '#dc2626', border: '1px solid #fca5a5', cursor: 'pointer', fontWeight: 500 }}>
+                  🗑️ {t('feedback.deleteAll') || 'Delete all'} ({threadsForMe.length})
+                </button>
+              </div>
+            )}
 
             {/* ============== LIST MODE ============== */}
             {feedbackMode === 'list' && (
@@ -2685,11 +2706,24 @@
               const threadFull = msgCount >= 10;
               return (<>
                 <div className="p-3 overflow-y-auto flex-1" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {selectedThread.image && (
-                    <div style={{ textAlign: 'center' }}>
-                      <img src={selectedThread.image} alt="" onClick={() => setModalImage(selectedThread.image)} style={{ maxWidth: '100%', maxHeight: '180px', borderRadius: '8px', cursor: 'pointer', border: '1px solid #e5e7eb' }} />
-                    </div>
-                  )}
+                  {(() => {
+                    const threadImgs = getImgs(selectedThread);
+                    if (!threadImgs.length || selectedThread._legacy) return null;
+                    const hasMap = !!selectedThread.images;
+                    return (
+                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        {threadImgs.map((img, i) => (
+                          <div key={i} style={{ position: 'relative' }}>
+                            <img src={img} alt="" onClick={() => setModalImage(img)}
+                              style={{ maxWidth: '140px', maxHeight: '140px', borderRadius: '8px', cursor: 'pointer', border: '1px solid #e5e7eb', display: 'block' }} />
+                            <button onClick={() => removeFeedbackImage(selectedThread, null, hasMap ? i : null)}
+                              title={t('feedback.removeImage') || 'Remove image'}
+                              style={{ position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', borderRadius: '50%', background: '#ef4444', color: 'white', border: '2px solid white', cursor: 'pointer', fontSize: '10px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>✕</button>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                   {selectedThread._legacy ? (
                     <div style={{ padding: '10px', background: '#fef3c7', borderRadius: '8px', fontSize: '12px', color: '#92400e' }}>
                       ⚠️ {t('feedback.legacyNotice') || 'Legacy entry — reply not available'}
@@ -2718,12 +2752,24 @@
                             </div>
                           ) : (
                             <>
-                              {m.image && (
-                                <div style={{ marginBottom: m.text ? '6px' : 0 }}>
-                                  <img src={m.image} alt="" onClick={() => setModalImage(m.image)}
-                                    style={{ maxWidth: '100%', maxHeight: '180px', borderRadius: '6px', cursor: 'pointer', display: 'block' }} />
-                                </div>
-                              )}
+                              {(() => {
+                                const msgImgs = getImgs(m);
+                                if (!msgImgs.length) return null;
+                                const hasMap = !!m.images;
+                                return (
+                                  <div style={{ marginBottom: m.text ? '6px' : 0, display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                    {msgImgs.map((img, i) => (
+                                      <div key={i} style={{ position: 'relative' }}>
+                                        <img src={img} alt="" onClick={() => setModalImage(img)}
+                                          style={{ maxWidth: '160px', maxHeight: '120px', borderRadius: '6px', cursor: 'pointer', display: 'block' }} />
+                                        <button onClick={() => removeFeedbackImage(selectedThread, m.id, hasMap ? i : null)}
+                                          title={t('feedback.removeImage') || 'Remove image'}
+                                          style={{ position: 'absolute', top: '-5px', right: '-5px', width: '18px', height: '18px', borderRadius: '50%', background: '#ef4444', color: 'white', border: '2px solid white', cursor: 'pointer', fontSize: '9px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>✕</button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
                               {m.text}
                               {m.editedAt && <span style={{ fontSize: '10px', color: '#9ca3af', marginLeft: '6px' }}>({t('feedback.edited') || 'edited'})</span>}
                             </>
@@ -2741,10 +2787,6 @@
                 </div>
 
                 {/* Composer / turn indicator + action row */}
-                {(() => {
-                  const imgCount = (selectedThread.image ? 1 : 0) + msgs.filter(m => m.image).length;
-                  const imgCapReached = imgCount >= 5;
-                  return (
                 <div style={{ borderTop: '1px solid #e5e7eb', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {selectedThread._legacy ? null : threadFull ? (
                     <div style={{ fontSize: '11px', color: '#b91c1c', textAlign: 'center' }}>{t('feedback.threadFull') || 'Conversation full (10/10) — end it or start a new one'}</div>
@@ -2757,30 +2799,32 @@
                         maxLength={3000}
                         style={{ width: '100%', padding: '8px 10px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', resize: 'none', outline: 'none', boxSizing: 'border-box', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', fontFamily: 'inherit' }}
                       />
-                      {/* Image attach + preview */}
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        {feedbackReplyImage ? (
-                          <div style={{ position: 'relative', flexShrink: 0 }}>
-                            <img src={feedbackReplyImage} alt="" style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer' }} onClick={() => setModalImage(feedbackReplyImage)} />
-                            <button onClick={() => setFeedbackReplyImage(null)}
+                      {/* Image picker — up to 3 thumbs + one add slot */}
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {feedbackReplyImages.map((img, i) => (
+                          <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
+                            <img src={img} alt="" onClick={() => setModalImage(img)}
+                              style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e5e7eb', cursor: 'pointer' }} />
+                            <button onClick={() => setFeedbackReplyImages(feedbackReplyImages.filter((_, j) => j !== i))}
                               style={{ position: 'absolute', top: '-5px', right: '-5px', width: '18px', height: '18px', borderRadius: '50%', background: '#ef4444', color: 'white', border: '2px solid white', cursor: 'pointer', fontSize: '9px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>✕</button>
                           </div>
-                        ) : (
-                          <label title={imgCapReached ? (t('toast.feedbackImageCapReached') || 'Image cap reached') : (t('feedback.addImage') || 'Attach image')}
-                            style={{ width: '56px', height: '56px', border: '2px dashed #d1d5db', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: imgCapReached ? 'not-allowed' : 'pointer', color: imgCapReached ? '#e5e7eb' : '#9ca3af', fontSize: '18px', flexShrink: 0, opacity: imgCapReached ? 0.5 : 1 }}>
+                        ))}
+                        {feedbackReplyImages.length < 3 && (
+                          <label title={t('feedback.addImage') || 'Attach image'}
+                            style={{ width: '56px', height: '56px', border: '2px dashed #d1d5db', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#9ca3af', fontSize: '18px', flexShrink: 0 }}>
                             📎
-                            <input type="file" accept="image/*" disabled={imgCapReached} style={{ display: 'none' }} onChange={async (e) => {
+                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (!file) return;
                               try {
                                 const compressed = await window.BKK.compressImage(file, 480);
-                                if (compressed) setFeedbackReplyImage(compressed);
+                                if (compressed) setFeedbackReplyImages([...feedbackReplyImages, compressed].slice(0, 3));
                               } catch(err) { showToast(t('toast.imageLoadError') || 'Image load error', 'error'); }
                               e.target.value = '';
                             }} />
                           </label>
                         )}
-                        <div style={{ fontSize: '10px', color: '#9ca3af' }}>{imgCount}/5 🖼️</div>
+                        <div style={{ fontSize: '10px', color: '#9ca3af' }}>{feedbackReplyImages.length}/3 🖼️</div>
                       </div>
                     </>
                   ) : (
@@ -2792,9 +2836,9 @@
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch', flexDirection: window.BKK.i18n.isRTL() ? 'row-reverse' : 'row' }}>
                     {!selectedThread._legacy && isMyTurn && !threadFull && (
                       <button onClick={() => {
-                          replyToFeedbackThread(selectedThread, feedbackText, myRole, feedbackReplyImage);
+                          replyToFeedbackThread(selectedThread, feedbackText, myRole, feedbackReplyImages);
                           setFeedbackText('');
-                          setFeedbackReplyImage(null);
+                          setFeedbackReplyImages([]);
                           if (myRole === 'admin') advanceAdminAfterSend();
                           else handleClose();
                         }}
@@ -2822,8 +2866,6 @@
                     </button>
                   </div>
                 </div>
-                  );
-                })()}
               </>);
             })()}
 
@@ -2857,24 +2899,27 @@
                   rows={5}
                   maxLength={3000}
                   style={{ width: '100%', padding: '10px', border: '2px solid #e5e7eb', borderRadius: '10px', fontSize: '13px', resize: 'none', outline: 'none', lineHeight: '1.5', boxSizing: 'border-box', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', wordBreak: 'break-word', fontFamily: 'inherit' }} />
-                {/* Single image */}
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  {feedbackImages.length > 0 ? (
-                    <div style={{ position: 'relative', flexShrink: 0 }}>
-                      <img src={feedbackImages[0]} alt="" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb', cursor: 'pointer' }} onClick={() => setModalImage(feedbackImages[0])} />
-                      <button onClick={() => setFeedbackImages([])}
+                {/* Images — up to 3 */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  {feedbackImages.map((img, i) => (
+                    <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
+                      <img src={img} alt="" onClick={() => setModalImage(img)}
+                        style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e5e7eb', cursor: 'pointer' }} />
+                      <button onClick={() => setFeedbackImages(feedbackImages.filter((_, j) => j !== i))}
                         style={{ position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', borderRadius: '50%', background: '#ef4444', color: 'white', border: '2px solid white', cursor: 'pointer', fontSize: '10px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>✕</button>
                     </div>
-                  ) : (
-                    <label style={{ width: '80px', height: '80px', border: '2px dashed #d1d5db', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#9ca3af', gap: '3px', flexShrink: 0 }}>
+                  ))}
+                  {feedbackImages.length < 3 && (
+                    <label title={t('feedback.addImage') || 'Attach image'}
+                      style={{ width: '70px', height: '70px', border: '2px dashed #d1d5db', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#9ca3af', gap: '3px', flexShrink: 0 }}>
                       <span style={{ fontSize: '22px' }}>📎</span>
-                      <span style={{ fontSize: '9px', fontWeight: 'bold' }}>{t('feedback.addImage') || '1 image'}</span>
+                      <span style={{ fontSize: '9px', fontWeight: 'bold' }}>{feedbackImages.length}/3</span>
                       <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
                         try {
                           const compressed = await window.BKK.compressImage(file, 480);
-                          if (compressed) setFeedbackImages([compressed]);
+                          if (compressed) setFeedbackImages([...feedbackImages, compressed].slice(0, 3));
                         } catch(err) { showToast(t('toast.imageLoadError') || 'Image load error', 'error'); }
                         e.target.value = '';
                       }} />
@@ -2884,7 +2929,7 @@
                 {/* Action row — auto-reverses in RTL */}
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch', flexDirection: window.BKK.i18n.isRTL() ? 'row-reverse' : 'row' }}>
                   <button onClick={() => {
-                    const key = openFeedbackThread({ subject: feedbackSubject, category: feedbackCategory, text: feedbackText, image: feedbackImages[0] || null });
+                    const key = openFeedbackThread({ subject: feedbackSubject, category: feedbackCategory, text: feedbackText, images: feedbackImages });
                     if (key) {
                       setFeedbackText(''); setFeedbackSubject(''); setFeedbackImages([]);
                       handleClose();

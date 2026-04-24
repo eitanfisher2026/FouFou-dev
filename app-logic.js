@@ -960,8 +960,6 @@
       googleTextRankPreference: 'RELEVANCE',
       // System alerts — how often to send automated system feedback (hours)
       systemAlertIntervalHours: 1,
-      // Feedback images
-      feedbackMaxImages: 3,
       // GPS timeout (ms) — max time to wait for a device GPS reading before giving up.
       // Used by both the proactive prefetch on wizard step 3 and the click-time fallback
       // on "Open in Google Maps". Most modern devices return a fix within a second or
@@ -1678,23 +1676,16 @@
   const isCurrentUserAdmin = isRealAdmin; // backward compat — uses real role, not impersonated
 
   // Feedback System
+  // v3.23.19: clean up stale 'feedback_draft' localStorage from pre-v3.23.16 one-shot flow.
+  // Nothing writes to this key anymore; the read-at-init was resurrecting old draft text.
+  try { localStorage.removeItem('feedback_draft'); } catch(e) {}
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
-  const [feedbackText, setFeedbackText] = useState(() => {
-    try { const d = JSON.parse(localStorage.getItem('feedback_draft') || '{}'); return d.text || ''; } catch(e) { return ''; }
-  });
-  const [feedbackImages, setFeedbackImages] = useState([]); // base64 array, max sp.feedbackMaxImages
-  const [feedbackCategory, setFeedbackCategory] = useState(() => {
-    try { const d = JSON.parse(localStorage.getItem('feedback_draft') || '{}'); return d.cat || 'general'; } catch(e) { return 'general'; }
-  });
-  const [feedbackSubject, setFeedbackSubject] = useState(() => {
-    try { const d = JSON.parse(localStorage.getItem('feedback_draft') || '{}'); return d.subject || ''; } catch(e) { return ''; }
-  });
-  const [feedbackSenderName, setFeedbackSenderName] = useState(() => {
-    try { const d = JSON.parse(localStorage.getItem('feedback_draft') || '{}'); return d.senderName || ''; } catch(e) { return ''; }
-  });
-  const [feedbackSenderEmail, setFeedbackSenderEmail] = useState(() => {
-    try { const d = JSON.parse(localStorage.getItem('feedback_draft') || '{}'); return d.senderEmail || ''; } catch(e) { return ''; }
-  });
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackImages, setFeedbackImages] = useState([]); // base64 array, max 3
+  const [feedbackCategory, setFeedbackCategory] = useState('general');
+  const [feedbackSubject, setFeedbackSubject] = useState('');
+  const [feedbackSenderName, setFeedbackSenderName] = useState('');
+  const [feedbackSenderEmail, setFeedbackSenderEmail] = useState('');
   const [feedbackList, setFeedbackList] = useState([]);
   const [myFeedbackList, setMyFeedbackList] = useState([]); // own feedback for non-admin users
   const [showFeedbackList, setShowFeedbackList] = useState(false);
@@ -1704,7 +1695,7 @@
   const [feedbackMode, setFeedbackMode] = useState('list'); // v3.23.16: 'list' | 'thread' | 'new'
   const [feedbackEditingMsgId, setFeedbackEditingMsgId] = useState(null); // v3.23.16: which message is being edited
   const [feedbackEditDraft, setFeedbackEditDraft] = useState(''); // v3.23.16: edit buffer
-  const [feedbackReplyImage, setFeedbackReplyImage] = useState(null); // v3.23.18: image attached to the reply being composed
+  const [feedbackReplyImages, setFeedbackReplyImages] = useState([]); // v3.23.19: images attached to the reply being composed (up to 3)
 
   // Confirm Dialog (replaces browser confirm)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -4080,7 +4071,7 @@
   const MAX_MESSAGES_PER_THREAD = 10;
   const MAX_TEXT_LEN = 3000;
   const MAX_IMAGE_LEN = 1200000;
-  const MAX_IMAGES_PER_THREAD = 5;
+  const MAX_IMAGES_PER_MESSAGE = 3;
 
   const handleFeedbackError = (err) => {
     const code = err?.code || '';
@@ -4091,13 +4082,15 @@
     }
   };
 
-  // Open a new conversation (user's first message in a thread)
-  const openFeedbackThread = ({ subject, category, text, image }) => {
+  // Open a new conversation (user's first message in a thread).
+  // images: array of up to MAX_IMAGES_PER_MESSAGE base64 strings (v3.23.19).
+  const openFeedbackThread = ({ subject, category, text, images }) => {
     const trimmed = (text || '').trim();
+    const imgs = Array.isArray(images) ? images.filter(i => typeof i === 'string' && i).slice(0, MAX_IMAGES_PER_MESSAGE) : [];
     if (!trimmed) { showToast(t('settings.writeFeedback'), 'warning'); return; }
     if (!authUser || authUser.isAnonymous || !authUser.uid) { showToast(t('auth.feedbackSignInRequired'), 'warning'); return; }
     if (trimmed.length > MAX_TEXT_LEN) { showToast(t('toast.feedbackTooLong'), 'warning'); return; }
-    if (image && typeof image === 'string' && image.length > MAX_IMAGE_LEN) { showToast(t('toast.feedbackImageTooLarge'), 'warning'); return; }
+    if (imgs.some(i => i.length > MAX_IMAGE_LEN)) { showToast(t('toast.feedbackImageTooLarge'), 'warning'); return; }
     if ((myFeedbackList || []).length >= MAX_THREADS_PER_USER) {
       showToast(t('toast.feedbackCapReached'), 'warning', 'sticky');
       return;
@@ -4107,6 +4100,8 @@
     const uid = authUser.uid;
     const now = Date.now();
     const nowIso = new Date(now).toISOString();
+    const imagesMap = {};
+    imgs.forEach((img, idx) => { imagesMap[idx] = img; });
     const thread = {
       subject: (subject || '').trim() || null,
       category: category || 'general',
@@ -4121,9 +4116,10 @@
       lastFrom: 'user',
       unreadByUser: false,
       unreadByAdmin: true,
-      ...(image ? { image } : {}),
       messages: {
-        __msg0: { from: 'user', text: trimmed, timestamp: now }
+        __msg0: imgs.length
+          ? { from: 'user', text: trimmed, timestamp: now, images: imagesMap }
+          : { from: 'user', text: trimmed, timestamp: now }
       }
     };
     const newRef = database.ref(`feedback/${uid}`).push();
@@ -4135,13 +4131,14 @@
 
   // Append a reply to an existing thread. asRole must match the caller's role.
   // Alternation: caller can only reply if it's not their turn (client-side guard only).
-  // image is optional — if provided, attached to this message only (immutable after).
-  const replyToFeedbackThread = (thread, text, asRole, image) => {
+  // images: optional array of up to MAX_IMAGES_PER_MESSAGE base64 strings attached to this reply.
+  const replyToFeedbackThread = (thread, text, asRole, images) => {
     const trimmed = (text || '').trim();
+    const imgs = Array.isArray(images) ? images.filter(i => typeof i === 'string' && i).slice(0, MAX_IMAGES_PER_MESSAGE) : [];
     if (!trimmed) return;
     if (!authUser || !authUser.uid) return;
     if (trimmed.length > MAX_TEXT_LEN) { showToast(t('toast.feedbackTooLong'), 'warning'); return; }
-    if (image && typeof image === 'string' && image.length > MAX_IMAGE_LEN) { showToast(t('toast.feedbackImageTooLarge'), 'warning'); return; }
+    if (imgs.some(i => i.length > MAX_IMAGE_LEN)) { showToast(t('toast.feedbackImageTooLarge'), 'warning'); return; }
     if (!isFirebaseAvailable || !database) { showToast(t('toast.firebaseUnavailable'), 'error'); return; }
     const threadUid = thread.userId || thread._threadUid;
     if (!threadUid || !thread.firebaseId) return;
@@ -4155,28 +4152,52 @@
       showToast(t('toast.feedbackNotYourTurn') || 'Waiting for the other side to reply', 'info');
       return;
     }
-    if (image) {
-      // Count existing images across thread + thread-level image; cap at MAX_IMAGES_PER_THREAD
-      const existingImgCount = (thread.image ? 1 : 0) +
-        Object.values(thread.messages || {}).filter(m => m && m.image).length;
-      if (existingImgCount >= MAX_IMAGES_PER_THREAD) {
-        showToast(t('toast.feedbackImageCapReached') || `Max ${MAX_IMAGES_PER_THREAD} images per conversation`, 'warning');
-        return;
-      }
-    }
 
     const now = Date.now();
     const basePath = `feedback/${threadUid}/${thread.firebaseId}`;
     const msgRef = database.ref(`${basePath}/messages`).push();
     const updates = {};
     const msgData = { from: asRole, text: trimmed, timestamp: now };
-    if (image) msgData.image = image;
+    if (imgs.length) {
+      const imagesMap = {};
+      imgs.forEach((img, idx) => { imagesMap[idx] = img; });
+      msgData.images = imagesMap;
+    }
     updates[`${basePath}/messages/${msgRef.key}`] = msgData;
     updates[`${basePath}/lastActivityAt`] = now;
     updates[`${basePath}/lastFrom`] = asRole;
     updates[`${basePath}/unreadByUser`]  = (asRole === 'admin');
     updates[`${basePath}/unreadByAdmin`] = (asRole === 'user');
     database.ref().update(updates).catch(handleFeedbackError);
+  };
+
+  // Remove an image from a sent message (or the thread-level legacy image).
+  // msgId=null + idx=null → remove thread-level singular image (legacy v3.23.16–17 data).
+  // msgId=null + idx>=0  → remove thread-level images/$idx (legacy v3.23.18 data if any).
+  // msgId="..." + idx=null → remove messages/$msgId/image (legacy v3.23.18 data).
+  // msgId="..." + idx>=0  → remove messages/$msgId/images/$idx (v3.23.19 shape).
+  const removeFeedbackImage = (thread, msgId, idx) => {
+    if (!isFirebaseAvailable || !database) return;
+    const threadUid = thread.userId || thread._threadUid;
+    if (!threadUid || !thread.firebaseId) return;
+    const basePath = `feedback/${threadUid}/${thread.firebaseId}`;
+    let path;
+    if (msgId == null && idx == null)       path = `${basePath}/image`;
+    else if (msgId == null && idx != null)  path = `${basePath}/images/${idx}`;
+    else if (msgId != null && idx == null)  path = `${basePath}/messages/${msgId}/image`;
+    else                                    path = `${basePath}/messages/${msgId}/images/${idx}`;
+    database.ref(path).remove()
+      .then(() => { database.ref(`${basePath}/lastActivityAt`).set(Date.now()); })
+      .catch(handleFeedbackError);
+  };
+
+  // Admin-only: wipe all feedback entries for all users.
+  const deleteAllFeedback = () => {
+    if (!isFirebaseAvailable || !database) return;
+    if (!isCurrentUserAdmin) return;
+    database.ref('feedback').remove()
+      .then(() => { showToast(t('toast.allFeedbackDeleted') || 'All feedback deleted', 'success'); })
+      .catch(handleFeedbackError);
   };
 
   // Edit the caller's own latest message (only if still their turn — not yet responded to)
