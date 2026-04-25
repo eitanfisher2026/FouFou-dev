@@ -1887,9 +1887,8 @@
                                         ((loc.name || '').toLowerCase().trim() === stopKey)
                                       );
                                       const effectiveDesc = cl ? (cl.description || '') : (stop.description || '');
-                                      if (window.BKK._debugDesc) {
-                                        console.log('[DESC]', stop.name, '| cl?', !!cl, '| cl.desc?', cl?.description?.slice?.(0,40), '| stop.desc?', stop.description?.slice?.(0,40), '| chose:', effectiveDesc.slice(0,40));
-                                      }
+                                      // v3.23.38: always log so we can see what each render is doing without needing a flag
+                                      console.log('[DESC]', stop.name, '| cl?', !!cl, '| cl.desc?', cl?.description?.slice?.(0, 40), '| stop.desc?', stop.description?.slice?.(0, 40), '| chose:', effectiveDesc.slice(0, 40));
                                       const pk = (stop.name || '').replace(/[.#$/\\[\]]/g, '_');
                                       const ra = reviewAverages[pk];
                                       const gR = cl?.googleRating || stop.googleRating;
