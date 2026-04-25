@@ -3139,65 +3139,10 @@
       }).catch(() => {});
     }
 
-    // EMAIL-LEAK SWEEP (v3.23.14): scrub email-shaped values from publicly-readable
-    // userName / savedByName / addedByName fields across reviews, routes, interests.
-    // Root cause: older code fell back to email when displayName was missing; that
-    // email then got stored at `.read: true` paths. We now refuse emails at write
-    // time (rule + helper), and this pass cleans historical data.
-    if (localStorage.getItem('email_leak_sweep_v32314') !== 'true') {
-      const looksLikeEmail = (s) => typeof s === 'string' && s.indexOf('@') !== -1 && s.indexOf('.') !== -1;
-      const safeFromUid = (uid) => (uid ? 'User-' + String(uid).slice(0, 6) : 'User');
-      const writes = {};
-      const sweepJobs = [];
-
-      // 1. /customInterests/{id}/addedByName
-      sweepJobs.push(database.ref('customInterests').once('value').then(snap => {
-        const all = snap.val() || {};
-        Object.keys(all).forEach(k => {
-          const v = all[k];
-          if (v && looksLikeEmail(v.addedByName)) {
-            writes[`customInterests/${k}/addedByName`] = safeFromUid(v.addedBy || k);
-          }
-        });
-      }));
-
-      // 2. /cities/{cityId}/routes/{routeId}/savedByName
-      sweepJobs.push(database.ref('cities').once('value').then(snap => {
-        const cities = snap.val() || {};
-        Object.keys(cities).forEach(cid => {
-          const routes = cities[cid]?.routes || {};
-          Object.keys(routes).forEach(rid => {
-            const r = routes[rid];
-            if (r && looksLikeEmail(r.savedByName)) {
-              writes[`cities/${cid}/routes/${rid}/savedByName`] = safeFromUid(r.savedBy);
-            }
-          });
-          // 3. /cities/{cityId}/reviews/{placeKey}/{uid}/userName
-          const reviews = cities[cid]?.reviews || {};
-          Object.keys(reviews).forEach(pk => {
-            const perUser = reviews[pk] || {};
-            Object.keys(perUser).forEach(uid => {
-              const rv = perUser[uid];
-              if (rv && looksLikeEmail(rv.userName)) {
-                writes[`cities/${cid}/reviews/${pk}/${uid}/userName`] = safeFromUid(uid);
-              }
-            });
-          });
-        });
-      }));
-
-      Promise.all(sweepJobs).then(() => {
-        const n = Object.keys(writes).length;
-        if (n === 0) {
-          console.log('[EMAIL-SWEEP v3.23.14] no email-shaped display names found — clean');
-          localStorage.setItem('email_leak_sweep_v32314', 'true');
-          return;
-        }
-        database.ref().update(writes)
-          .then(() => { console.log(`[EMAIL-SWEEP v3.23.14] replaced ${n} email-shaped display names with User-<uid> fallbacks`); localStorage.setItem('email_leak_sweep_v32314', 'true'); })
-          .catch(e => console.warn('[EMAIL-SWEEP v3.23.14] update failed:', e));
-      }).catch(e => console.warn('[EMAIL-SWEEP v3.23.14] read failed:', e));
-    }
+    // v3.23.14 EMAIL-LEAK SWEEP retired in v3.23.28 — the migration completed in prod
+    // 13 versions ago and the read('cities') it relied on conflicts with current rules
+    // (no .read at /cities root, only on sub-paths). New leaks are prevented by the
+    // safeDisplayName helper + the rule validate that rejects '@' in *Name fields.
   }, [isAdmin]);
 
   // Load user display names for addedBy resolution
