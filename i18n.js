@@ -116,6 +116,7 @@ he: {
 // --- General / Common ---
 general: {
   appName: 'FouFou',
+  poweredByGoogle: 'מסופק ע״י Google',
   city: 'עיר',
   all: 'כל',
   upTo: 'עד',
@@ -1280,6 +1281,7 @@ about: {
   saveTranslate: 'שמור + תרגם לאנגלית',
   placeholder: 'כתוב כאן על FouFou...',
   noContent: 'לחץ על עריכה כדי להוסיף תוכן',
+  dataSources: 'נתוני המקומות, דירוגים וכתובות מסופקים על ידי Google Places API. קישורי מפה נפתחים ב-Google Maps.',
 },
 
 // v3.23.16: Feedback conversation keys
@@ -1312,6 +1314,7 @@ en: {
 
 general: {
   appName: 'FouFou',
+  poweredByGoogle: 'Powered by Google',
   city: 'City',
   all: 'All',
   upTo: 'up to',
@@ -2483,6 +2486,7 @@ about: {
   saveTranslate: 'Save + Translate to Hebrew',
   placeholder: 'Write about FouFou here...',
   noContent: 'Click edit to add content',
+  dataSources: 'Place data, ratings, and addresses are provided by the Google Places API. Map links open in Google Maps.',
 },
 
 // v3.23.16: Feedback conversation keys

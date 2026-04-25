@@ -12,6 +12,7 @@
                     <div style={{ fontSize: '28px', marginBottom: '4px' }}>🌐</div>
                     <div style={{ fontWeight: 'bold', fontSize: '15px' }}>{t('dedup.googleMatchMulti') || 'מקומות קרובים בגוגל'}</div>
                     <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>{t('dedup.selectOrSkip') || 'בחר את המקום שצילמת, או דלג'}</div>
+                    <div style={{ fontSize: '9px', color: '#9ca3af', marginTop: '4px' }}>{t('general.poweredByGoogle') || 'Powered by Google'}</div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
                     {multiMatches.map((m, idx) => (
@@ -278,6 +279,11 @@
                     {/* Search Results Dropdown */}
                     {locationSearchResults !== null && (
                       <div style={{ marginTop: '4px', border: '1px solid #e5e7eb', borderRadius: '8px', maxHeight: '150px', overflowY: 'auto', background: 'white' }}>
+                        {locationSearchResults.length > 0 && (
+                          <div style={{ padding: '4px 8px', fontSize: '9px', color: '#9ca3af', borderBottom: '1px solid #f3f4f6', background: '#fafafa', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left' }}>
+                            {t('general.poweredByGoogle') || 'Powered by Google'}
+                          </div>
+                        )}
                         {locationSearchResults.length === 0 ? (
                           <p style={{ textAlign: 'center', padding: '8px', color: '#9ca3af', fontSize: '11px' }}>{t("general.searching")}...</p>
                         ) : locationSearchResults.map((result, idx) => (
@@ -2112,6 +2118,12 @@
                     {/* Loading */}
                     {Array.isArray(manualSearchResults) && manualSearchResults.length === 0 && (
                       <div style={{ textAlign: 'center', padding: '12px', color: '#9ca3af', fontSize: '12px' }}>⏳ {t('general.searching')}...</div>
+                    )}
+                    {/* v3.23.40: Google attribution */}
+                    {manualSearchResults && (Array.isArray(manualSearchResults) ? manualSearchResults.length > 0 : (manualSearchResults.google?.length > 0 || manualSearchResults.favorites?.length > 0)) && (
+                      <div style={{ padding: '4px 10px', fontSize: '9px', color: '#9ca3af', borderBottom: '1px solid #f5f3ff', background: '#fafafa', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left' }}>
+                        {t('general.poweredByGoogle') || 'Powered by Google'}
+                      </div>
                     )}
                     {/* Two-group results */}
                     {manualSearchResults && !Array.isArray(manualSearchResults) && (() => {
@@ -4197,6 +4209,11 @@
                       eitanfisher2026.github.io/FouFou
                     </a>
                   </div>
+                </div>
+
+                {/* v3.23.40: Data sources / attribution */}
+                <div style={{ marginTop: '12px', fontSize: '10px', color: '#9ca3af', lineHeight: '1.6' }}>
+                  {t('about.dataSources') || 'Place data, ratings, and addresses are sourced from the Google Places API. Map links open in Google Maps.'}
                 </div>
 
                 {/* Admin section: version + refresh */}

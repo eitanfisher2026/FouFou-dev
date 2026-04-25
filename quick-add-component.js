@@ -336,6 +336,11 @@ const QuickAddPlaceDialog = ({
             {/* Search results dropdown */}
             {captureMode && searchResults !== null && (
               <div style={{ marginTop: "4px", border: "1px solid #e5e7eb", borderRadius: "8px", maxHeight: "140px", overflowY: "auto", background: "white", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
+                {searchResults.length > 0 && (
+                  <div style={{ padding: "4px 8px", fontSize: "9px", color: "#9ca3af", borderBottom: "1px solid #f3f4f6", background: "#fafafa", textAlign: isRTL ? "right" : "left" }}>
+                    {t("general.poweredByGoogle") || "Powered by Google"}
+                  </div>
+                )}
                 {searchResults.length === 0 ? (
                   <p style={{ textAlign: "center", padding: "8px", color: "#9ca3af", fontSize: "11px" }}>{t("general.searching")}...</p>
                 ) : searchResults.map((result, idx) => (
