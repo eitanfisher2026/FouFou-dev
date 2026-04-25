@@ -278,14 +278,14 @@
                           <button
                             key={idx}
                             onClick={async () => {
-                              // v3.23.27: when search ran in a non-English locale, the chosen result's name
-                              // may be in Hebrew/Thai/etc. Refetch the canonical English name so saved data
-                              // stays consistent for English-speaking users.
+                              // v3.23.28: ALWAYS refetch English when picking a Google result with a placeId.
+                              // Previously gated on !isLatinScript(result.name), but in practice the gate
+                              // could be bypassed (e.g. result.name is mixed script), and the cost of one
+                              // extra Place Details call per save is negligible.
                               let englishName = result.name;
-                              if (result.googlePlaceId && !isLatinScript(result.name)) {
+                              if (result.googlePlaceId) {
                                 const fetched = await fetchEnglishName(result.googlePlaceId);
-                                if (fetched && isLatinScript(fetched)) englishName = fetched;
-                                else if (fetched) englishName = fetched; // got something, even if non-Latin (place has no English entry)
+                                if (fetched) englishName = fetched;
                               }
                               const nameStillNonLatin = !isLatinScript(englishName);
                               // Auto-detect areas from coordinates
@@ -2130,9 +2130,9 @@
                             showConfirm(msg,
                               () => addManualStop({ name: matchedFav.name, lat: matchedFav.lat, lng: matchedFav.lng, address: matchedFav.address, rating: matchedFav.googleRating, ratingCount: matchedFav.googleRatingCount, googlePlaceId: matchedFav.googlePlaceId, isFavorite: true }),
                               { confirmLabel: currentLang === 'he' ? '⭐ כן, השתמש במועדף' : '⭐ Yes, use favorite', confirmColor: '#2563eb', cancelLabel: currentLang === 'he' ? 'לא, גוגל' : 'No, Google', onCancel: async () => {
-                                  // v3.23.27: refetch English name when picking a Google result with non-Latin name
+                                  // v3.23.28: always refetch English for Google results with a placeId
                                   let r = result;
-                                  if (result.googlePlaceId && !isLatinScript(result.name)) {
+                                  if (result.googlePlaceId) {
                                     const en = await fetchEnglishName(result.googlePlaceId);
                                     if (en) r = { ...result, name: en };
                                   }
@@ -2143,9 +2143,9 @@
                             return;
                           }
                         }
-                        // v3.23.27: refetch English name for non-Latin Google results
+                        // v3.23.28: always refetch English for Google results with a placeId
                         let final = result;
-                        if (!isFav && result.googlePlaceId && !isLatinScript(result.name)) {
+                        if (!isFav && result.googlePlaceId) {
                           const en = await fetchEnglishName(result.googlePlaceId);
                           if (en) final = { ...result, name: en };
                         }

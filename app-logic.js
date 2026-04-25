@@ -9173,9 +9173,9 @@
     showToast(`🗑️ ${remove.name} → ${t('dedup.merged')}`, 'success');
   };
 
-  const addCustomLocation = (closeAfter = true, overrideData = null) => {
+  const addCustomLocation = async (closeAfter = true, overrideData = null) => {
     if (!requireSignIn()) return;
-    const locData = overrideData || newLocation;
+    let locData = overrideData || newLocation;
     // Remember interests for next add
     if (locData.interests?.length > 0) lastCaptureInterestsRef.current = locData.interests;
     if (!locData.name?.trim() || !locData.interests?.length) {
@@ -9183,6 +9183,16 @@
         showToast(t('form.selectAtLeastOneInterest') || 'יש לבחור לפחות תחום אחד', 'warning');
       }
       return;
+    }
+    // v3.23.28: final defense — if the name is still non-Latin and we have a googlePlaceId,
+    // refetch the English name. This catches cases where the click-handler fetch was skipped
+    // or failed, before the name persists to Firebase.
+    if (locData.googlePlaceId && !isLatinScript(locData.name)) {
+      const en = await fetchEnglishName(locData.googlePlaceId);
+      if (en && en !== locData.name) {
+        console.log('[ADD_CUSTOM_LOC] save-time English fetch overrode:', locData.name, '→', en);
+        locData = { ...locData, name: en };
+      }
     }
 
     // Require coordinates
@@ -9382,7 +9392,7 @@
   };
   
   // Update existing location
-  const updateCustomLocation = (closeAfter = true) => {
+  const updateCustomLocation = async (closeAfter = true) => {
     if (!requireSignIn()) return;
     if (!newLocation.name?.trim()) {
       showToast(t('places.enterPlaceName'), 'warning');
@@ -9393,6 +9403,16 @@
     if (!newLocation.lat || !newLocation.lng || newLocation.lat === 0 || newLocation.lng === 0) {
       showToast(t('places.noCoordinates') || '📍 לא ניתן לשמור מקום ללא קואורדינטות — יש להזין כתובת או GPS', 'warning');
       return;
+    }
+    // v3.23.28: same defense as addCustomLocation — refetch English at save time
+    if (newLocation.googlePlaceId && !isLatinScript(newLocation.name)) {
+      const en = await fetchEnglishName(newLocation.googlePlaceId);
+      if (en && en !== newLocation.name) {
+        console.log('[UPDATE_CUSTOM_LOC] save-time English fetch overrode:', newLocation.name, '→', en);
+        setNewLocation(prev => ({ ...prev, name: en }));
+        // Continue with the fetched English name — read latest via local var since setState is async
+        newLocation.name = en;
+      }
     }
     
     // Check for duplicate name (warn only, don't block)
@@ -9678,24 +9698,29 @@
   // v3.23.27: fetch the canonical English displayName for a Google Place.
   // Called after a user picks a search result so saved data stays in English
   // regardless of what UI language was used for the search. Returns null on failure.
+  // v3.23.28: log status + body on non-OK responses so silent fallbacks are debuggable.
   const fetchEnglishName = async (placeId) => {
     if (!placeId) return null;
     try {
-      const response = await fetch(
-        `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=en`,
-        {
-          method: 'GET',
-          headers: {
-            'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-            'X-Goog-FieldMask': 'displayName'
-          }
+      const url = `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=en`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+          'X-Goog-FieldMask': 'displayName'
         }
-      );
-      if (!response.ok) return null;
+      });
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        console.warn('[FETCH_ENGLISH] non-OK', response.status, 'placeId:', placeId, 'body:', body.slice(0, 200));
+        return null;
+      }
       const data = await response.json();
-      return data.displayName?.text || null;
+      const text = data.displayName?.text || null;
+      console.log('[FETCH_ENGLISH] placeId:', placeId, '→', text, '(lang:', data.displayName?.languageCode, ')');
+      return text;
     } catch (err) {
-      console.warn('[FETCH_ENGLISH] failed:', err);
+      console.warn('[FETCH_ENGLISH] error:', err);
       return null;
     }
   };
