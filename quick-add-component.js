@@ -231,7 +231,7 @@ const QuickAddPlaceDialog = ({
                       const gps = await window.BKK.extractGpsFromImage(result.file);
                       if (gps && gps.lat !== 0) place._onGpsFromExif(gps);
                     }
-                    if (captureMode) window.BKK.saveImageToDevice(result.dataUrl, `foufou_quick_${Date.now()}.jpg`);
+                    // v3.23.35: removed auto-download of full-res photo to device (paired with v3.23.34 cleanups in dialogs.js + app-logic.js)
                   }}>
                   <span className="text-2xl">📸</span>
                   <div className="text-xs text-green-700 mt-1 font-bold">{t("general.takePhoto")}</div>
