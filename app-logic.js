@@ -4444,7 +4444,8 @@
 
         // 2a. Nearby Search for type-based interests
         if (uniqueTypes.length > 0) {
-          const nearbyBody = { locationRestriction: { circle: { center: { latitude: lat, longitude: lng }, radius: searchRadius } }, includedTypes: uniqueTypes, maxResultCount: 5 };
+          // v3.23.30: trail-generation results get cached into stops, so always request English
+          const nearbyBody = { locationRestriction: { circle: { center: { latitude: lat, longitude: lng }, radius: searchRadius } }, includedTypes: uniqueTypes, maxResultCount: 5, languageCode: 'en' };
           const response = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY, 'X-Goog-FieldMask': fieldMask },
@@ -8210,6 +8211,17 @@
 
   const addGooglePlaceToCustom = async (place, forceAdd = false) => {
     if (!requireSignIn()) return false;
+    // v3.23.30: trail stops generated before v3.23.30 may carry non-Latin names baked in
+    // by the Hebrew-mode bulk fetch. Refetch the canonical English name before saving so
+    // the favorite gets the right name regardless of when/how the route was created.
+    if (place && place.googlePlaceId && !isLatinScript(place.name)) {
+      console.log('[ADD_GOOGLE_TO_CUSTOM] non-Latin name, refetching English for placeId:', place.googlePlaceId);
+      const en = await fetchEnglishName(place.googlePlaceId);
+      if (en && en !== place.name) {
+        console.log('[ADD_GOOGLE_TO_CUSTOM] override:', place.name, '→', en);
+        place = { ...place, name: en };
+      }
+    }
     if (!forceAdd) {
       // Check if already exists (by name, case-insensitive)
       const existsByName = customLocations.find(loc =>
@@ -9580,13 +9592,14 @@
           },
           body: JSON.stringify({
             textQuery: searchQuery,
-            maxResultCount: 1
+            maxResultCount: 1,
+            languageCode: 'en'
           })
         }
       );
-      
+
       const data = await response.json();
-      
+
       if (data.places && data.places.length > 0) {
         const place = data.places[0];
         const location = place.location;
