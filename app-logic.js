@@ -8887,10 +8887,8 @@
     if (!dedupConfirm) return;
     const { type, loc, match, closeAfter, closeQuickCapture, overrideData } = dedupConfirm;
 
-    // Save photo to device — only if NOT from captureMode (captureMode already saved on capture)
-    if (loc?.uploadedImage && !closeQuickCapture) {
-      try { window.BKK.saveImageToDevice?.(loc.uploadedImage, loc.name || match.name || 'photo'); } catch(e) {}
-    }
+    // v3.23.34: removed auto-download of photo to device on dedup confirm — paired with the
+    // camera-capture auto-download removal in dialogs.js. User opted out of all auto-downloads.
 
     if (action === 'updateWithGoogle') {
       // Update existing custom location with Google data (rating, address, placeId, name if different)

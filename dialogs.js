@@ -33,9 +33,15 @@
                       </button>
                     ))}
                   </div>
-                  <button onClick={() => { handleDedupConfirm('addNew'); }} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #e5e7eb', background: 'white', color: '#6b7280', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>
-                    {t('dedup.noneOfThese') || 'אף אחד מאלה — שמור כמקום חדש'}
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', flexDirection: window.BKK.i18n.isRTL() ? 'row-reverse' : 'row' }}>
+                    <button onClick={() => { handleDedupConfirm('addNew'); }} style={{ flex: 2, padding: '10px', borderRadius: '10px', border: '1px solid #e5e7eb', background: 'white', color: '#6b7280', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>
+                      {t('dedup.noneOfThese') || 'אף אחד מאלה — שמור כמקום חדש'}
+                    </button>
+                    {/* v3.23.34: explicit Close — dismiss without saving anything */}
+                    <button onClick={() => { setDedupConfirm(null); }} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #d1d5db', background: '#f3f4f6', color: '#374151', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>
+                      {t('general.close') || 'סגור'}
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -487,9 +493,7 @@
                           if (!result) return;
                           const compressed = await window.BKK.compressImage(result.dataUrl);
                           setNewLocation(prev => ({...prev, uploadedImage: compressed}));
-                          const locName = newLocation.label?.en || newLocation.label?.he || 'photo';
-                          const safeName = locName.replace(/[^a-zA-Z0-9\u0590-\u05FF]/g, '_').slice(0, 30);
-                          window.BKK.saveImageToDevice(result.dataUrl, `foufou_${safeName}_${Date.now()}.jpg`);
+                          // v3.23.34: removed auto-download of full-res photo to device (was unconditional and unwanted)
                           const gps = await window.BKK.extractGpsFromImage(result.file);
                           if (gps && (!newLocation.lat || !newLocation.lng)) {
                             const updates = { uploadedImage: compressed, lat: gps.lat, lng: gps.lng };

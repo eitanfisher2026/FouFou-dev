@@ -1832,7 +1832,7 @@
                                             setModalImageCtx({ description: stop.description || cl?.description, location: cl || stop });
                                             setShowImageModal(true);
                                           }}
-                                          style={{ cursor: 'pointer', background: 'transparent', border: isDraftFav ? '1px dashed #d97706' : 'none', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', padding: '2px', opacity: 0.75 }}
+                                          style={{ cursor: 'pointer', background: isDraftFav ? 'rgba(180,83,9,0.10)' : 'transparent', border: isDraftFav ? '2px dashed #b45309' : 'none', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', padding: '2px', opacity: 0.95 }}
                                           title={isDraftFav ? (t('places.draftTooltip') || 'Draft — visible only to creator + editors/admins') : (t("general.placeInfo") || "מידע על המקום")}
                                         >
                                           <img src="icon-32x32.png" alt="FouFou" style={{ width: '18px', height: '18px' }} />
@@ -1875,34 +1875,36 @@
                                         >🗑️</button>
                                       )}
                                     </div>
-                                    <div className="text-[10px]" style={{
-                                      color: hasValidCoords ? '#6b7280' : '#991b1b'
-                                    }}>
-                                      {hasValidCoords ? <AutoTranslateText text={stop.description} translateText={translateText} detectNeedsTranslation={detectNeedsTranslation} /> : t('places.noCoordinatesWarning')}
-                                    </div>
-                                    {stop.todayHours && (
-                                      <div className="text-[9px]" style={{ color: stop.openNow ? '#059669' : '#dc2626' }}>
-                                        🕐 {stop.openNow ? t('general.openStatus') : t('general.closedStatus')} · {stop.todayHours}
-                                      </div>
-                                    )}
-                                    {/* Ratings — Google + FouFou */}
-                                    {isCustom && (() => {
+                                    {(() => {
+                                      // v3.23.34: pull customLocation match once and use it for description + ratings.
+                                      // stop.description often comes from Google fetch (empty for malls) — fall back to
+                                      // the favorite's user-edited description.
+                                      const cl = customLocations.find(loc => loc.name === stop.name);
+                                      const effectiveDesc = stop.description || cl?.description || '';
                                       const pk = (stop.name || '').replace(/[.#$/\\[\]]/g, '_');
                                       const ra = reviewAverages[pk];
-                                      const cl = customLocations.find(loc => loc.name === stop.name);
                                       const gR = cl?.googleRating || stop.googleRating;
                                       const gC = cl?.googleRatingCount || stop.googleRatingCount || 0;
-                                      return (
-                                        <div style={{ fontSize: '10px', marginTop: '2px', display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                          {gR && <span style={{ color: '#b45309' }}>⭐{gR.toFixed?.(1) || gR} ({gC})</span>}
-                                          {ra ? (
-                                            <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); openReviewDialog(cl || stop); }}
-                                              style={{ color: '#7c3aed', cursor: 'pointer', fontWeight: 600 }}>🌟{ra.avg.toFixed(1)} ({ra.count})</span>
-                                          ) : (
-                                            <span style={{ color: '#9ca3af', fontSize: '9px' }}>{t('reviews.notYetRated')}</span>
-                                          )}
+                                      return (<>
+                                        <div className="text-[10px]" style={{ color: hasValidCoords ? '#6b7280' : '#991b1b' }}>
+                                          {hasValidCoords ? <AutoTranslateText text={effectiveDesc} translateText={translateText} detectNeedsTranslation={detectNeedsTranslation} /> : t('places.noCoordinatesWarning')}
                                         </div>
-                                      );
+                                        {stop.todayHours && (
+                                          <div className="text-[9px]" style={{ color: stop.openNow ? '#059669' : '#dc2626' }}>
+                                            🕐 {stop.openNow ? t('general.openStatus') : t('general.closedStatus')} · {stop.todayHours}
+                                          </div>
+                                        )}
+                                        {/* Ratings — Google + FouFou. v3.23.34: dropped the "Not yet rated" placeholder prompt. */}
+                                        {isCustom && (gR || ra) && (
+                                          <div style={{ fontSize: '10px', marginTop: '2px', display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                            {gR && <span style={{ color: '#b45309' }}>⭐{gR.toFixed?.(1) || gR} ({gC})</span>}
+                                            {ra && (
+                                              <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); openReviewDialog(cl || stop); }}
+                                                style={{ color: '#7c3aed', cursor: 'pointer', fontWeight: 600 }}>🌟{ra.avg.toFixed(1)} ({ra.count})</span>
+                                            )}
+                                          </div>
+                                        )}
+                                      </>);
                                     })()}
                                   {debugMode && isUnlocked && (() => {
                                     const score = calcStopScore(stop);
