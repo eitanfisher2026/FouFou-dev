@@ -921,7 +921,9 @@
       slotPenaltyMultiplier: 3,
       slotEndPenaltyMultiplier: 4,
       gapPenaltyMultiplier: 2,
-      includeDrafts: true,
+      // v3.23.33: includeDrafts retired — replaced by hardcoded role/creator policy.
+      // Approved (locked!==false) is public. Draft (locked===false) visible only to
+      // creator (addedBy === auth.uid) + editors + admins.
       // Speech recording
       speechMaxSeconds: 15,
       // Toast display duration (ms)
@@ -1486,17 +1488,14 @@
           // Supports: city overview, area focus, single place highlight
           // ═══════════════════════════════════════════════════════════════
           const allInts = allInterestOptions || [];
-          const showDrafts = window.BKK.systemParams?.includeDrafts !== false;
-          
+
           // Filter locations
           const locs = customLocations.filter(loc => {
             if (loc.status === 'blacklist') return false;
             if (!loc.lat || !loc.lng) return false;
             if (!loc.locked) {
-              // Draft place visibility: admin/editor respects includeDrafts setting;
-              // regular user sees own drafts only; anon sees none
-              if (isUnlocked) { if (!showDrafts) return false; }
-              else {
+              // v3.23.33: draft visibility — editor/admin sees all; otherwise creator-only; anon sees none
+              if (!isUnlocked) {
                 const isAnon = !authUser || authUser.isAnonymous;
                 if (isAnon || !authUser?.uid || loc.addedBy !== authUser.uid) return false;
               }
@@ -5656,10 +5655,15 @@
       
       // CRITICAL: Skip blacklisted locations!
       if (loc.status === 'blacklist') return false;
-      
-      // Skip drafts if includeDrafts is explicitly false
-      if (window.BKK.systemParams?.includeDrafts === false && !loc.locked) return false;
-      
+
+      // v3.23.33: draft visibility — editor/admin sees all; otherwise creator-only; anon/non-creator regular users see none
+      if (!loc.locked) {
+        if (!isUnlocked) {
+          const isAnon = !authUser || authUser.isAnonymous;
+          if (isAnon || !authUser?.uid || loc.addedBy !== authUser.uid) return false;
+        }
+      }
+
       // Skip invalid locations (missing required data)
       if (!isLocationValid(loc)) return false;
       

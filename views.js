@@ -1817,6 +1817,8 @@
                                       {/* FouFou info button for custom/favorite places */}
                                       {isCustom && (() => {
                                         const cl = customLocations.find(loc => loc.name === stop.name);
+                                        // v3.23.33: dashed border on the FouFou icon when this favorite is still a draft
+                                        const isDraftFav = cl && cl.locked === false;
                                         return (
                                         <button
                                           onClick={(e) => {
@@ -1830,8 +1832,8 @@
                                             setModalImageCtx({ description: stop.description || cl?.description, location: cl || stop });
                                             setShowImageModal(true);
                                           }}
-                                          style={{ cursor: 'pointer', background: 'transparent', border: 'none', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', padding: '2px', opacity: 0.75 }}
-                                          title={t("general.placeInfo") || "מידע על המקום"}
+                                          style={{ cursor: 'pointer', background: 'transparent', border: isDraftFav ? '1px dashed #d97706' : 'none', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', padding: '2px', opacity: 0.75 }}
+                                          title={isDraftFav ? (t('places.draftTooltip') || 'Draft — visible only to creator + editors/admins') : (t("general.placeInfo") || "מידע על המקום")}
                                         >
                                           <img src="icon-32x32.png" alt="FouFou" style={{ width: '18px', height: '18px' }} />
                                         </button>
@@ -4420,7 +4422,6 @@
                   { key: 'googleMaxWaypoints', label: t('sysParams.maxWaypoints'), desc: t('sysParams.maxWaypointsDesc'), min: 5, max: 25, step: 1, type: 'int' },
                   { key: 'defaultRadius', label: t('sysParams.defaultRadius'), desc: t('sysParams.defaultRadiusDesc'), min: 100, max: 5000, step: 100, type: 'int' },
                   { key: 'toastDuration', label: t('sysParams.toastDurationLabel'), desc: t('sysParams.toastDurationDesc'), min: 1000, max: 10000, step: 500, type: 'int' },
-                  { key: 'includeDrafts', label: t('sysParams.includeDrafts'), desc: t('sysParams.includeDraftsDesc'), type: 'bool' },
                   { key: 'systemAlertIntervalHours', label: 'System Alert Interval (hours)', desc: 'How often to send automated system feedback alerts (e.g. corrupted cacheVersion). Default: 1', min: 1, max: 72, step: 1, type: 'int' },
                   { key: 'maxRoutesPerUserPerCity', label: t('sysParams.maxRoutesPerUserPerCity') || 'Max saved trails per user (per city)', desc: t('sysParams.maxRoutesPerUserPerCityDesc') || 'Cap on total saved trails a non-admin user can store in a single city. Admins bypass. Default: 50', min: 5, max: 500, step: 5, type: 'int' },
                   { key: 'maxPublicRoutesPerUserPerCity', label: t('sysParams.maxPublicRoutesPerUserPerCity') || 'Max public trails per user (per city)', desc: t('sysParams.maxPublicRoutesPerUserPerCityDesc') || 'Cap on public (locked) trails a non-admin user can share in a single city. Admins bypass. Default: 10', min: 1, max: 100, step: 1, type: 'int' },
@@ -4857,8 +4858,8 @@
                   const activeCount = customLocations.filter(loc => {
                     if (loc.status === 'blacklist' || !loc.lat || !loc.lng) return false;
                     if (!loc.locked) {
-                      if (isUnlocked) { if (window.BKK.systemParams?.includeDrafts === false) return false; }
-                      else { if (_mapAnon || !_mapUid || loc.addedBy !== _mapUid) return false; }
+                      // v3.23.33: editor/admin sees all drafts; non-editor regular users see only their own
+                      if (!isUnlocked) { if (_mapAnon || !_mapUid || loc.addedBy !== _mapUid) return false; }
                     }
                     if (mapFavArea) { const la = loc.areas || (loc.area ? [loc.area] : []); if (!la.includes(mapFavArea)) return false; }
                     if (mapFavFilter.size > 0) { if (!(loc.interests || []).some(i => mapFavFilter.has(i))) return false; }
@@ -4968,7 +4969,8 @@
                             const searchable = customLocations.filter(l => {
                               if (!l.lat || !l.lng || l.status === 'blacklist') return false;
                               if (!l.locked) {
-                                if (isUnlocked) { return window.BKK.systemParams?.includeDrafts !== false; }
+                                // v3.23.33: editor/admin sees all drafts; non-editor regular users see only their own
+                                if (isUnlocked) return true;
                                 if (_srchAnon || !_srchUid) return false;
                                 return l.addedBy === _srchUid;
                               }

@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.32
+// FouFou app-data.js v3.23.33
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -546,6 +546,7 @@ places: {
   addFromCamera: 'צלם מקום',
   addManually: 'הוסף ידנית',
   editPlace: 'ערוך מקום',
+  draftTooltip: 'טיוטה — נראה רק ליוצר, לעורכים ולמנהלים',
   moreDetails: 'פרטים נוספים',
   noCoordinates: '📍 לא ניתן לשמור ללא קואורדינטות — הזן כתובת או השתמש ב-GPS',
   unsavedChangesWarning: 'יש שינויים שלא נשמרו. לצאת בלי לשמור?',
@@ -1744,6 +1745,7 @@ places: {
   addPlace: 'Add place',
   addFromCamera: 'Snap place',
   addManually: 'Add manually',
+  draftTooltip: 'Draft — visible only to creator, editors and admins',
   editPlace: 'Edit place',
   moreDetails: 'More details',
   noCoordinates: '📍 Cannot save without coordinates — enter an address or use GPS',
@@ -3472,7 +3474,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.32';
+window.BKK.VERSION = '3.23.33';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
