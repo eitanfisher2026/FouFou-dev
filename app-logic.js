@@ -9631,9 +9631,6 @@
   };
 
   // Search places by name - returns multiple results for picking
-  // v3.23.27: Google Places language-code mapping. Hebrew uses the legacy 'iw' code.
-  const googleLangCode = (uiLang) => uiLang === 'he' ? 'iw' : (uiLang || 'en');
-
   // v3.23.27: detect strings that are "ASCII enough" to be considered English-friendly.
   // Returns false for strings containing Hebrew / Arabic / Thai / CJK characters.
   // Latin-extended (Spanish, French, German accents) is allowed.
@@ -9697,7 +9694,7 @@
           'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
           'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.primaryType,places.primaryTypeDisplayName'
         },
-        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: window.BKK.systemParams?.pointSearchMaxGoogle || 10, languageCode: googleLangCode(currentLang) })
+        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: window.BKK.systemParams?.pointSearchMaxGoogle || 10, languageCode: 'en' })
       });
       const data = await response.json();
       if (data.places && data.places.length > 0) {
@@ -9753,7 +9750,7 @@
           'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
           'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.primaryType,places.primaryTypeDisplayName'
         },
-        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: window.BKK.systemParams?.pointSearchMaxGoogle || 10, languageCode: googleLangCode(currentLang) })
+        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: window.BKK.systemParams?.pointSearchMaxGoogle || 10, languageCode: 'en' })
       });
       const data = await response.json();
       const googleResults = data.places && data.places.length > 0

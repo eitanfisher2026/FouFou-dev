@@ -278,15 +278,10 @@
                           <button
                             key={idx}
                             onClick={async () => {
-                              // v3.23.28: ALWAYS refetch English when picking a Google result with a placeId.
-                              // Previously gated on !isLatinScript(result.name), but in practice the gate
-                              // could be bypassed (e.g. result.name is mixed script), and the cost of one
-                              // extra Place Details call per save is negligible.
-                              let englishName = result.name;
-                              if (result.googlePlaceId) {
-                                const fetched = await fetchEnglishName(result.googlePlaceId);
-                                if (fetched) englishName = fetched;
-                              }
+                              // v3.23.31: search now runs with languageCode='en', so result.name is
+                              // already canonical English. Save-time defense in addCustomLocation
+                              // covers the rare case of legacy/mixed-script names slipping through.
+                              const englishName = result.name;
                               const nameStillNonLatin = !isLatinScript(englishName);
                               // Auto-detect areas from coordinates
                               const detected = window.BKK.getAreasForCoordinates(result.lat, result.lng);
@@ -2118,7 +2113,7 @@
                     {manualSearchResults && !Array.isArray(manualSearchResults) && (() => {
                       const { favorites, google } = manualSearchResults;
                       const isRTL = window.BKK.i18n.isRTL();
-                      const handleRowClick = async (result, isFav) => {
+                      const handleRowClick = (result, isFav) => {
                         if (!isFav && result.googlePlaceId) {
                           const matchedFav = (customLocations || []).find(cl =>
                             cl.googlePlaceId && cl.googlePlaceId === result.googlePlaceId
@@ -2129,28 +2124,18 @@
                               : `"${matchedFav.name}" is in your favorites. Use it?`;
                             showConfirm(msg,
                               () => addManualStop({ name: matchedFav.name, lat: matchedFav.lat, lng: matchedFav.lng, address: matchedFav.address, rating: matchedFav.googleRating, ratingCount: matchedFav.googleRatingCount, googlePlaceId: matchedFav.googlePlaceId, isFavorite: true }),
-                              { confirmLabel: currentLang === 'he' ? '⭐ כן, השתמש במועדף' : '⭐ Yes, use favorite', confirmColor: '#2563eb', cancelLabel: currentLang === 'he' ? 'לא, גוגל' : 'No, Google', onCancel: async () => {
-                                  // v3.23.28: always refetch English for Google results with a placeId
-                                  let r = result;
-                                  if (result.googlePlaceId) {
-                                    const en = await fetchEnglishName(result.googlePlaceId);
-                                    if (en) r = { ...result, name: en };
-                                  }
-                                  addManualStop(r);
-                                  if (!isLatinScript(r.name)) showToast(t('toast.noEnglishNameTypeManually') || '⚠️ Google had no English name; rename in route stops if needed.', 'warning');
+                              { confirmLabel: currentLang === 'he' ? '⭐ כן, השתמש במועדף' : '⭐ Yes, use favorite', confirmColor: '#2563eb', cancelLabel: currentLang === 'he' ? 'לא, גוגל' : 'No, Google', onCancel: () => {
+                                  // v3.23.31: search returns English already; just guard against legacy data
+                                  addManualStop(result);
+                                  if (!isLatinScript(result.name)) showToast(t('toast.noEnglishNameTypeManually') || '⚠️ Google had no English name; rename in route stops if needed.', 'warning');
                                 } }
                             );
                             return;
                           }
                         }
-                        // v3.23.28: always refetch English for Google results with a placeId
-                        let final = result;
-                        if (!isFav && result.googlePlaceId) {
-                          const en = await fetchEnglishName(result.googlePlaceId);
-                          if (en) final = { ...result, name: en };
-                        }
-                        addManualStop(final);
-                        if (!isFav && !isLatinScript(final.name)) {
+                        // v3.23.31: search returns English already; just guard against legacy data
+                        addManualStop(result);
+                        if (!isFav && !isLatinScript(result.name)) {
                           showToast(t('toast.noEnglishNameTypeManually') || '⚠️ Google had no English name; rename in route stops if needed.', 'warning');
                         }
                       };
