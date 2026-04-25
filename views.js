@@ -1876,34 +1876,34 @@
                                       )}
                                     </div>
                                     {(() => {
-                                      // v3.23.37: robust customLocation match — strict name equality was failing on
-                                      // re-render when Google returned the stop with slightly different whitespace
-                                      // or casing than the saved favorite. Match on googlePlaceId first (stable),
-                                      // fallback to normalized name. Then: matched → cl.description; unmatched →
-                                      // stop.description (the "⭐ rating" hack for Google-only places).
+                                      // v3.23.39: clean architecture — description and rating are independent.
+                                      // Description: matched favorite → cl.description; unmatched → stop.description (now empty for Google fetches).
+                                      // Rating: shown for any stop that has a Google rating OR a FouFou rating, matched or not.
                                       const stopKey = (stop.name || '').toLowerCase().trim();
                                       const cl = customLocations.find(loc =>
                                         (loc.googlePlaceId && stop.googlePlaceId && loc.googlePlaceId === stop.googlePlaceId) ||
                                         ((loc.name || '').toLowerCase().trim() === stopKey)
                                       );
                                       const effectiveDesc = cl ? (cl.description || '') : (stop.description || '');
-                                      // v3.23.38: always log so we can see what each render is doing without needing a flag
-                                      console.log('[DESC]', stop.name, '| cl?', !!cl, '| cl.desc?', cl?.description?.slice?.(0, 40), '| stop.desc?', stop.description?.slice?.(0, 40), '| chose:', effectiveDesc.slice(0, 40));
                                       const pk = (stop.name || '').replace(/[.#$/\\[\]]/g, '_');
                                       const ra = reviewAverages[pk];
-                                      const gR = cl?.googleRating || stop.googleRating;
-                                      const gC = cl?.googleRatingCount || stop.googleRatingCount || 0;
+                                      const gR = cl?.googleRating || stop.googleRating || stop.rating;
+                                      const gC = cl?.googleRatingCount || stop.googleRatingCount || stop.ratingCount || 0;
                                       return (<>
-                                        <div className="text-[10px]" style={{ color: hasValidCoords ? '#6b7280' : '#991b1b' }}>
-                                          {hasValidCoords ? <AutoTranslateText text={effectiveDesc} translateText={translateText} detectNeedsTranslation={detectNeedsTranslation} /> : t('places.noCoordinatesWarning')}
-                                        </div>
+                                        {effectiveDesc && (
+                                          <div className="text-[10px]" style={{ color: hasValidCoords ? '#6b7280' : '#991b1b' }}>
+                                            {hasValidCoords ? <AutoTranslateText text={effectiveDesc} translateText={translateText} detectNeedsTranslation={detectNeedsTranslation} /> : t('places.noCoordinatesWarning')}
+                                          </div>
+                                        )}
+                                        {!effectiveDesc && !hasValidCoords && (
+                                          <div className="text-[10px]" style={{ color: '#991b1b' }}>{t('places.noCoordinatesWarning')}</div>
+                                        )}
                                         {stop.todayHours && (
                                           <div className="text-[9px]" style={{ color: stop.openNow ? '#059669' : '#dc2626' }}>
                                             🕐 {stop.openNow ? t('general.openStatus') : t('general.closedStatus')} · {stop.todayHours}
                                           </div>
                                         )}
-                                        {/* Ratings — Google + FouFou. v3.23.34: dropped the "Not yet rated" placeholder prompt. */}
-                                        {isCustom && (gR || ra) && (
+                                        {(gR || ra) && (
                                           <div style={{ fontSize: '10px', marginTop: '2px', display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                                             {gR && <span style={{ color: '#b45309' }}>⭐{gR.toFixed?.(1) || gR} ({gC})</span>}
                                             {ra && (

@@ -5005,10 +5005,14 @@
             name: place.displayName?.text || 'Unknown Place',
             lat: place.location?.latitude || center.lat,
             lng: place.location?.longitude || center.lng,
-            description: `⭐ ${place.rating?.toFixed(1) || 'N/A'} (${place.userRatingCount || 0} reviews)`,
+            // v3.23.39: stop.description is now always empty for Google fetches. Rating shows
+            // separately in the rating block (views.js, after dropping the isCustom gate).
+            description: '',
             googlePlace: true,
             rating: place.rating || 0,
             ratingCount: place.userRatingCount || 0,
+            googleRating: place.rating || null,
+            googleRatingCount: place.userRatingCount || 0,
             googleTypes: place.types || [],
             primaryType: place.primaryType || '',
             googlePlaceId: place.id || null,
