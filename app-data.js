@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.26
+// FouFou app-data.js v3.23.27
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -803,6 +803,7 @@ toast: {
   routeSaveError: 'שגיאה בשמירת מסלול',
   routeSavedAs: 'נשמר בשם ״{0}״',
   routeCapReached: '⚠️ יש לך {0}/{1} נתיבים שמורים בעיר הזו. יש למחוק נתיב קיים לפני שמירה נוספת.',
+  noEnglishNameTypeManually: '⚠️ אין שם באנגלית בגוגל. יש להקליד שם באנגלית.',
   routePublicCapReached: '⚠️ יש לך {0}/{1} נתיבים ציבוריים בעיר הזו. יש לבטל שיתוף של אחד כדי לשתף נתיב נוסף.',
   imageUploadError: 'שגיאה בהעלאת התמונה',
   uploadingImage: 'מעלה תמונה...',
@@ -1998,6 +1999,7 @@ toast: {
   routeSaveError: 'Route save error',
   routeSavedAs: 'Saved as "{0}"',
   routeCapReached: '⚠️ You have {0}/{1} saved trails in this city. Delete one before saving another.',
+  noEnglishNameTypeManually: '⚠️ No English name in Google. Please type one.',
   routePublicCapReached: '⚠️ You have {0}/{1} public trails in this city. Unshare one to make another public.',
   imageUploadError: 'Image upload error',
   uploadingImage: 'Uploading image...',
@@ -3208,11 +3210,11 @@ window.BKK.cityData.singapore = {
   "name": "סינגפור",
   "nameEn": "Singapore",
   "country": "Singapore",
-  "icon": "📍",
+  "icon": "🦁",
   "theme": {
     "color": "#c7665c",
-    "iconLeft": "",
-    "iconRight": ""
+    "iconLeft": "🌳",
+    "iconRight": "🛳️"
   },
   "active": true,
   "distanceMultiplier": 1.2,
@@ -3470,7 +3472,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.26';
+window.BKK.VERSION = '3.23.27';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -3503,7 +3505,7 @@ window.BKK.GOOGLE_PLACES_TEXT_SEARCH_URL = 'https://places.googleapis.com/v1/pla
 window.BKK.cityRegistry = {
   bangkok: { id: 'bangkok', name: 'בנגקוק', nameEn: 'Bangkok', country: 'Thailand', icon: '🛺', secondaryIcon: '🍜', file: 'city-bangkok.js' },
   telaviv: { id: 'gushdan', name: 'תל אביב', nameEn: 'Tel Aviv', country: 'Israel', icon: '🏖️', file: 'city-telaviv.js' },
-  singapore: { id: 'singapore', name: 'סינגפור', nameEn: 'Singapore', country: 'Singapore', icon: '🦁', secondaryIcon: '🌿', file: 'city-singapore.js' },
+  singapore: { id: 'singapore', name: 'סינגפור', nameEn: 'Singapore', country: 'Singapore', icon: '🦁', secondaryIcon: '🌳', file: 'city-singapore.js' },
   malaga: { id: 'malaga', name: 'מלגה', nameEn: 'Malaga', country: 'Spain', icon: '☀️', secondaryIcon: '☀️', file: 'city-malaga.js' }
 };
 

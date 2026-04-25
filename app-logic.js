@@ -4518,7 +4518,8 @@
         // 2b. Text Search for text-based interests (parallel)
         if (uniqueTextQueries.length > 0) {
           await Promise.all(uniqueTextQueries.map(async (query) => {
-            const textBody = { textQuery: query, locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: searchRadius } }, maxResultCount: 5 };
+            // v3.23.27: bulk-fetched places are saved directly to Firebase, so always request English.
+            const textBody = { textQuery: query, locationBias: { circle: { center: { latitude: lat, longitude: lng }, radius: searchRadius } }, maxResultCount: 5, languageCode: 'en' };
             const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY, 'X-Goog-FieldMask': fieldMask },
@@ -9652,6 +9653,53 @@
   };
 
   // Search places by name - returns multiple results for picking
+  // v3.23.27: Google Places language-code mapping. Hebrew uses the legacy 'iw' code.
+  const googleLangCode = (uiLang) => uiLang === 'he' ? 'iw' : (uiLang || 'en');
+
+  // v3.23.27: detect strings that are "ASCII enough" to be considered English-friendly.
+  // Returns false for strings containing Hebrew / Arabic / Thai / CJK characters.
+  // Latin-extended (Spanish, French, German accents) is allowed.
+  const isLatinScript = (s) => {
+    if (!s) return true;
+    for (const ch of s) {
+      const c = ch.codePointAt(0);
+      if ((c >= 0x0590 && c <= 0x05FF) || // Hebrew
+          (c >= 0x0600 && c <= 0x06FF) || // Arabic
+          (c >= 0x0E00 && c <= 0x0E7F) || // Thai
+          (c >= 0x4E00 && c <= 0x9FFF) || // CJK Unified
+          (c >= 0x3040 && c <= 0x30FF) || // Hiragana / Katakana
+          (c >= 0xAC00 && c <= 0xD7AF)) { // Hangul
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // v3.23.27: fetch the canonical English displayName for a Google Place.
+  // Called after a user picks a search result so saved data stays in English
+  // regardless of what UI language was used for the search. Returns null on failure.
+  const fetchEnglishName = async (placeId) => {
+    if (!placeId) return null;
+    try {
+      const response = await fetch(
+        `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=en`,
+        {
+          method: 'GET',
+          headers: {
+            'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
+            'X-Goog-FieldMask': 'displayName'
+          }
+        }
+      );
+      if (!response.ok) return null;
+      const data = await response.json();
+      return data.displayName?.text || null;
+    } catch (err) {
+      console.warn('[FETCH_ENGLISH] failed:', err);
+      return null;
+    }
+  };
+
   const searchPlacesByName = async (query) => {
     if (!query || !query.trim()) return;
     try {
@@ -9666,7 +9714,7 @@
           'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
           'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.primaryType,places.primaryTypeDisplayName'
         },
-        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: window.BKK.systemParams?.pointSearchMaxGoogle || 10 })
+        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: window.BKK.systemParams?.pointSearchMaxGoogle || 10, languageCode: googleLangCode(currentLang) })
       });
       const data = await response.json();
       if (data.places && data.places.length > 0) {
@@ -9722,7 +9770,7 @@
           'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
           'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.primaryType,places.primaryTypeDisplayName'
         },
-        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: window.BKK.systemParams?.pointSearchMaxGoogle || 10 })
+        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: window.BKK.systemParams?.pointSearchMaxGoogle || 10, languageCode: googleLangCode(currentLang) })
       });
       const data = await response.json();
       const googleResults = data.places && data.places.length > 0

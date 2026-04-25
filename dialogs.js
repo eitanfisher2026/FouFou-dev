@@ -277,13 +277,23 @@
                         ) : locationSearchResults.map((result, idx) => (
                           <button
                             key={idx}
-                            onClick={() => {
+                            onClick={async () => {
+                              // v3.23.27: when search ran in a non-English locale, the chosen result's name
+                              // may be in Hebrew/Thai/etc. Refetch the canonical English name so saved data
+                              // stays consistent for English-speaking users.
+                              let englishName = result.name;
+                              if (result.googlePlaceId && !isLatinScript(result.name)) {
+                                const fetched = await fetchEnglishName(result.googlePlaceId);
+                                if (fetched && isLatinScript(fetched)) englishName = fetched;
+                                else if (fetched) englishName = fetched; // got something, even if non-Latin (place has no English entry)
+                              }
+                              const nameStillNonLatin = !isLatinScript(englishName);
                               // Auto-detect areas from coordinates
                               const detected = window.BKK.getAreasForCoordinates(result.lat, result.lng);
                               const areaUpdates = detected.length > 0 ? { areas: detected, area: detected[0] } : {};
                               const updatedLoc = {
                                 ...newLocation,
-                                name: result.name,
+                                name: englishName,
                                 lat: result.lat, lng: result.lng,
                                 address: result.address,
                                 googlePlaceId: result.googlePlaceId,
@@ -301,7 +311,7 @@
                               // Auto-populate Google Info from search result (types already in FieldMask — no extra API call)
                               if (isUnlocked && (result.types || result.primaryType)) {
                                 setGooglePlaceInfo({
-                                  name: result.name,
+                                  name: englishName,
                                   address: result.address,
                                   types: result.types || [],
                                   primaryType: result.primaryType || null,
@@ -311,7 +321,10 @@
                                   googlePlaceId: result.googlePlaceId
                                 });
                               }
-                              showToast(`✅ ${result.name} ${t("toast.selectedPlace")}${detected.length > 0 ? ` (${detected.length} ${t("toast.detectedAreas")})` : ''}`, 'success');
+                              showToast(`✅ ${englishName} ${t("toast.selectedPlace")}${detected.length > 0 ? ` (${detected.length} ${t("toast.detectedAreas")})` : ''}`, 'success');
+                              if (nameStillNonLatin) {
+                                showToast(t('toast.noEnglishNameTypeManually') || '⚠️ Google had no English name. Please type one.', 'warning');
+                              }
                             }}
                             style={{ width: '100%', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left', padding: '6px 10px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: 'none', border: 'none', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}
                             onMouseEnter={(e) => e.target.style.background = '#f3f4f6'}
@@ -2105,7 +2118,7 @@
                     {manualSearchResults && !Array.isArray(manualSearchResults) && (() => {
                       const { favorites, google } = manualSearchResults;
                       const isRTL = window.BKK.i18n.isRTL();
-                      const handleRowClick = (result, isFav) => {
+                      const handleRowClick = async (result, isFav) => {
                         if (!isFav && result.googlePlaceId) {
                           const matchedFav = (customLocations || []).find(cl =>
                             cl.googlePlaceId && cl.googlePlaceId === result.googlePlaceId
@@ -2116,12 +2129,30 @@
                               : `"${matchedFav.name}" is in your favorites. Use it?`;
                             showConfirm(msg,
                               () => addManualStop({ name: matchedFav.name, lat: matchedFav.lat, lng: matchedFav.lng, address: matchedFav.address, rating: matchedFav.googleRating, ratingCount: matchedFav.googleRatingCount, googlePlaceId: matchedFav.googlePlaceId, isFavorite: true }),
-                              { confirmLabel: currentLang === 'he' ? '⭐ כן, השתמש במועדף' : '⭐ Yes, use favorite', confirmColor: '#2563eb', cancelLabel: currentLang === 'he' ? 'לא, גוגל' : 'No, Google', onCancel: () => addManualStop(result) }
+                              { confirmLabel: currentLang === 'he' ? '⭐ כן, השתמש במועדף' : '⭐ Yes, use favorite', confirmColor: '#2563eb', cancelLabel: currentLang === 'he' ? 'לא, גוגל' : 'No, Google', onCancel: async () => {
+                                  // v3.23.27: refetch English name when picking a Google result with non-Latin name
+                                  let r = result;
+                                  if (result.googlePlaceId && !isLatinScript(result.name)) {
+                                    const en = await fetchEnglishName(result.googlePlaceId);
+                                    if (en) r = { ...result, name: en };
+                                  }
+                                  addManualStop(r);
+                                  if (!isLatinScript(r.name)) showToast(t('toast.noEnglishNameTypeManually') || '⚠️ Google had no English name; rename in route stops if needed.', 'warning');
+                                } }
                             );
                             return;
                           }
                         }
-                        addManualStop(result);
+                        // v3.23.27: refetch English name for non-Latin Google results
+                        let final = result;
+                        if (!isFav && result.googlePlaceId && !isLatinScript(result.name)) {
+                          const en = await fetchEnglishName(result.googlePlaceId);
+                          if (en) final = { ...result, name: en };
+                        }
+                        addManualStop(final);
+                        if (!isFav && !isLatinScript(final.name)) {
+                          showToast(t('toast.noEnglishNameTypeManually') || '⚠️ Google had no English name; rename in route stops if needed.', 'warning');
+                        }
                       };
                       const renderRow = (result, idx, arr, isFav) => (
                         <button key={idx}

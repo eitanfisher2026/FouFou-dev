@@ -5,11 +5,11 @@ window.BKK.cityData.singapore = {
   "name": "סינגפור",
   "nameEn": "Singapore",
   "country": "Singapore",
-  "icon": "📍",
+  "icon": "🦁",
   "theme": {
     "color": "#c7665c",
-    "iconLeft": "",
-    "iconRight": ""
+    "iconLeft": "🌳",
+    "iconRight": "🛳️"
   },
   "active": true,
   "distanceMultiplier": 1.2,
