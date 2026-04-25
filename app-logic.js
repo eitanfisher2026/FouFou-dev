@@ -4613,6 +4613,7 @@
           textQuery: searchQuery,
           ...(_maxRC > 0 ? { maxResultCount: _maxRC } : {}),
           rankPreference: window.BKK.systemParams?.googleTextRankPreference || 'RELEVANCE',
+          languageCode: 'en', // v3.23.32: bake English names into trail stops
           ...textSearchLocationParam
         };
         textSearchBodyStr = JSON.stringify(textSearchBody, null, 2);
@@ -4656,7 +4657,8 @@
               radius: searchRadius
             }
           },
-          rankPreference: radiusOverride ? 'DISTANCE' : (window.BKK.systemParams?.googleNearbyRankPreference || 'POPULARITY')
+          rankPreference: radiusOverride ? 'DISTANCE' : (window.BKK.systemParams?.googleNearbyRankPreference || 'POPULARITY'),
+          languageCode: 'en' // v3.23.32: bake English names into trail stops
         };
         nearbySearchBodyStr = JSON.stringify(nearbySearchBody, null, 2);
         response = await fetch(GOOGLE_PLACES_API_URL, {
@@ -4705,7 +4707,8 @@
                       center: { latitude: center.lat, longitude: center.lng },
                       radius: searchRadius
                     }
-                  }
+                  },
+                  languageCode: 'en' // v3.23.32: bake English names into trail stops
                 })
               });
               if (retryResponse.ok) {
