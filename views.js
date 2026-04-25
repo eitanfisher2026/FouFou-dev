@@ -1876,11 +1876,13 @@
                                       )}
                                     </div>
                                     {(() => {
-                                      // v3.23.34: pull customLocation match once and use it for description + ratings.
-                                      // stop.description often comes from Google fetch (empty for malls) — fall back to
-                                      // the favorite's user-edited description.
+                                      // v3.23.36: priority depends on whether this stop matches a customLocation.
+                                      // Matched (cl exists): use cl.description, even if empty — never fall back to
+                                      //   stop.description, which is the "⭐ rating (count)" hack from app-logic.js:5008.
+                                      // Google-only (no cl): use stop.description (the rating-string), so the rating
+                                      //   still shows for places not yet in favorites.
                                       const cl = customLocations.find(loc => loc.name === stop.name);
-                                      const effectiveDesc = stop.description || cl?.description || '';
+                                      const effectiveDesc = cl ? (cl.description || '') : (stop.description || '');
                                       const pk = (stop.name || '').replace(/[.#$/\\[\]]/g, '_');
                                       const ra = reviewAverages[pk];
                                       const gR = cl?.googleRating || stop.googleRating;
