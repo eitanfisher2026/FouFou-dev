@@ -1876,13 +1876,20 @@
                                       )}
                                     </div>
                                     {(() => {
-                                      // v3.23.36: priority depends on whether this stop matches a customLocation.
-                                      // Matched (cl exists): use cl.description, even if empty — never fall back to
-                                      //   stop.description, which is the "⭐ rating (count)" hack from app-logic.js:5008.
-                                      // Google-only (no cl): use stop.description (the rating-string), so the rating
-                                      //   still shows for places not yet in favorites.
-                                      const cl = customLocations.find(loc => loc.name === stop.name);
+                                      // v3.23.37: robust customLocation match — strict name equality was failing on
+                                      // re-render when Google returned the stop with slightly different whitespace
+                                      // or casing than the saved favorite. Match on googlePlaceId first (stable),
+                                      // fallback to normalized name. Then: matched → cl.description; unmatched →
+                                      // stop.description (the "⭐ rating" hack for Google-only places).
+                                      const stopKey = (stop.name || '').toLowerCase().trim();
+                                      const cl = customLocations.find(loc =>
+                                        (loc.googlePlaceId && stop.googlePlaceId && loc.googlePlaceId === stop.googlePlaceId) ||
+                                        ((loc.name || '').toLowerCase().trim() === stopKey)
+                                      );
                                       const effectiveDesc = cl ? (cl.description || '') : (stop.description || '');
+                                      if (window.BKK._debugDesc) {
+                                        console.log('[DESC]', stop.name, '| cl?', !!cl, '| cl.desc?', cl?.description?.slice?.(0,40), '| stop.desc?', stop.description?.slice?.(0,40), '| chose:', effectiveDesc.slice(0,40));
+                                      }
                                       const pk = (stop.name || '').replace(/[.#$/\\[\]]/g, '_');
                                       const ra = reviewAverages[pk];
                                       const gR = cl?.googleRating || stop.googleRating;
