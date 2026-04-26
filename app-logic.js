@@ -3591,7 +3591,7 @@
       });
       
       // Listen for real-time changes after initial load
-      configRef.on('value', (snapshot) => {
+      const configHandler = (snapshot) => {
         const data = snapshot.val();
         if (data) {
           const merged = { ...defaultConfig };
@@ -3607,7 +3607,9 @@
           }
           setInterestConfig(merged);
         }
-      });
+      };
+      configRef.on('value', configHandler);
+      return () => configRef.off('value', configHandler);
     } else {
       setInterestConfig(defaultConfig);
       markLoaded('config');
@@ -3963,21 +3965,23 @@
         const weekNum = Math.ceil(((now - jan1) / 86400000 + jan1.getDay() + 1) / 7);
         const weekKey = `${now.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
         
-        // Increment total counter
-        database.ref('accessStats/total').transaction(val => (val || 0) + 1);
-        
-        // Increment weekly unknown first, then update with country
-        database.ref(`accessStats/weekly/${weekKey}/unknown`).transaction(val => (val || 0) + 1);
-        
-        // Geo lookup to get country
+        // Initial counters — single atomic update instead of 2 transactions
+        const ServerValue = firebase.database.ServerValue;
+        database.ref().update({
+          'accessStats/total': ServerValue.increment(1),
+          [`accessStats/weekly/${weekKey}/unknown`]: ServerValue.increment(1)
+        }).catch(() => {});
+
+        // Geo lookup to get country — single atomic compensation update
         fetch('https://ipapi.co/json/')
           .then(r => r.json())
           .then(geo => {
             const cc = geo.country_code || 'unknown';
             if (cc !== 'unknown') {
-              // Move count from unknown to actual country
-              database.ref(`accessStats/weekly/${weekKey}/unknown`).transaction(val => Math.max((val || 1) - 1, 0));
-              database.ref(`accessStats/weekly/${weekKey}/${cc}`).transaction(val => (val || 0) + 1);
+              database.ref().update({
+                [`accessStats/weekly/${weekKey}/unknown`]: ServerValue.increment(-1),
+                [`accessStats/weekly/${weekKey}/${cc}`]: ServerValue.increment(1)
+              }).catch(() => {});
             }
           })
           .catch(() => { /* keep as unknown */ });
@@ -4633,7 +4637,7 @@
           headers: {
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType,places.currentOpeningHours,places.businessStatus'
+            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType'
           },
           body: textSearchBodyStr
         });
@@ -4677,7 +4681,7 @@
           headers: {
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType,places.currentOpeningHours,places.businessStatus'
+            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType'
           },
           body: nearbySearchBodyStr
         });
@@ -4709,7 +4713,7 @@
                 headers: {
                   'Content-Type': 'application/json',
                   'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-                  'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType,places.currentOpeningHours,places.businessStatus'
+                  'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType'
                 },
                 body: JSON.stringify({
                   includedTypes: [singleType],
@@ -9767,6 +9771,8 @@
 
   const searchPlacesByName = async (query) => {
     if (!query || !query.trim()) return;
+    if (window.BKK._searchByNameInFlight) return; // suppress duplicate rapid taps — saves $0.032/call
+    window.BKK._searchByNameInFlight = true;
     try {
       setLocationSearchResults([]); // show loading state
       const cityForSearch = window.BKK.cityNameForSearch || 'Bangkok';
@@ -9779,7 +9785,7 @@
           'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
           'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.primaryType,places.primaryTypeDisplayName'
         },
-        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: window.BKK.systemParams?.pointSearchMaxGoogle || 10, languageCode: 'en' })
+        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: Math.min(window.BKK.systemParams?.pointSearchMaxGoogle || 10, 20), languageCode: 'en' })
       });
       const data = await response.json();
       if (data.places && data.places.length > 0) {
@@ -9800,6 +9806,8 @@
       console.error('[SEARCH] Error:', err);
       showToast(t('toast.searchError'), 'error');
       setLocationSearchResults(null);
+    } finally {
+      window.BKK._searchByNameInFlight = false;
     }
   };
 
@@ -9809,6 +9817,8 @@
   // Bug-fix: was hardcoded maxResultCount:5 in searchPointForRadius — now uses pointSearchMaxGoogle everywhere.
   const _searchPlacesCore = async (query, setResults) => {
     if (!query || !query.trim()) return;
+    if (window.BKK._searchCoreInFlight) return; // suppress duplicate rapid taps — saves $0.032/call
+    window.BKK._searchCoreInFlight = true;
     try {
       setResults([]); // empty = loading
       const q = query.toLowerCase().trim();
@@ -9835,7 +9845,7 @@
           'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
           'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.primaryType,places.primaryTypeDisplayName'
         },
-        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: window.BKK.systemParams?.pointSearchMaxGoogle || 10, languageCode: 'en' })
+        body: JSON.stringify({ textQuery: searchQuery, maxResultCount: Math.min(window.BKK.systemParams?.pointSearchMaxGoogle || 10, 20), languageCode: 'en' })
       });
       const data = await response.json();
       const googleResults = data.places && data.places.length > 0
@@ -9859,6 +9869,8 @@
     } catch (err) {
       console.error('[PLACE SEARCH] Error:', err);
       setResults(null);
+    } finally {
+      window.BKK._searchCoreInFlight = false;
     }
   };
   const searchPointForRadius  = (query) => _searchPlacesCore(query, setPointSearchResults);

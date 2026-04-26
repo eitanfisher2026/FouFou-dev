@@ -146,42 +146,57 @@
 
     <!-- CDN libraries -->
     <script>window.__sp(0, 'Loading UI...');</script>
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script defer crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script defer src="https://cdn.tailwindcss.com"></script>
     <script>
-      if (window.tailwind) {
-        tailwind.config = { theme: { extend: { borderWidth: { '3': '3px', '4': '4px' } } } };
-      }
+      window.addEventListener('DOMContentLoaded', function() {
+        if (window.tailwind) {
+          tailwind.config = { theme: { extend: { borderWidth: { '3': '3px', '4': '4px' } } } };
+        }
+      });
     </script>
-    <!-- Firebase (non-blocking, parallel) -->
+    <!-- Firebase (non-blocking, parallel — 5 libs in parallel saves ~4 RTTs on slow networks) -->
     <script>
     window.__firebaseReady = new Promise(function(resolve) {
       var libs = ['firebase-app-compat.js','firebase-auth-compat.js','firebase-database-compat.js','firebase-storage-compat.js','firebase-analytics-compat.js'];
-      var loaded = 0, failed = false;
-      function loadNext() {
-        if (failed || loaded >= libs.length) { resolve(!failed); return; }
-        var s = document.createElement('script');
-        s.src = 'https://www.gstatic.com/firebasejs/9.22.0/' + libs[loaded];
-        s.onload = function() { loaded++; loadNext(); };
-        s.onerror = function() { failed = true; resolve(false); };
-        document.head.appendChild(s);
-      }
-      loadNext();
-      setTimeout(function() { if (loaded < libs.length && !failed) resolve(false); }, 15000);
+      var settled = false;
+      var loadOne = function(lib) {
+        return new Promise(function(res) {
+          var s = document.createElement('script');
+          s.src = 'https://www.gstatic.com/firebasejs/9.22.0/' + lib;
+          s.onload = function() { res(true); };
+          s.onerror = function() { res(false); };
+          document.head.appendChild(s);
+        });
+      };
+      Promise.all(libs.map(loadOne)).then(function(results) {
+        if (settled) return;
+        settled = true;
+        resolve(results.every(Boolean));
+      });
+      setTimeout(function() { if (!settled) { settled = true; resolve(false); } }, 15000);
     });
     </script>
 
     <!-- Fetch + run the pre-compiled app code (no browser Babel needed) -->
+    <!-- Gated on DOMContentLoaded so deferred React / Tailwind have executed first. -->
     <script>
     fetch('app-code.js?v=__VERSION__').then(function(r) { return r.text(); }).then(function(code) {
-      try {
-        var s = document.createElement('script');
-        s.textContent = code;
-        document.body.appendChild(s);
-      } catch(err) {
-        console.error('[APP]', err);
-        document.getElementById('splash-status').textContent = 'Error: ' + err.message;
+      var run = function() {
+        try {
+          var s = document.createElement('script');
+          s.textContent = code;
+          document.body.appendChild(s);
+        } catch(err) {
+          console.error('[APP]', err);
+          document.getElementById('splash-status').textContent = 'Error: ' + err.message;
+        }
+      };
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', run);
+      } else {
+        run();
       }
     }).catch(function(err) {
       document.getElementById('splash-status').textContent = 'Network error. Refresh page.';
