@@ -1958,7 +1958,12 @@
                     });
                   })()}
                 </div>
-                
+
+                {/* v3.23.42: Google attribution under the trail-stops list — most stops show ratings/types from Google Places */}
+                <div style={{ marginTop: '6px', fontSize: '9px', color: '#9ca3af', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left', paddingInlineStart: '4px' }}>
+                  {t('general.poweredByGoogle') || 'Powered by Google'}
+                </div>
+
                 <div className="mt-3 space-y-1" style={{
                   position: 'sticky', bottom: 0, zIndex: 20,
                   background: 'linear-gradient(to top, rgba(239,246,255,1) 85%, rgba(239,246,255,0))',
@@ -4126,12 +4131,34 @@
                           version: window.BKK.VERSION || '3.5'
                         };
 
-                        // City data: locations + routes for current city only
+                        // v3.23.42: strip Google-cached fields from exports per Google Maps Platform ToS.
+                        // We keep googlePlaceId (allowed indefinitely) + lat/lng + name + user-authored fields.
+                        // On re-import, the receiving device's "Refresh Google saved information" admin
+                        // tool repopulates rating/address/types from a fresh API call.
+                        const stripGoogleFieldsFromLocation = (loc) => {
+                          const clean = { ...loc };
+                          delete clean.googleRating;
+                          delete clean.googleRatingCount;
+                          delete clean.googleRatingUpdated;
+                          delete clean.address;
+                          delete clean.formattedAddress;
+                          delete clean.googleTypes;
+                          delete clean.types;
+                          delete clean.primaryType;
+                          delete clean.primaryTypeDisplayName;
+                          delete clean.businessStatus;
+                          delete clean.todayHours;
+                          delete clean.openNow;
+                          delete clean.currentOpeningHours;
+                          delete clean.editorialSummary;
+                          return clean;
+                        };
+                        // City data: locations + routes for current city only — Google fields stripped
                         const cityData = {
                           _type: 'foufou-city',
                           cityId: selectedCityId,
-                          customLocations: customLocations,
-                          savedRoutes: savedRoutes,
+                          customLocations: customLocations.map(stripGoogleFieldsFromLocation),
+                          savedRoutes: savedRoutes.map(r => stripRouteForStorage(r)),
                           exportDate: new Date().toISOString(),
                           version: window.BKK.VERSION || '3.5'
                         };

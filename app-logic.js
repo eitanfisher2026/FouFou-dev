@@ -7432,6 +7432,22 @@
           delete clean.imageUrls;
           // Defensive: clear any stale runtime skip flag that slipped through
           delete clean.trailSkipped;
+          // v3.23.42: drop volatile / cache-restricted Google fields per stop. Saved routes
+          // can sit in Firebase indefinitely; the 30-day caching rule for Google Places data
+          // is incompatible with persisting these. We keep googlePlaceId (allowed forever),
+          // name + lat/lng (needed for display + navigation), and googleRating + count for
+          // route ordering. Volatile or rapidly-stale fields go.
+          delete clean.todayHours;
+          delete clean.openNow;
+          delete clean.currentOpeningHours;
+          delete clean.businessStatus;
+          delete clean.address;            // re-fetched on demand from customLocations match or fresh API call
+          delete clean.formattedAddress;
+          delete clean.googleTypes;        // categorization data — used at trail-build time, not at trail-load time
+          delete clean.types;
+          delete clean.primaryType;
+          delete clean.primaryTypeDisplayName;
+          delete clean._debug;             // diagnostic blob from app-logic.js:5020+
           return clean;
         });
     }
