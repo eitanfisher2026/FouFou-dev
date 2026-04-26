@@ -165,6 +165,10 @@
         return new Promise(function(res) {
           var s = document.createElement('script');
           s.src = 'https://www.gstatic.com/firebasejs/9.22.0/' + lib;
+          // Dynamic scripts default to async — execute in download order, breaking
+          // firebase-app-compat-must-execute-first. async=false preserves parallel
+          // downloads but forces insertion-order execution.
+          s.async = false;
           s.onload = function() { res(true); };
           s.onerror = function() { res(false); };
           document.head.appendChild(s);

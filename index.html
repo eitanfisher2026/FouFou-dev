@@ -29,8 +29,8 @@
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <!-- Preload app files so they download in parallel with CDN -->
-    <link rel="preload" href="app-data.js?v=3.23.44" as="script">
-    <link rel="preload" href="app-code.js?v=3.23.44" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="app-data.js?v=3.23.45" as="script">
+    <link rel="preload" href="app-code.js?v=3.23.45" as="fetch" crossorigin="anonymous">
     <style>
       html, body { overscroll-behavior: none; margin: 0; }
       @keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -142,7 +142,7 @@
     </script>
 
     <!-- App data: i18n + cities + config + utils (preloaded, separate cache) -->
-    <script src="app-data.js?v=3.23.44"></script>
+    <script src="app-data.js?v=3.23.45"></script>
 
     <!-- CDN libraries -->
     <script>window.__sp(0, 'Loading UI...');</script>
@@ -165,6 +165,10 @@
         return new Promise(function(res) {
           var s = document.createElement('script');
           s.src = 'https://www.gstatic.com/firebasejs/9.22.0/' + lib;
+          // Dynamic scripts default to async — execute in download order, breaking
+          // firebase-app-compat-must-execute-first. async=false preserves parallel
+          // downloads but forces insertion-order execution.
+          s.async = false;
           s.onload = function() { res(true); };
           s.onerror = function() { res(false); };
           document.head.appendChild(s);
@@ -182,7 +186,7 @@
     <!-- Fetch + run the pre-compiled app code (no browser Babel needed) -->
     <!-- Gated on DOMContentLoaded so deferred React / Tailwind have executed first. -->
     <script>
-    fetch('app-code.js?v=3.23.44').then(function(r) { return r.text(); }).then(function(code) {
+    fetch('app-code.js?v=3.23.45').then(function(r) { return r.text(); }).then(function(code) {
       var run = function() {
         try {
           var s = document.createElement('script');
@@ -207,7 +211,7 @@
     <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
-        navigator.serviceWorker.register('sw.js?v=3.23.44')
+        navigator.serviceWorker.register('sw.js?v=3.23.45')
           .catch(function(err) { console.error('[SW] Registration failed:', err); });
       });
     }
