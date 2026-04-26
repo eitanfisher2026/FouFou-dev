@@ -5313,7 +5313,20 @@
           const { data, foundPlaceId } = await fetchOnePlace(loc);
           processed++;
           setRatingsRefreshProgress({ current: processed, total: candidates.length, updated: stats.updated });
-          if (!data) { stats.notFound++; return; }
+          if (!data) {
+            // v3.23.43: still mark googleRatingUpdated even on a not-found result so the place doesn't
+            // retry on every click. It'll be tried again on the next 30-day cycle. Without this,
+            // places with no googlePlaceId AND no text-search match would burn $0.032 per click forever.
+            stats.notFound++;
+            if (loc.firebaseId) {
+              const cityIdNF = loc.cityId || 'bangkok';
+              try {
+                await database.ref(`cities/${cityIdNF}/locations/${loc.firebaseId}`).update({ googleRatingUpdated: Date.now() });
+                setCustomLocations(prev => prev.map(l => l.firebaseId === loc.firebaseId ? { ...l, googleRatingUpdated: Date.now() } : l));
+              } catch (e) {}
+            }
+            return;
+          }
 
           // Build update object — only fields that are present in Google's response
           const updates = { googleRatingUpdated: Date.now() };
@@ -5350,7 +5363,7 @@
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     const estCost = (stats.detailsCalls * 0.005 + stats.textSearchCalls * 0.032).toFixed(3);
     showToast(
-      `🌐 ${stats.updated + stats.unchanged} / ${stats.total} ${t('settings.scanned') || 'נסרקו'} (${stats.updated} ${t('settings.changed') || 'שונו'}, ${stats.unchanged} ${t('settings.unchangedRating') || 'ללא שינוי'}, ${stats.errors} ${t('general.errors') || 'שגיאות'}) · $${estCost}`,
+      `🌐 ${stats.updated + stats.unchanged} / ${stats.total} ${t('settings.scanned') || 'נסרקו'} (${stats.updated} ${t('settings.changed') || 'שונו'}, ${stats.unchanged} ${t('settings.unchangedRating') || 'ללא שינוי'}, ${stats.notFound} not in Google, ${stats.errors} ${t('general.errors') || 'שגיאות'}) · $${estCost}`,
       stats.errors > 0 ? 'warning' : (stats.updated > 0 ? 'success' : 'info')
     );
     setRatingsRefreshProgress(null);

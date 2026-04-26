@@ -3929,7 +3929,7 @@
                   <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '8px', lineHeight: '1.6' }}>
                     <div>📊 Status: <span style={{ fontWeight: 'bold', color: dueNow > 0 ? '#b45309' : '#059669' }}>{dueNow} due now</span> · {recent} refreshed within 30 days</div>
                     {lrAt && lr && (
-                      <div>📅 Last run: {lrAtStr} · {lr.updated}/{lr.total} updated, {lr.errors} error{lr.errors === 1 ? '' : 's'} · ${(lr.costUSD ?? 0).toFixed(3)}</div>
+                      <div>📅 Last run: {lrAtStr} · {lr.updated}/{lr.total} updated, {lr.notFound || 0} not in Google, {lr.errors} error{lr.errors === 1 ? '' : 's'} · ${(lr.costUSD ?? 0).toFixed(3)}</div>
                     )}
                     {!lrAt && <div style={{ fontStyle: 'italic' }}>📅 Last run: never</div>}
                   </div>
