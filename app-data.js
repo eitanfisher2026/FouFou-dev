@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.40
+// FouFou app-data.js v3.23.41
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -118,6 +118,7 @@ he: {
 general: {
   appName: 'FouFou',
   poweredByGoogle: 'מסופק ע״י Google',
+  errors: 'שגיאות',
   city: 'עיר',
   all: 'כל',
   upTo: 'עד',
@@ -966,6 +967,9 @@ settings: {
   translateDone: '✓ תורגם',
   saveAndTranslate: 'שמור ותרגם לאנגלית',
   refreshRatings: 'רענן דירוגי גוגל',
+  refreshGoogleData: 'רענן נתוני גוגל',
+  refreshGoogleDataDesc: 'עדכון דירוגים, כתובת, סוגים וקואורדינטות למקומות מועדפים בכל הערים. דילוג על מקומות שעודכנו ב-30 הימים האחרונים.',
+  changed: 'שונו',
   refreshRatingsDesc: 'עדכון דירוגי גוגל לכל המקומות המועדפים בעיר הנוכחית',
   ratingsRefreshed: 'דירוגי גוגל עודכנו',
   bulkApprove: 'אשר טיוטות',
@@ -1316,6 +1320,7 @@ en: {
 general: {
   appName: 'FouFou',
   poweredByGoogle: 'Powered by Google',
+  errors: 'errors',
   city: 'City',
   all: 'All',
   upTo: 'up to',
@@ -2162,6 +2167,9 @@ settings: {
   translateDone: '✓ Translated',
   saveAndTranslate: 'Save and translate to English',
   refreshRatings: 'Refresh Google ratings',
+  refreshGoogleData: 'Refresh Google data',
+  refreshGoogleDataDesc: 'Refresh ratings, address, types, and coordinates for favorites across all cities. Skips entries refreshed within 30 days.',
+  changed: 'changed',
   refreshRatingsDesc: 'Update Google ratings for all favorite places in current city',
   ratingsRefreshed: 'Google ratings updated',
   bulkApprove: 'Approve drafts',
@@ -3478,7 +3486,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.40';
+window.BKK.VERSION = '3.23.41';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));

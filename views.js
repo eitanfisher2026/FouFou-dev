@@ -3905,38 +3905,54 @@
               </div>
             </div>
             
-            {/* Refresh Google Ratings — editor/admin only */}
-            {isUnlocked && (
-            <div className="mb-3">
-              <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-400 rounded-xl p-3">
-                <h3 className="text-base font-bold text-gray-800 mb-1">{`⭐ ${t("settings.refreshRatings") || 'רענן דירוגי גוגל'}`}</h3>
-                <p className="text-xs text-gray-600 mb-2">
-                  {t("settings.refreshRatingsDesc") || 'עדכון דירוגי גוגל לכל המקומות המועדפים בעיר הנוכחית'}
-                </p>
-                <button
-                  onClick={refreshAllGoogleRatings}
-                  disabled={!!ratingsRefreshProgress}
-                  className={`w-full py-2 px-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition ${
-                    ratingsRefreshProgress
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700'
-                  }`}
-                >
-                  {ratingsRefreshProgress ? (
-                    <>
-                      <span className="animate-spin">⭐</span>
-                      <span>{ratingsRefreshProgress.current}/{ratingsRefreshProgress.total} ({ratingsRefreshProgress.updated} {t('settings.updated')})</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>⭐</span>
-                      <span>{t("settings.refreshRatings") || 'רענן דירוגי גוגל'}</span>
-                    </>
-                  )}
-                </button>
+            {/* v3.23.41: Refresh Google saved information — editor/admin only. Panel text is English-only by design. */}
+            {isUnlocked && (() => {
+              const REFRESH_INTERVAL_MS = 30 * 24 * 3600 * 1000;
+              const eligible = customLocations.filter(loc => loc.status !== 'blacklist' && loc.lat && loc.lng && loc.name);
+              const dueNow = eligible.filter(loc => !loc.googleRatingUpdated || (Date.now() - loc.googleRatingUpdated) > REFRESH_INTERVAL_MS).length;
+              const recent = eligible.length - dueNow;
+              const lr = googleDataRefreshMeta?.lastRunStats;
+              const lrAt = googleDataRefreshMeta?.lastRunAt;
+              const lrAtStr = lrAt ? new Date(lrAt).toLocaleString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : null;
+              return (
+              <div className="mb-3">
+                <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-400 rounded-xl p-3" style={{ direction: 'ltr', textAlign: 'left' }}>
+                  <h3 className="text-base font-bold text-gray-800 mb-1">🌐 Refresh Google saved information</h3>
+                  <p className="text-xs text-gray-600 mb-2">
+                    Refreshes ratings, address, types, business status, and coordinates for favorites across all cities. Skips entries refreshed within the last 30 days. Place names are NOT refreshed (preserves user edits).
+                  </p>
+                  <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '8px', lineHeight: '1.6' }}>
+                    <div>📊 Status: <span style={{ fontWeight: 'bold', color: dueNow > 0 ? '#b45309' : '#059669' }}>{dueNow} due now</span> · {recent} refreshed within 30 days</div>
+                    {lrAt && lr && (
+                      <div>📅 Last run: {lrAtStr} · {lr.updated}/{lr.total} updated, {lr.errors} error{lr.errors === 1 ? '' : 's'} · ${(lr.costUSD ?? 0).toFixed(3)}</div>
+                    )}
+                    {!lrAt && <div style={{ fontStyle: 'italic' }}>📅 Last run: never</div>}
+                  </div>
+                  <button
+                    onClick={refreshAllGoogleRatings}
+                    disabled={!!ratingsRefreshProgress || dueNow === 0}
+                    className={`w-full py-2 px-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition ${
+                      ratingsRefreshProgress || dueNow === 0
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700'
+                    }`}
+                  >
+                    {ratingsRefreshProgress ? (
+                      <>
+                        <span className="animate-spin">🌐</span>
+                        <span>{ratingsRefreshProgress.current}/{ratingsRefreshProgress.total} ({ratingsRefreshProgress.updated} updated)</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>🌐</span>
+                        <span>Refresh Google saved information{dueNow > 0 ? ` (${dueNow})` : ''}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
-            )}
+              );
+            })()}
 
             {/* Bulk Approve Drafts — per-city scrollable list, editor/admin only */}
             {isUnlocked && (() => {

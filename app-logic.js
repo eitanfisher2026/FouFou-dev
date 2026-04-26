@@ -1725,6 +1725,8 @@
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [ratingsRefreshProgress, setRatingsRefreshProgress] = useState(null); // { current, total, updated }
+  // v3.23.41: persisted metadata about the last Google data refresh run
+  const [googleDataRefreshMeta, setGoogleDataRefreshMeta] = useState(null); // { lastRunAt, lastRunStats }
   const [isDataLoaded, setIsDataLoaded] = useState(false); // Tracks initial Firebase/localStorage load
   // PERFORMANCE: Show app after interests+config load (the first screen the user sees).
   // locations, routes, status load in background and update when ready.
@@ -1781,6 +1783,16 @@
       // Network error on version check — safe to ignore, use local cache as-is
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // v3.23.41: load last Google-data-refresh metadata for the admin panel display
+  useEffect(() => {
+    if (!isFirebaseAvailable || !database) return;
+    if (!isCurrentUserAdmin) { setGoogleDataRefreshMeta(null); return; }
+    const ref = database.ref('settings/googleDataRefresh');
+    const handler = (snap) => setGoogleDataRefreshMeta(snap.val() || null);
+    ref.on('value', handler);
+    return () => ref.off('value', handler);
+  }, [isCurrentUserAdmin]);
   const [rightColWidth, setRightColWidth] = useState(() => {
     try {
       const saved = parseInt(localStorage.getItem('foufou_right_col_width'));
@@ -5226,103 +5238,138 @@
       showToast('Google API or Firebase not available', 'error');
       return;
     }
-    
-    const allPlaces = customLocations.filter(loc => 
-      (loc.cityId || 'bangkok') === selectedCityId && loc.status !== 'blacklist' && loc.lat && loc.lng && loc.name
+
+    // v3.23.41: refresh ALL Google-cached fields (not just rating) across ALL cities (not just selected),
+    // for Google Maps Platform ToS compliance with the 30-day caching rule.
+    // Skipped fields: name (preserves user edits — there's no way to detect them yet).
+    const allPlaces = customLocations.filter(loc =>
+      loc.status !== 'blacklist' && loc.lat && loc.lng && loc.name && (loc.cityId || 'bangkok')
     );
-    
-    const REFRESH_INTERVAL = 7 * 24 * 3600 * 1000;
+
+    const REFRESH_INTERVAL = 30 * 24 * 3600 * 1000; // 30 days — matches Google's caching limit
     const candidates = allPlaces.filter(loc => !loc.googleRatingUpdated || (Date.now() - loc.googleRatingUpdated) > REFRESH_INTERVAL);
     const skippedRecent = allPlaces.length - candidates.length;
-    
+
     if (candidates.length === 0) {
       showToast(`${t('settings.noPlacesToRefresh') || 'אין מקומות לרענון'} (${skippedRecent} ${t('settings.recentlyUpdated') || 'עודכנו לאחרונה'})`, 'info');
       return;
     }
-    
-    const stats = { total: candidates.length, skippedRecent, apiCalls: 0, detailsCalls: 0, textSearchCalls: 0, updated: 0, unchanged: 0, noRating: 0, errors: 0, noFirebaseId: 0, saved: 0, newPlaceIds: 0 };
+
+    // v3.23.41: confirmation with cost preview before spending API budget
+    const estCostPreview = (candidates.length * 0.005).toFixed(3);
+    const confirmMsg = `About to refresh ${candidates.length} place${candidates.length === 1 ? '' : 's'} via Google Places API.\nEstimated cost: ~$${estCostPreview}\nContinue?`;
+    const proceed = await new Promise((resolve) => {
+      showConfirm(confirmMsg, () => resolve(true), { confirmLabel: '✓ Refresh', confirmColor: '#16a34a', cancelLabel: 'Cancel', onCancel: () => resolve(false) });
+    });
+    if (!proceed) return;
+
+    const stats = { total: candidates.length, skippedRecent, apiCalls: 0, detailsCalls: 0, textSearchCalls: 0, updated: 0, unchanged: 0, notFound: 0, errors: 0, noFirebaseId: 0, saved: 0, newPlaceIds: 0 };
     const startTime = Date.now();
-    const CHUNK_SIZE = 5; // parallel requests per chunk — stays within Google rate limits
+    const CHUNK_SIZE = 5;
     let processed = 0;
 
     setRatingsRefreshProgress({ current: 0, total: candidates.length, updated: 0 });
 
-    // Helper: fetch rating for one location
-    const fetchOneRating = async (loc) => {
-      let newRating = null, newCount = 0, foundPlaceId = null;
-      // Prefer Place Details (GET, $0.005) over Text Search ($0.032)
+    const FIELD_MASK_DETAILS = 'rating,userRatingCount,formattedAddress,location,types,primaryType,businessStatus';
+    const FIELD_MASK_TEXT = 'places.id,places.rating,places.userRatingCount,places.formattedAddress,places.location,places.types,places.primaryType,places.businessStatus';
+
+    // Helper: fetch all refreshable Google fields for one location
+    const fetchOnePlace = async (loc) => {
+      let data = null, foundPlaceId = null;
       if (loc.googlePlaceId) {
-        const detailResp = await fetch(`https://places.googleapis.com/v1/places/${loc.googlePlaceId}`, {
+        const resp = await fetch(`https://places.googleapis.com/v1/places/${loc.googlePlaceId}?languageCode=en`, {
           method: 'GET',
-          headers: { 'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY, 'X-Goog-FieldMask': 'rating,userRatingCount' }
+          headers: { 'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY, 'X-Goog-FieldMask': FIELD_MASK_DETAILS }
         });
         stats.apiCalls++; stats.detailsCalls++;
-        if (detailResp.ok) {
-          const detail = await detailResp.json();
-          newRating = detail.rating || null;
-          newCount = detail.userRatingCount || 0;
-        }
+        if (resp.ok) data = await resp.json();
       }
-      if (newRating === null) {
+      if (!data) {
+        // Fallback: text search by name + city, biased to coords
+        const cityName = window.BKK.cities?.[loc.cityId || 'bangkok']?.nameEn || 'Bangkok';
         const resp = await fetch(GOOGLE_PLACES_TEXT_SEARCH_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY, 'X-Goog-FieldMask': 'places.id,places.rating,places.userRatingCount,places.location' },
-          body: JSON.stringify({ textQuery: loc.name + ' ' + (window.BKK.cityNameForSearch || 'Bangkok'), maxResultCount: 3, locationBias: { circle: { center: { latitude: loc.lat, longitude: loc.lng }, radius: 500.0 } } })
+          headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY, 'X-Goog-FieldMask': FIELD_MASK_TEXT },
+          body: JSON.stringify({ textQuery: loc.name + ' ' + cityName, maxResultCount: 3, languageCode: 'en', locationBias: { circle: { center: { latitude: loc.lat, longitude: loc.lng }, radius: 500.0 } } })
         });
         stats.apiCalls++; stats.textSearchCalls++;
         if (resp.ok) {
-          const data = await resp.json();
-          if (data.places?.length) {
-            const best = data.places.length > 1
-              ? data.places.reduce((a, b) => ((a.location ? Math.abs(a.location.latitude - loc.lat) + Math.abs(a.location.longitude - loc.lng) : 999) < (b.location ? Math.abs(b.location.latitude - loc.lat) + Math.abs(b.location.longitude - loc.lng) : 999) ? a : b))
-              : data.places[0];
-            newRating = best.rating || null;
-            newCount = best.userRatingCount || 0;
-            if (best.id && !loc.googlePlaceId) { foundPlaceId = best.id; stats.newPlaceIds++; }
+          const json = await resp.json();
+          if (json.places?.length) {
+            data = json.places.length > 1
+              ? json.places.reduce((a, b) => ((a.location ? Math.abs(a.location.latitude - loc.lat) + Math.abs(a.location.longitude - loc.lng) : 999) < (b.location ? Math.abs(b.location.latitude - loc.lat) + Math.abs(b.location.longitude - loc.lng) : 999) ? a : b))
+              : json.places[0];
+            if (data.id && !loc.googlePlaceId) { foundPlaceId = data.id; stats.newPlaceIds++; }
           }
         }
       }
-      return { newRating, newCount, foundPlaceId };
+      return { data, foundPlaceId };
     };
 
-    // Process in parallel chunks of CHUNK_SIZE
     for (let chunkStart = 0; chunkStart < candidates.length; chunkStart += CHUNK_SIZE) {
       const chunk = candidates.slice(chunkStart, chunkStart + CHUNK_SIZE);
       await Promise.all(chunk.map(async (loc) => {
         try {
-          const { newRating, newCount, foundPlaceId } = await fetchOneRating(loc);
+          const { data, foundPlaceId } = await fetchOnePlace(loc);
           processed++;
           setRatingsRefreshProgress({ current: processed, total: candidates.length, updated: stats.updated });
-          if (!newRating) { stats.noRating++; return; }
-          const updates = { googleRatingUpdated: Date.now(), ...(foundPlaceId ? { googlePlaceId: foundPlaceId } : {}) };
-          if (loc.googleRating === newRating && loc.googleRatingCount === newCount) {
-            stats.unchanged++;
-            if (loc.firebaseId) database.ref(`cities/${selectedCityId}/locations/${loc.firebaseId}`).update(updates);
-            return;
+          if (!data) { stats.notFound++; return; }
+
+          // Build update object — only fields that are present in Google's response
+          const updates = { googleRatingUpdated: Date.now() };
+          if (foundPlaceId) updates.googlePlaceId = foundPlaceId;
+          if (data.rating !== undefined) updates.googleRating = data.rating;
+          if (data.userRatingCount !== undefined) updates.googleRatingCount = data.userRatingCount || 0;
+          if (data.formattedAddress) updates.address = data.formattedAddress;
+          if (Array.isArray(data.types)) updates.googleTypes = data.types;
+          if (data.primaryType) updates.primaryType = data.primaryType;
+          if (data.businessStatus) updates.businessStatus = data.businessStatus;
+          if (data.location?.latitude && data.location?.longitude) {
+            updates.lat = data.location.latitude;
+            updates.lng = data.location.longitude;
           }
+
+          // Detect "unchanged" — only rating + count for the human-visible signal
+          const ratingUnchanged = (data.rating === loc.googleRating) && ((data.userRatingCount || 0) === (loc.googleRatingCount || 0));
+          if (ratingUnchanged) stats.unchanged++; else stats.updated++;
+
+          const cityId = loc.cityId || 'bangkok';
           if (loc.firebaseId) {
             try {
-              await database.ref(`cities/${selectedCityId}/locations/${loc.firebaseId}`).update({ googleRating: newRating, googleRatingCount: newCount, ...updates });
+              await database.ref(`cities/${cityId}/locations/${loc.firebaseId}`).update(updates);
               stats.saved++;
             } catch (fbErr) { stats.errors++; }
           } else { stats.noFirebaseId++; }
-          setCustomLocations(prev => prev.map(l => l.name === loc.name ? { ...l, googleRating: newRating, googleRatingCount: newCount, googleRatingUpdated: Date.now(), ...(foundPlaceId ? { googlePlaceId: foundPlaceId } : {}) } : l));
-          stats.updated++;
+          setCustomLocations(prev => prev.map(l => l.firebaseId === loc.firebaseId ? { ...l, ...updates } : l));
           setRatingsRefreshProgress({ current: processed, total: candidates.length, updated: stats.updated });
         } catch (e) { stats.errors++; }
       }));
-      // 300ms between chunks to respect rate limits
       if (chunkStart + CHUNK_SIZE < candidates.length) await new Promise(r => setTimeout(r, 300));
     }
-    
+
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     const estCost = (stats.detailsCalls * 0.005 + stats.textSearchCalls * 0.032).toFixed(3);
-    const nextCost = ((stats.detailsCalls + stats.newPlaceIds) * 0.005 + Math.max(0, stats.textSearchCalls - stats.newPlaceIds) * 0.032).toFixed(3);
     showToast(
-      `⭐ ${stats.updated} ${t('settings.updated')} / ${stats.total} ${t('settings.scanned') || 'נסרקו'} (${stats.unchanged} ${t('settings.unchangedRating') || 'ללא שינוי'}) · $${estCost}`,
-      stats.updated > 0 ? 'success' : 'info'
+      `🌐 ${stats.updated + stats.unchanged} / ${stats.total} ${t('settings.scanned') || 'נסרקו'} (${stats.updated} ${t('settings.changed') || 'שונו'}, ${stats.unchanged} ${t('settings.unchangedRating') || 'ללא שינוי'}, ${stats.errors} ${t('general.errors') || 'שגיאות'}) · $${estCost}`,
+      stats.errors > 0 ? 'warning' : (stats.updated > 0 ? 'success' : 'info')
     );
     setRatingsRefreshProgress(null);
+
+    // v3.23.41: persist run metadata so the admin panel can show "last run" stats
+    try {
+      database.ref('settings/googleDataRefresh').set({
+        lastRunAt: Date.now(),
+        lastRunStats: {
+          total: stats.total,
+          updated: stats.updated,
+          unchanged: stats.unchanged,
+          errors: stats.errors,
+          notFound: stats.notFound,
+          durationSec: parseFloat(elapsed),
+          costUSD: parseFloat(estCost)
+        }
+      });
+    } catch (e) { console.warn('[REFRESH] failed to persist run metadata:', e); }
   };
 
   // Combine all interests: built-in + uncovered + custom (city-filtered)
