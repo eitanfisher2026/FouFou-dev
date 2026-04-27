@@ -1893,17 +1893,32 @@
                 />
               </div>
 
-              {/* Notes */}
+              {/* Notes — editable for owners/admin; auto-translated read-only display otherwise. */}
+              {/* v3.23.49: in view mode, render via AutoTranslateText so notes written in another */}
+              {/* language are auto-translated to the viewer's UI language. */}
               <div>
                 <label className="block text-xs font-bold mb-1">{`💬 ${t('general.notesLabel')}`}</label>
-                <textarea
-                  value={editingRoute.notes || ''}
-                  onChange={(e) => setEditingRoute({...editingRoute, notes: e.target.value})}
-                  placeholder={t("places.notes")}
-                  className="w-full p-2 text-sm border-2 border-gray-300 rounded-lg h-16 resize-none"
-                  style={{ direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}
-                  disabled={!(editingRoute.savedBy === authUser?.uid || isUnlocked)}
-                />
+                {(editingRoute.savedBy === authUser?.uid || isUnlocked) ? (
+                  <textarea
+                    value={editingRoute.notes || ''}
+                    onChange={(e) => setEditingRoute({...editingRoute, notes: e.target.value})}
+                    placeholder={t("places.notes")}
+                    className="w-full p-2 text-sm border-2 border-gray-300 rounded-lg h-16 resize-none"
+                    style={{ direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}
+                  />
+                ) : (
+                  editingRoute.notes ? (
+                    <div className="w-full p-2 text-sm border-2 border-gray-200 rounded-lg bg-gray-50 min-h-[64px] whitespace-pre-wrap"
+                      style={{ direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}>
+                      <AutoTranslateText text={editingRoute.notes} translateText={translateText} detectNeedsTranslation={detectNeedsTranslation} />
+                    </div>
+                  ) : (
+                    <div className="w-full p-2 text-sm border-2 border-gray-200 rounded-lg bg-gray-50 text-gray-400 italic min-h-[64px]"
+                      style={{ direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}>
+                      {t("places.noNotes") || (window.BKK.i18n.isRTL() ? 'אין הערות' : 'No notes')}
+                    </div>
+                  )
+                )}
               </div>
 
               {/* Stops list */}

@@ -7870,8 +7870,8 @@
     }
     setCreateTrailStops(prev => [...prev, newStop]);
     setCreateTrailSearchResults(null);
-    const inp = document.getElementById('create-trail-stop-input');
-    if (inp) inp.value = '';
+    // v3.23.49: input is controlled now — must clear React state, not just the DOM
+    setCreateTrailSearchQuery('');
   };
   const removeStopFromCreateTrail = (idx) => {
     setCreateTrailStops(prev => prev.filter((_, i) => i !== idx));

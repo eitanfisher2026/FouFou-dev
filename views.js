@@ -2464,9 +2464,9 @@
 
             {/* v3.23.47: "Create new trail" — manual trail builder. Visible to everyone;
                 anonymous users get a sign-in prompt on click (handled in openCreateTrailDialog).
-                v3.23.48: language-sensitive placement — button sits on the natural-start side
-                in both LTR and RTL. */}
-            <div className="mb-2 flex items-center gap-2" style={{ flexDirection: window.BKK.i18n.isRTL() ? 'row-reverse' : 'row' }}>
+                v3.23.49: drop explicit flexDirection — document-level dir="rtl" (set on <html>)
+                already mirrors flex children in Hebrew; specifying row-reverse double-flipped it. */}
+            <div className="mb-2 flex items-center gap-2">
               <button
                 onClick={openCreateTrailDialog}
                 className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-emerald-600"
@@ -2477,10 +2477,7 @@
               <div className="text-center py-8">
                 <div className="text-4xl mb-2">🗺️</div>
                 <p className="text-gray-600 mb-3 text-sm">{t("places.noSavedRoutesInCity", {cityName: tLabel(window.BKK.selectedCity) || t('places.thisCity')})}</p>
-                <button
-                  onClick={() => setCurrentView('form')}
-                  className="bg-slate-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-slate-700"
-                >{t("route.newRoute")}</button>
+                {/* v3.23.49: redundant "New route" CTA removed — the top-of-page Create button serves the same purpose. */}
               </div>
             ) : (
               <div className="space-y-1">
@@ -2518,7 +2515,16 @@
                           data-route-fbid={savedRoute.firebaseId || ''}
                           className={`flex items-center justify-between gap-2 rounded-lg p-2 border cursor-pointer ${savedRoute.system ? 'border-amber-200 bg-amber-50 hover:bg-amber-100' : 'border-gray-200 bg-white hover:bg-blue-50'}`}
                           style={{ overflow: 'hidden', ...(focusRouteId && focusRouteId === savedRoute.firebaseId ? { outline: '3px solid #fbbf24', background: '#fef3c7', transition: 'outline 0.3s, background 0.3s' } : {}) }}
-                          onClick={() => loadSavedRoute(savedRoute)}
+                          onClick={() => {
+                            // v3.23.49: click trail name → open the trail dialog (showRouteDialog), matching
+                            // the existing ✏️/👁️ button behavior. Was previously navigating to the full route
+                            // view via loadSavedRoute. The route view is still reachable via the dialog's actions.
+                            const isOwnRoute = savedRoute.savedBy && authUser?.uid && savedRoute.savedBy === authUser.uid;
+                            const canEdit = isOwnRoute || isUnlocked;
+                            setEditingRoute({...savedRoute});
+                            setRouteDialogMode(canEdit ? 'edit' : 'view');
+                            setShowRouteDialog(true);
+                          }}
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1 flex-wrap">

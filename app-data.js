@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.48
+// FouFou app-data.js v3.23.49
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -165,6 +165,7 @@ general: {
   interests: 'תחומים',
   status: 'סטטוס',
   readOnly: 'קריאה בלבד',
+  canEdit: 'ניתן לעריכה',
   error: 'שגיאה',
   unknownError: 'שגיאה לא ידועה',
   safeArea: 'בטוח',
@@ -487,7 +488,7 @@ route: {
   addStopsToTrail: 'הוסף נקודות',
   saveTrail: 'שמור מסלול',
   discardCurrentTrail: 'לבטל את המסלול הנוכחי שעדיין לא נשמר וליצור חדש?',
-  recommended: '🐾 מומלצים',
+  recommended: '🐾 מסלולים מומלצים',
   recommendedBadge: '🐾 מומלץ',
   markAsRecommended: 'סמן כמומלץ',
   unmarkAsRecommended: 'הסר המלצה',
@@ -549,7 +550,6 @@ route: {
   startPoint: 'נקודת התחלה',
   routeType: 'סוג מסלול',
   newRoute: 'צור מסלול חדש',
-  recommended: 'מסלול מומלץ',
   others: 'אחרים',
   private: 'פרטי',
   public: 'ציבורי',
@@ -1382,6 +1382,7 @@ general: {
   interests: 'Interests',
   status: 'Status',
   readOnly: 'Read only',
+  canEdit: 'Editable',
   error: 'Error',
   unknownError: 'Unknown error',
   safeArea: 'Safe',
@@ -1699,7 +1700,7 @@ route: {
   addStopsToTrail: 'Add stops',
   saveTrail: 'Save trail',
   discardCurrentTrail: 'Discard the current unsaved trail and create a new one?',
-  recommended: '🐾 Recommended',
+  recommended: '🐾 Recommended trails',
   recommendedBadge: '🐾 Recommended',
   markAsRecommended: 'Mark as recommended',
   unmarkAsRecommended: 'Unmark recommended',
@@ -1770,7 +1771,6 @@ route: {
   startPoint: 'Starting point',
   routeType: 'Route type',
   newRoute: 'New route',
-  recommended: 'Recommended route',
   others: 'Others',
   private: 'Private',
   public: 'Public',
@@ -3514,7 +3514,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.48';
+window.BKK.VERSION = '3.23.49';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
