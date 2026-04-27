@@ -60,10 +60,14 @@ window.BKK.setUserGPS = (lat, lng) => {
  */
 window.BKK.getUserGPS = (timeoutMs) => {
   timeoutMs = timeoutMs || 8000;
-  // Synchronous cache hit
+  // Synchronous cache hit — 5-minute TTL. Without TTL, a user who searched yesterday
+  // in one neighborhood and reopens the (PWA/TWA) today in another part of the city
+  // would get yesterday's coords until full reload. This breaks "around me" search.
   if (window.BKK.lastKnownGPS) {
     const c = window.BKK.lastKnownGPS;
-    return Promise.resolve({ lat: c.lat, lng: c.lng });
+    if (Date.now() - (c.timestamp || 0) < 5 * 60 * 1000) {
+      return Promise.resolve({ lat: c.lat, lng: c.lng });
+    }
   }
   if (!navigator.geolocation || typeof navigator.geolocation.getCurrentPosition !== 'function') {
     return Promise.resolve(null);
