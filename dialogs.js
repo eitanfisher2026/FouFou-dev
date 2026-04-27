@@ -1929,7 +1929,7 @@
                     <div key={idx} className="flex items-center gap-1 text-xs bg-gray-50 px-2 py-1 rounded">
                       <span className="text-gray-400">{window.BKK.stopLabel(idx)}.</span>
                       <span className="font-medium truncate">{stop.name}</span>
-                      {stop.rating && <span className="text-yellow-600">⭐{stop.rating}</span>}
+                      {/* v3.23.52: per-stop ⭐ rating removed from this dialog — kept on the route view. */}
                     </div>
                   ))}
                 </div>
