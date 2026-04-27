@@ -184,7 +184,9 @@
     </script>
 
     <!-- Fetch + run the pre-compiled app code (no browser Babel needed) -->
-    <!-- Gated on DOMContentLoaded so deferred React / Tailwind have executed first. -->
+    <!-- v3.23.51: poll for React directly instead of trusting document.readyState. When readyState
+         transitions to 'interactive' the parser is done but defer scripts (React/ReactDOM/Tailwind)
+         may not have executed yet — that race condition caused "React is not defined" on slow networks. -->
     <script>
     fetch('app-code.js?v=__VERSION__').then(function(r) { return r.text(); }).then(function(code) {
       var run = function() {
@@ -197,11 +199,18 @@
           document.getElementById('splash-status').textContent = 'Error: ' + err.message;
         }
       };
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', run);
-      } else {
-        run();
-      }
+      var attempts = 0;
+      var maxAttempts = 200; // ~10s at 50ms — generous timeout for slow CDN
+      var waitForReact = function() {
+        if (typeof React !== 'undefined' && typeof ReactDOM !== 'undefined') {
+          run();
+        } else if (++attempts < maxAttempts) {
+          setTimeout(waitForReact, 50);
+        } else {
+          document.getElementById('splash-status').textContent = 'React failed to load. Refresh page.';
+        }
+      };
+      waitForReact();
     }).catch(function(err) {
       document.getElementById('splash-status').textContent = 'Network error. Refresh page.';
     });

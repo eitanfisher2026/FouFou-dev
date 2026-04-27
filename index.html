@@ -29,8 +29,8 @@
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <!-- Preload app files so they download in parallel with CDN -->
-    <link rel="preload" href="app-data.js?v=3.23.50" as="script">
-    <link rel="preload" href="app-code.js?v=3.23.50" as="fetch" crossorigin="anonymous">
+    <link rel="preload" href="app-data.js?v=3.23.51" as="script">
+    <link rel="preload" href="app-code.js?v=3.23.51" as="fetch" crossorigin="anonymous">
     <style>
       html, body { overscroll-behavior: none; margin: 0; }
       @keyframes slideUp { from { transform: translateY(100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -142,7 +142,7 @@
     </script>
 
     <!-- App data: i18n + cities + config + utils (preloaded, separate cache) -->
-    <script src="app-data.js?v=3.23.50"></script>
+    <script src="app-data.js?v=3.23.51"></script>
 
     <!-- CDN libraries -->
     <script>window.__sp(0, 'Loading UI...');</script>
@@ -184,9 +184,11 @@
     </script>
 
     <!-- Fetch + run the pre-compiled app code (no browser Babel needed) -->
-    <!-- Gated on DOMContentLoaded so deferred React / Tailwind have executed first. -->
+    <!-- v3.23.51: poll for React directly instead of trusting document.readyState. When readyState
+         transitions to 'interactive' the parser is done but defer scripts (React/ReactDOM/Tailwind)
+         may not have executed yet — that race condition caused "React is not defined" on slow networks. -->
     <script>
-    fetch('app-code.js?v=3.23.50').then(function(r) { return r.text(); }).then(function(code) {
+    fetch('app-code.js?v=3.23.51').then(function(r) { return r.text(); }).then(function(code) {
       var run = function() {
         try {
           var s = document.createElement('script');
@@ -197,11 +199,18 @@
           document.getElementById('splash-status').textContent = 'Error: ' + err.message;
         }
       };
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', run);
-      } else {
-        run();
-      }
+      var attempts = 0;
+      var maxAttempts = 200; // ~10s at 50ms — generous timeout for slow CDN
+      var waitForReact = function() {
+        if (typeof React !== 'undefined' && typeof ReactDOM !== 'undefined') {
+          run();
+        } else if (++attempts < maxAttempts) {
+          setTimeout(waitForReact, 50);
+        } else {
+          document.getElementById('splash-status').textContent = 'React failed to load. Refresh page.';
+        }
+      };
+      waitForReact();
     }).catch(function(err) {
       document.getElementById('splash-status').textContent = 'Network error. Refresh page.';
     });
@@ -211,7 +220,7 @@
     <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
-        navigator.serviceWorker.register('sw.js?v=3.23.50')
+        navigator.serviceWorker.register('sw.js?v=3.23.51')
           .catch(function(err) { console.error('[SW] Registration failed:', err); });
       });
     }
