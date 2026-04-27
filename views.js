@@ -2456,7 +2456,16 @@
               </div>
             )}
             {renderContextHint('hint_saved')}
-            
+
+            {/* v3.23.47: "Create new trail" — manual trail builder. Visible to everyone;
+                anonymous users get a sign-in prompt on click (handled in openCreateTrailDialog). */}
+            <div className="mb-2 flex items-center gap-2">
+              <button
+                onClick={openCreateTrailDialog}
+                className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-emerald-600"
+              >{`✏️ ${t('route.createNewTrail') || 'Create new trail'}`}</button>
+            </div>
+
             {citySavedRoutes.length === 0 ? (
               <div className="text-center py-8">
                 <div className="text-4xl mb-2">🗺️</div>

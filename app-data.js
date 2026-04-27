@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.46
+// FouFou app-data.js v3.23.47
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -478,6 +478,15 @@ route: {
   saveAsNewPlaceholder: 'שם הנתיב',
   backToSavedList: 'חזור למסלולים שמורים',
   nameRequired: 'נדרש שם',
+  nameAsciiOnly: 'שם המסלול חייב להיות באנגלית בלבד (אותיות לטיניות)',
+  minStopsRequired: 'מסלול חייב לכלול לפחות נקודה אחת',
+  createNewTrail: 'צור מסלול חדש',
+  trailName: 'שם המסלול',
+  trailNamePlaceholderEn: 'באנגלית בלבד (לדוגמה: "Old town walk")',
+  notesPlaceholder: 'הערות על המסלול (לא חובה)',
+  addStopsToTrail: 'הוסף נקודות',
+  saveTrail: 'שמור מסלול',
+  discardCurrentTrail: 'לבטל את המסלול הנוכחי שעדיין לא נשמר וליצור חדש?',
   editSavedRoute: '🗺️ ערוך מסלול שמור',
   addSavedRoute: '🗺️ הוסף מסלול שמור',
   linear: 'ליניארי',
@@ -1676,6 +1685,15 @@ route: {
   saveAsNewPlaceholder: 'Route name',
   backToSavedList: 'Back to Saved Trails',
   nameRequired: 'Name required',
+  nameAsciiOnly: 'Trail name must be in English (basic Latin only)',
+  minStopsRequired: 'Trail must have at least one stop',
+  createNewTrail: 'Create new trail',
+  trailName: 'Trail name',
+  trailNamePlaceholderEn: 'English only (e.g. "Old town walk")',
+  notesPlaceholder: 'Optional notes about this trail',
+  addStopsToTrail: 'Add stops',
+  saveTrail: 'Save trail',
+  discardCurrentTrail: 'Discard the current unsaved trail and create a new one?',
   editSavedRoute: '🗺️ Edit saved route',
   addSavedRoute: '🗺️ Add saved route',
   linear: 'Linear',
@@ -3486,7 +3504,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.46';
+window.BKK.VERSION = '3.23.47';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));

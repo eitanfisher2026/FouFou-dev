@@ -3026,6 +3026,153 @@
         </div>
       )}
 
+      {/* v3.23.47: Create new trail — manual trail builder accessed from saved-trails page */}
+      {showCreateTrailDialog && (() => {
+        const nameCheck = validateTrailName(createTrailName);
+        const stopsOk = validateTrailMinStops(createTrailStops);
+        const canSave = nameCheck.valid && stopsOk;
+        const searchPlace = () => {
+          const inp = document.getElementById('create-trail-stop-input');
+          const q = inp?.value?.trim();
+          if (q) searchCreateTrailPlace(q);
+        };
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3" style={{ zIndex: 10300 }}>
+            <div className="bg-white rounded-xl w-full max-w-md shadow-2xl" style={{ direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+              {/* Header */}
+              <div className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-2.5 rounded-t-xl flex items-center justify-between">
+                <h3 className="text-sm font-bold">{`🛤️ ${t('route.createNewTrail') || 'Create new trail'}`}</h3>
+                <button onClick={closeCreateTrailDialog} className="text-xl hover:bg-white hover:bg-opacity-20 rounded-full w-7 h-7 flex items-center justify-center">✕</button>
+              </div>
+
+              {/* Body — scrollable */}
+              <div className="p-4 space-y-3" style={{ overflowY: 'auto' }}>
+                {/* Name */}
+                <div>
+                  <label style={{ fontSize: '11px', color: '#4b5563', fontWeight: 'bold' }}>
+                    {t('route.trailName') || 'Trail name'} <span style={{ color: '#dc2626' }}>*</span>
+                  </label>
+                  <input type="text"
+                    value={createTrailName}
+                    onChange={(e) => setCreateTrailName(e.target.value)}
+                    placeholder={t('route.trailNamePlaceholderEn') || 'English only (e.g. "Old town walk")'}
+                    style={{ width: '100%', padding: '8px 10px', border: '2px solid ' + (createTrailName.trim() && !nameCheck.valid ? '#fca5a5' : '#e5e7eb'), borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', direction: 'ltr', fontFamily: 'inherit', marginTop: '4px' }} />
+                  {createTrailName.trim() && !nameCheck.valid && (
+                    <div style={{ fontSize: '10px', color: '#dc2626', marginTop: '3px' }}>{nameCheck.error}</div>
+                  )}
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label style={{ fontSize: '11px', color: '#4b5563', fontWeight: 'bold' }}>{t('route.notes') || 'Notes'}</label>
+                  <textarea
+                    value={createTrailNotes}
+                    onChange={(e) => setCreateTrailNotes(e.target.value)}
+                    rows={2}
+                    placeholder={t('route.notesPlaceholder') || 'Optional notes about this trail'}
+                    style={{ width: '100%', padding: '8px 10px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', fontFamily: 'inherit', resize: 'vertical', marginTop: '4px' }} />
+                </div>
+
+                {/* Search-and-add stops */}
+                <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '10px' }}>
+                  <label style={{ fontSize: '11px', color: '#4b5563', fontWeight: 'bold' }}>
+                    {t('route.addStopsToTrail') || 'Add stops'} {createTrailStops.length > 0 && <span style={{ color: '#059669' }}>· {createTrailStops.length}</span>}
+                  </label>
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                    <input
+                      id="create-trail-stop-input"
+                      type="text"
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); searchPlace(); } }}
+                      placeholder={t('form.typeAddressAlt') || 'Place name or address'}
+                      className="flex-1 p-2 border-2 border-emerald-300 rounded-lg text-xs focus:border-emerald-500"
+                      style={{ direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}
+                    />
+                    <button onClick={searchPlace}
+                      className="px-3 rounded-lg text-xs font-bold bg-emerald-500 text-white hover:bg-emerald-600">
+                      {`🔍 ${t('general.search') || 'Search'}`}
+                    </button>
+                  </div>
+
+                  {/* Search results — favorites + Google */}
+                  {createTrailSearchResults !== null && (
+                    <div style={{ border: '1.5px solid #a7f3d0', borderRadius: '8px', overflow: 'hidden', background: 'white', marginTop: '6px', maxHeight: '180px', overflowY: 'auto' }}>
+                      {Array.isArray(createTrailSearchResults) && createTrailSearchResults.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: '10px', color: '#9ca3af', fontSize: '11px' }}>⏳ {t('general.searching') || 'Searching'}...</div>
+                      )}
+                      {createTrailSearchResults && !Array.isArray(createTrailSearchResults) && (() => {
+                        const favs = createTrailSearchResults.favorites || [];
+                        const goog = createTrailSearchResults.google || [];
+                        return (
+                          <>
+                            {favs.length > 0 && (
+                              <div style={{ padding: '4px 8px', fontSize: '9px', color: '#7c3aed', background: '#faf5ff', fontWeight: 'bold' }}>⭐ {t('nav.favorites') || 'Favorites'}</div>
+                            )}
+                            {favs.map((r, i) => (
+                              <button key={'f' + i} onClick={() => addStopToCreateTrail(r)}
+                                style={{ display: 'block', width: '100%', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left', padding: '6px 10px', border: 'none', borderTop: '1px solid #f3f4f6', background: 'white', cursor: 'pointer', fontSize: '12px' }}>
+                                <div style={{ fontWeight: 'bold' }}>{r.name}</div>
+                                {r.address && <div style={{ fontSize: '10px', color: '#6b7280' }}>{r.address}</div>}
+                              </button>
+                            ))}
+                            {goog.length > 0 && (
+                              <div style={{ padding: '4px 8px', fontSize: '9px', color: '#9ca3af', background: '#fafafa', fontWeight: 'bold' }}>{t('general.poweredByGoogle') || 'Powered by Google'}</div>
+                            )}
+                            {goog.map((r, i) => (
+                              <button key={'g' + i} onClick={() => addStopToCreateTrail(r)}
+                                style={{ display: 'block', width: '100%', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left', padding: '6px 10px', border: 'none', borderTop: '1px solid #f3f4f6', background: 'white', cursor: 'pointer', fontSize: '12px' }}>
+                                <div style={{ fontWeight: 'bold' }}>{r.name}</div>
+                                {r.address && <div style={{ fontSize: '10px', color: '#6b7280' }}>{r.address}</div>}
+                                {r.rating && <div style={{ fontSize: '10px', color: '#f59e0b' }}>⭐ {r.rating}{r.ratingCount ? ` (${r.ratingCount})` : ''}</div>}
+                              </button>
+                            ))}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </div>
+
+                {/* List of added stops */}
+                {createTrailStops.length > 0 && (
+                  <div style={{ background: '#f9fafb', borderRadius: '8px', padding: '8px' }}>
+                    <div style={{ fontSize: '11px', color: '#4b5563', fontWeight: 'bold', marginBottom: '4px' }}>
+                      📍 {createTrailStops.length} {t('general.stops') || 'stops'}
+                    </div>
+                    {createTrailStops.map((s, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 6px', background: 'white', borderRadius: '6px', marginBottom: '3px', fontSize: '12px' }}>
+                        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span style={{ fontWeight: 'bold', color: '#059669' }}>{i + 1}.</span> {s.name}
+                        </div>
+                        <button onClick={() => removeStopFromCreateTrail(i)}
+                          style={{ background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', padding: '2px 6px', fontSize: '11px', cursor: 'pointer', marginLeft: '6px' }}>
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer — save / cancel */}
+              <div style={{ padding: '10px 16px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '6px', flexDirection: window.BKK.i18n.isRTL() ? 'row-reverse' : 'row' }}>
+                <button onClick={submitCreateTrail}
+                  disabled={!canSave}
+                  style={{ flex: 2, padding: '10px 12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px',
+                    cursor: canSave ? 'pointer' : 'not-allowed',
+                    background: canSave ? '#16a34a' : '#e5e7eb',
+                    color: canSave ? 'white' : '#9ca3af', border: 'none' }}>
+                  💾 {t('route.saveTrail') || 'Save trail'}
+                </button>
+                <button onClick={closeCreateTrailDialog}
+                  style={{ flex: 1, padding: '10px 10px', borderRadius: '8px', fontSize: '13px', fontWeight: 500, background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', cursor: 'pointer' }}>
+                  {t('general.cancel') || 'Cancel'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Import Confirmation Dialog */}
       {showImportDialog && importedData && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">

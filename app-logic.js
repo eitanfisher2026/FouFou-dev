@@ -786,6 +786,12 @@
   // v3.23.23: Save-as-new dialog state
   const [showSaveAsNewDialog, setShowSaveAsNewDialog] = useState(false);
   const [saveAsNewName, setSaveAsNewName] = useState('');
+  // v3.23.47: Create-new-trail dialog state — manual trail builder accessed from saved-trails page
+  const [showCreateTrailDialog, setShowCreateTrailDialog] = useState(false);
+  const [createTrailName, setCreateTrailName] = useState('');
+  const [createTrailNotes, setCreateTrailNotes] = useState('');
+  const [createTrailStops, setCreateTrailStops] = useState([]);
+  const [createTrailSearchResults, setCreateTrailSearchResults] = useState(null);
   const [pendingLocations, setPendingLocations] = useState([]);
   const [pendingInterests, setPendingInterests] = useState([]);
   const [locationsLoading, setLocationsLoading] = useState(true);
@@ -7642,6 +7648,8 @@
     if (!authUser || authUser.isAnonymous) { setShowLoginDialog(true); return; }
     if (route.savedBy && route.savedBy !== authUser.uid) { showToast(t('route.notOwner') || 'Not the owner', 'warning'); return; }
     if (!isFirebaseAvailable || !database) { showToast(t('toast.firebaseUnavailable') || 'Firebase unavailable', 'error'); return; }
+    // v3.23.47: prevent saving an empty trail (the name is preserved from when it was loaded — grandfathered)
+    if (!validateTrailMinStops(route?.stops)) { showToast(t('route.minStopsRequired') || 'Trail must have at least one stop', 'warning'); return; }
     const routeToSave = {
       ...route,
       savedAt: new Date().toISOString(),
@@ -7662,6 +7670,18 @@
         showToast(t('toast.routeSaveError'), 'error');
       });
   };
+
+  // v3.23.47: shared trail validators applied at every save point (saveRouteAsNew, updateCurrentRoute, saveCustomTrail).
+  // Name is enforced ASCII-only so trails are universally readable across UI languages and shareable
+  // without script-rendering surprises. Existing trails saved before this rule are grandfathered —
+  // updateCurrentRoute does not re-validate the name (it preserves whatever was loaded from Firebase).
+  const validateTrailName = (name) => {
+    const trimmed = (name || '').trim();
+    if (!trimmed) return { valid: false, error: t('route.nameRequired') || 'Name required' };
+    if (!/^[\x20-\x7E]+$/.test(trimmed)) return { valid: false, error: t('route.nameAsciiOnly') || 'Trail name must be in English (basic Latin only)' };
+    return { valid: true };
+  };
+  const validateTrailMinStops = (stops) => Array.isArray(stops) && stops.length >= 1;
 
   // v3.23.23: pick a name that doesn't collide with the user's existing saved-route names
   // in the current city. If `base` exists, append " #1", " #2", ... until unique.
@@ -7685,6 +7705,10 @@
     if (!route) return;
     if (!authUser || authUser.isAnonymous) { showToast(t('auth.signInToSave') || t('auth.saveLoginRequired'), 'warning'); return; }
     if (!isFirebaseAvailable || !database) { showToast(t('toast.firebaseUnavailable') || 'Firebase unavailable', 'error'); return; }
+    // v3.23.47: enforce trail-name + min-stops rules
+    const nameCheck = validateTrailName(chosenName);
+    if (!nameCheck.valid) { showToast(nameCheck.error, 'warning'); return; }
+    if (!validateTrailMinStops(route?.stops)) { showToast(t('route.minStopsRequired') || 'Trail must have at least one stop', 'warning'); return; }
     // v3.23.25: per-city cap on total saved routes per user (admins bypass)
     if (!isRealAdmin) {
       const sp = window.BKK.systemParams || window.BKK._defaultSystemParams || {};
@@ -7725,6 +7749,116 @@
         console.error('[FIREBASE] Error saving route as new:', error);
         showToast(t('toast.routeSaveError'), 'error');
       });
+  };
+
+  // v3.23.47: build-and-save a brand-new trail from the "Create new trail" dialog.
+  // Mirrors saveRouteAsNew but takes explicit name/notes/stops so it doesn't depend on
+  // (or clobber) the in-memory `route` state. On success, opens the saved trail in the
+  // route view via the existing loadSavedRoute handler — so the user lands in your-route
+  // and can use the existing menu (add manually, reorder, save as, update).
+  const saveCustomTrail = (name, notes, stops, onSuccess) => {
+    if (!authUser || authUser.isAnonymous) { showToast(t('auth.signInToSave') || t('auth.saveLoginRequired'), 'warning'); return; }
+    if (!isFirebaseAvailable || !database) { showToast(t('toast.firebaseUnavailable') || 'Firebase unavailable', 'error'); return; }
+    const nameCheck = validateTrailName(name);
+    if (!nameCheck.valid) { showToast(nameCheck.error, 'warning'); return; }
+    if (!validateTrailMinStops(stops)) { showToast(t('route.minStopsRequired') || 'Trail must have at least one stop', 'warning'); return; }
+    if (!isRealAdmin) {
+      const sp = window.BKK.systemParams || window.BKK._defaultSystemParams || {};
+      const maxTotal = sp.maxRoutesPerUserPerCity ?? 50;
+      const { total } = countUserRoutesInCity(selectedCityId, authUser.uid);
+      if (total >= maxTotal) {
+        showToast((t('toast.routeCapReached') || 'You have {0}/{1} saved trails in this city. Delete some to save more.')
+          .replace('{0}', total).replace('{1}', maxTotal), 'warning', 'sticky');
+        return;
+      }
+    }
+    const finalName = makeUniqueRouteName(name);
+    const newRoute = {
+      name: finalName,
+      notes: notes || '',
+      stops: stops,
+      circular: false,
+      optimized: false,
+      savedAt: new Date().toISOString(),
+      savedBy: authUser.uid,
+      savedByName: window.BKK.safeDisplayName(authUser),
+      locked: false,
+      cityId: selectedCityId,
+      manuallyCreated: true
+    };
+    const stripped = stripRouteForStorage(newRoute);
+    database.ref(`cities/${selectedCityId}/routes`).push(stripped)
+      .then((ref) => {
+        const savedWithFbId = { ...newRoute, firebaseId: ref.key };
+        showToast((t('toast.routeSavedAs') || 'Saved as "{0}"').replace('{0}', finalName), 'success');
+        window.BKK.logEvent?.('custom_trail_created', { city: selectedCityId, stops: stops.length });
+        // Drop user into the route view via the same handler that opens an existing saved trail
+        loadSavedRoute(savedWithFbId);
+        if (onSuccess) onSuccess();
+      })
+      .catch((err) => {
+        console.error('[FIREBASE] Error saving custom trail:', err);
+        showToast(t('toast.routeSaveError') || 'Save failed', 'error');
+      });
+  };
+
+  // v3.23.47: helpers for the Create-trail dialog
+  const searchCreateTrailPlace = (query) => _searchPlacesCore(query, setCreateTrailSearchResults);
+  const addStopToCreateTrail = (result) => {
+    const newStop = {
+      name: result.name,
+      lat: result.lat,
+      lng: result.lng,
+      description: result.rating ? `⭐ ${result.rating}` : '',
+      address: result.address || result.name,
+      duration: 45,
+      interests: ['_manual'],
+      manuallyAdded: true,
+      googlePlace: !!result.googlePlaceId,
+      googlePlaceId: result.googlePlaceId || null,
+      rating: result.rating || 0,
+      ratingCount: result.ratingCount || 0
+    };
+    const isDup = createTrailStops.some(s =>
+      (s.googlePlaceId && newStop.googlePlaceId && s.googlePlaceId === newStop.googlePlaceId) ||
+      ((s.name || '').toLowerCase().trim() === newStop.name.toLowerCase().trim())
+    );
+    if (isDup) {
+      showToast(`"${newStop.name}" ${t('places.alreadyInRoute') || 'already in trail'}`, 'warning');
+      return;
+    }
+    setCreateTrailStops(prev => [...prev, newStop]);
+    setCreateTrailSearchResults(null);
+    const inp = document.getElementById('create-trail-stop-input');
+    if (inp) inp.value = '';
+  };
+  const removeStopFromCreateTrail = (idx) => {
+    setCreateTrailStops(prev => prev.filter((_, i) => i !== idx));
+  };
+  const openCreateTrailDialog = () => {
+    if (!authUser || authUser.isAnonymous) {
+      setShowLoginDialog(true);
+      showToast(t('auth.signInRequired') || 'Sign in required', 'info', 'sticky');
+      return;
+    }
+    // Discard-confirm only when there's an in-progress unsaved trail
+    if (route && (route.stops?.length > 0) && !route.firebaseId) {
+      const ok = window.confirm(t('route.discardCurrentTrail') || 'Discard the current unsaved trail and create a new one?');
+      if (!ok) return;
+      setRoute(null);
+    }
+    setCreateTrailName('');
+    setCreateTrailNotes('');
+    setCreateTrailStops([]);
+    setCreateTrailSearchResults(null);
+    setShowCreateTrailDialog(true);
+  };
+  const closeCreateTrailDialog = () => {
+    setShowCreateTrailDialog(false);
+    setCreateTrailSearchResults(null);
+  };
+  const submitCreateTrail = () => {
+    saveCustomTrail(createTrailName, createTrailNotes, createTrailStops, closeCreateTrailDialog);
   };
 
   // NOTE: addCustomInterest logic is now inline in the dialog footer (see Add Interest Dialog)
