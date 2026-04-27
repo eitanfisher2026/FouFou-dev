@@ -7850,7 +7850,10 @@
       name: result.name,
       lat: result.lat,
       lng: result.lng,
-      description: result.rating ? `⭐ ${result.rating}` : '',
+      // v3.23.50: leave description empty by default — the rating is already on stop.rating
+      // and the saved-trail view doesn't display ratings anyway. Putting "⭐ X.X" into the
+      // description duplicated the visible info on every stop.
+      description: '',
       address: result.address || result.name,
       duration: 45,
       interests: ['_manual'],

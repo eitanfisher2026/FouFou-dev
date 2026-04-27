@@ -1936,15 +1936,24 @@
               </div>
               </div>{/* close inner wrapper */}
 
-              {/* Private (locked:false, default) / Public (locked:true) toggle — owner or editor+ */}
+              {/* Private/Public toggle — owner or editor+. v3.23.50: editors/admins also get a Recommended toggle. */}
               {(editingRoute.savedBy === authUser?.uid || isUnlocked) && (
-              <div className="flex gap-3 px-4 py-2 bg-gray-50 border-t border-gray-100">
+              <div className="flex gap-3 px-4 py-2 bg-gray-50 border-t border-gray-100 flex-wrap">
                 <button type="button"
                   onClick={() => setEditingRoute({...editingRoute, locked: !editingRoute.locked})}
                   className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all cursor-pointer ${editingRoute.locked ? 'border-emerald-500 bg-emerald-500 text-white shadow-md' : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'}`}
                 >
                   {editingRoute.locked ? `🌐 ${t("route.public")}` : `✏️ ${t("route.private")}`}
                 </button>
+                {(isEditor || isAdmin) && (
+                  <button type="button"
+                    onClick={() => setEditingRoute({...editingRoute, system: !editingRoute.system})}
+                    title={t('route.recommendedTrailHint') || 'FouFou-recommended trails — editor/admin only'}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all cursor-pointer ${editingRoute.system ? 'border-orange-500 bg-orange-500 text-white shadow-md' : 'border-gray-300 bg-white text-gray-600 hover:border-orange-400'}`}
+                  >
+                    {editingRoute.system ? `🐾 ${t('route.recommendedBadge') || 'Recommended'}` : `🐾 ${t('route.markAsRecommended') || 'Mark as recommended'}`}
+                  </button>
+                )}
               </div>
               )}
 
@@ -1995,11 +2004,16 @@
                     {canUpdate && (
                       <button
                         onClick={() => {
-                          updateRoute(editingRoute.id, {
+                          // v3.23.50: include `system` in the payload — editors/admins can flip the
+                          // Recommended flag from inside the dialog. Regular users won't see the toggle,
+                          // so editingRoute.system stays at whatever it already was.
+                          const updates = {
                             name: editingRoute.name,
                             notes: editingRoute.notes,
                             locked: editingRoute.locked
-                          });
+                          };
+                          if (isEditor || isAdmin) updates.system = !!editingRoute.system;
+                          updateRoute(editingRoute.id, updates);
                           setShowRouteDialog(false);
                           setEditingRoute(null);
                         }}

@@ -1580,7 +1580,8 @@
                   </div>
                 )}
                 <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-bold text-blue-900 text-sm">{`${t("route.places")} - ${route.areaName}`} ({route.stops.filter(s => !isStopDisabled(s)).length}):</h3>
+                  {/* v3.23.50: omit the dash + areaName when there is no area (manually-created trails have no areaName) */}
+                  <h3 className="font-bold text-blue-900 text-sm">{`${t("route.places")}${route.areaName ? ' - ' + route.areaName : ''} (${route.stops.filter(s => !isStopDisabled(s)).length}):`}</h3>
                 </div>
                 {renderContextHint('hint_route')}
                 {/* Normal stop list grouped by interest */}
@@ -1903,7 +1904,10 @@
                                             🕐 {stop.openNow ? t('general.openStatus') : t('general.closedStatus')} · {stop.todayHours}
                                           </div>
                                         )}
-                                        {(gR || ra) && (
+                                        {/* v3.23.50: hide ratings on saved trails (route.firebaseId set). They're useful while
+                                            choosing places in the wizard but clutter the saved-trail review view. The 🌟
+                                            FouFou rating stays — it's still a useful signal of community feedback. */}
+                                        {!route.firebaseId && (gR || ra) && (
                                           <div style={{ fontSize: '10px', marginTop: '2px', display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                                             {gR && <span style={{ color: '#b45309' }}>⭐{gR.toFixed?.(1) || gR} ({gC})</span>}
                                             {ra && (
