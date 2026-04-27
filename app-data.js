@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.47
+// FouFou app-data.js v3.23.48
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -318,7 +318,7 @@ general: {
   clearLog: 'נקה לוג',
   shareRoute: 'שתף מסלול',
   sharePoi: 'שתף נקודות עניין',
-  openRoute: 'פתח נתיב',
+  openRoute: 'פתח מסלול',
   restoreActive: 'החזר כמקום פעיל',
   skipPermanent: 'דלג לצמיתות',
   update: 'עדכן',
@@ -474,8 +474,8 @@ route: {
   saveRoute: 'שמור מסלול',
   updateRoute: 'עדכן מסלול',
   saveAsNew: 'שמור כחדש',
-  saveAsNewPrompt: 'הקלד שם לנתיב החדש',
-  saveAsNewPlaceholder: 'שם הנתיב',
+  saveAsNewPrompt: 'הקלד שם למסלול החדש',
+  saveAsNewPlaceholder: 'שם המסלול',
   backToSavedList: 'חזור למסלולים שמורים',
   nameRequired: 'נדרש שם',
   nameAsciiOnly: 'שם המסלול חייב להיות באנגלית בלבד (אותיות לטיניות)',
@@ -487,6 +487,11 @@ route: {
   addStopsToTrail: 'הוסף נקודות',
   saveTrail: 'שמור מסלול',
   discardCurrentTrail: 'לבטל את המסלול הנוכחי שעדיין לא נשמר וליצור חדש?',
+  recommended: '🐾 מומלצים',
+  recommendedBadge: '🐾 מומלץ',
+  markAsRecommended: 'סמן כמומלץ',
+  unmarkAsRecommended: 'הסר המלצה',
+  recommendedTrailHint: 'מסלולים מומלצים ע"י FouFou — זמין לעורכים ומנהלים',
   editSavedRoute: '🗺️ ערוך מסלול שמור',
   addSavedRoute: '🗺️ הוסף מסלול שמור',
   linear: 'ליניארי',
@@ -814,9 +819,9 @@ toast: {
   addressSearchError: 'שגיאה בחיפוש כתובת',
   routeSaveError: 'שגיאה בשמירת מסלול',
   routeSavedAs: 'נשמר בשם ״{0}״',
-  routeCapReached: '⚠️ יש לך {0}/{1} נתיבים שמורים בעיר הזו. יש למחוק נתיב קיים לפני שמירה נוספת.',
+  routeCapReached: '⚠️ יש לך {0}/{1} מסלולים שמורים בעיר הזו. יש למחוק מסלול קיים לפני שמירה נוספת.',
   noEnglishNameTypeManually: '⚠️ אין שם באנגלית בגוגל. יש להקליד שם באנגלית.',
-  routePublicCapReached: '⚠️ יש לך {0}/{1} נתיבים ציבוריים בעיר הזו. יש לבטל שיתוף של אחד כדי לשתף נתיב נוסף.',
+  routePublicCapReached: '⚠️ יש לך {0}/{1} מסלולים ציבוריים בעיר הזו. יש לבטל שיתוף של אחד כדי לשתף מסלול נוסף.',
   imageUploadError: 'שגיאה בהעלאת התמונה',
   uploadingImage: 'מעלה תמונה...',
   imageUploaded: 'התמונה הועלתה בהצלחה',
@@ -1169,10 +1174,10 @@ help: {
     tabTitle: 'פרמטרים',
     title: 'פרמטרי מערכת (אלגוריתם)',
     subtitle: 'ערכים אלה משפיעים על חיפוש, בניית מסלול ותיעדוף.',
-    maxRoutesPerUserPerCity: 'מקסימום נתיבים שמורים למשתמש (לכל עיר)',
-    maxRoutesPerUserPerCityDesc: 'תקרה על מספר הנתיבים השמורים שמשתמש רגיל יכול לשמור בעיר אחת. מנהלים חורגים מהתקרה. ברירת מחדל: 50',
-    maxPublicRoutesPerUserPerCity: 'מקסימום נתיבים ציבוריים למשתמש (לכל עיר)',
-    maxPublicRoutesPerUserPerCityDesc: 'תקרה על מספר הנתיבים הציבוריים שמשתמש רגיל יכול לשתף בעיר אחת. מנהלים חורגים מהתקרה. ברירת מחדל: 10',
+    maxRoutesPerUserPerCity: 'מקסימום מסלולים שמורים למשתמש (לכל עיר)',
+    maxRoutesPerUserPerCityDesc: 'תקרה על מספר המסלולים השמורים שמשתמש רגיל יכול לשמור בעיר אחת. מנהלים חורגים מהתקרה. ברירת מחדל: 50',
+    maxPublicRoutesPerUserPerCity: 'מקסימום מסלולים ציבוריים למשתמש (לכל עיר)',
+    maxPublicRoutesPerUserPerCityDesc: 'תקרה על מספר המסלולים הציבוריים שמשתמש רגיל יכול לשתף בעיר אחת. מנהלים חורגים מהתקרה. ברירת מחדל: 10',
     sectionApp: 'הגדרות אפליקציה',
     sectionDedup: 'זיהוי כפילויות',
     sectionAlgo: 'אלגוריתם מסלול',
@@ -1694,6 +1699,11 @@ route: {
   addStopsToTrail: 'Add stops',
   saveTrail: 'Save trail',
   discardCurrentTrail: 'Discard the current unsaved trail and create a new one?',
+  recommended: '🐾 Recommended',
+  recommendedBadge: '🐾 Recommended',
+  markAsRecommended: 'Mark as recommended',
+  unmarkAsRecommended: 'Unmark recommended',
+  recommendedTrailHint: 'FouFou-recommended trails — editor/admin only',
   editSavedRoute: '🗺️ Edit saved route',
   addSavedRoute: '🗺️ Add saved route',
   linear: 'Linear',
@@ -3504,7 +3514,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.47';
+window.BKK.VERSION = '3.23.48';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));

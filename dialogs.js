@@ -3026,19 +3026,21 @@
         </div>
       )}
 
-      {/* v3.23.47: Create new trail — manual trail builder accessed from saved-trails page */}
+      {/* v3.23.47: Create new trail — manual trail builder accessed from saved-trails page.
+           v3.23.48: search UX matches "around a place" wizard step 2 — instant favorites
+           filter on typing, "Search Google" full-width button below, results dropdown.  */}
       {showCreateTrailDialog && (() => {
         const nameCheck = validateTrailName(createTrailName);
         const stopsOk = validateTrailMinStops(createTrailStops);
         const canSave = nameCheck.valid && stopsOk;
-        const searchPlace = () => {
-          const inp = document.getElementById('create-trail-stop-input');
-          const q = inp?.value?.trim();
+        const isRTL = window.BKK.i18n.isRTL();
+        const triggerGoogle = () => {
+          const q = (createTrailSearchQuery || '').trim();
           if (q) searchCreateTrailPlace(q);
         };
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3" style={{ zIndex: 10300 }}>
-            <div className="bg-white rounded-xl w-full max-w-md shadow-2xl" style={{ direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="bg-white rounded-xl w-full max-w-md shadow-2xl" style={{ direction: isRTL ? 'rtl' : 'ltr', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
               {/* Header */}
               <div className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-2.5 rounded-t-xl flex items-center justify-between">
                 <h3 className="text-sm font-bold">{`🛤️ ${t('route.createNewTrail') || 'Create new trail'}`}</h3>
@@ -3047,55 +3049,76 @@
 
               {/* Body — scrollable */}
               <div className="p-4 space-y-3" style={{ overflowY: 'auto' }}>
-                {/* Name */}
+                {/* Name — 2 rows, ASCII-only */}
                 <div>
                   <label style={{ fontSize: '11px', color: '#4b5563', fontWeight: 'bold' }}>
                     {t('route.trailName') || 'Trail name'} <span style={{ color: '#dc2626' }}>*</span>
                   </label>
-                  <input type="text"
+                  <textarea
                     value={createTrailName}
                     onChange={(e) => setCreateTrailName(e.target.value)}
+                    rows={2}
                     placeholder={t('route.trailNamePlaceholderEn') || 'English only (e.g. "Old town walk")'}
-                    style={{ width: '100%', padding: '8px 10px', border: '2px solid ' + (createTrailName.trim() && !nameCheck.valid ? '#fca5a5' : '#e5e7eb'), borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', direction: 'ltr', fontFamily: 'inherit', marginTop: '4px' }} />
+                    style={{ width: '100%', padding: '8px 10px', border: '2px solid ' + (createTrailName.trim() && !nameCheck.valid ? '#fca5a5' : '#e5e7eb'), borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', direction: 'ltr', fontFamily: 'inherit', marginTop: '4px', resize: 'vertical' }} />
                   {createTrailName.trim() && !nameCheck.valid && (
                     <div style={{ fontSize: '10px', color: '#dc2626', marginTop: '3px' }}>{nameCheck.error}</div>
                   )}
                 </div>
 
-                {/* Notes */}
+                {/* Notes — 5 rows minimum, scrollable */}
                 <div>
                   <label style={{ fontSize: '11px', color: '#4b5563', fontWeight: 'bold' }}>{t('route.notes') || 'Notes'}</label>
                   <textarea
                     value={createTrailNotes}
                     onChange={(e) => setCreateTrailNotes(e.target.value)}
-                    rows={2}
+                    rows={5}
                     placeholder={t('route.notesPlaceholder') || 'Optional notes about this trail'}
-                    style={{ width: '100%', padding: '8px 10px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', fontFamily: 'inherit', resize: 'vertical', marginTop: '4px' }} />
+                    style={{ width: '100%', padding: '8px 10px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', direction: isRTL ? 'rtl' : 'ltr', fontFamily: 'inherit', resize: 'vertical', marginTop: '4px', minHeight: '110px', overflowY: 'auto' }} />
                 </div>
 
-                {/* Search-and-add stops */}
+                {/* Editor/admin-only: mark as recommended (system trail) */}
+                {(isEditor || isAdmin) && (
+                  <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px', padding: '8px 10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="checkbox"
+                      id="create-trail-system-flag"
+                      checked={createTrailIsSystem}
+                      onChange={(e) => setCreateTrailIsSystem(e.target.checked)}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#ea580c' }}
+                    />
+                    <label htmlFor="create-trail-system-flag" style={{ fontSize: '12px', color: '#7c2d12', cursor: 'pointer', flex: 1 }}>
+                      <div style={{ fontWeight: 'bold' }}>{t('route.recommendedBadge') || '🐾 Recommended'}</div>
+                      <div style={{ fontSize: '10px', color: '#9a3412' }}>{t('route.recommendedTrailHint') || 'FouFou-recommended trails — editor/admin only'}</div>
+                    </label>
+                  </div>
+                )}
+
+                {/* Search-and-add stops — mirrors "around a place" UX */}
                 <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '10px' }}>
                   <label style={{ fontSize: '11px', color: '#4b5563', fontWeight: 'bold' }}>
                     {t('route.addStopsToTrail') || 'Add stops'} {createTrailStops.length > 0 && <span style={{ color: '#059669' }}>· {createTrailStops.length}</span>}
                   </label>
-                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                    <input
-                      id="create-trail-stop-input"
-                      type="text"
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); searchPlace(); } }}
-                      placeholder={t('form.typeAddressAlt') || 'Place name or address'}
-                      className="flex-1 p-2 border-2 border-emerald-300 rounded-lg text-xs focus:border-emerald-500"
-                      style={{ direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}
-                    />
-                    <button onClick={searchPlace}
-                      className="px-3 rounded-lg text-xs font-bold bg-emerald-500 text-white hover:bg-emerald-600">
-                      {`🔍 ${t('general.search') || 'Search'}`}
-                    </button>
-                  </div>
+                  <input
+                    id="create-trail-stop-input"
+                    type="text"
+                    value={createTrailSearchQuery}
+                    onChange={(e) => createTrailInstantFilter(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); triggerGoogle(); } }}
+                    placeholder={t('form.typeAddressAlt') || 'Type a place name'}
+                    className="w-full p-2 border-2 border-emerald-300 rounded-lg text-sm focus:border-emerald-500"
+                    style={{ direction: isRTL ? 'rtl' : 'ltr', marginTop: '4px', outline: 'none' }}
+                  />
+                  <button
+                    onClick={triggerGoogle}
+                    disabled={!(createTrailSearchQuery || '').trim()}
+                    className={`w-full py-2 rounded-lg text-sm font-bold ${(createTrailSearchQuery||'').trim() ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                    style={{ marginTop: '6px' }}>
+                    {`🔍 ${isRTL ? 'חפש בגוגל' : 'Search Google'}`}
+                  </button>
 
-                  {/* Search results — favorites + Google */}
+                  {/* Results dropdown — favorites + Google */}
                   {createTrailSearchResults !== null && (
-                    <div style={{ border: '1.5px solid #a7f3d0', borderRadius: '8px', overflow: 'hidden', background: 'white', marginTop: '6px', maxHeight: '180px', overflowY: 'auto' }}>
+                    <div style={{ border: '1.5px solid #a7f3d0', borderRadius: '8px', overflow: 'hidden', background: 'white', marginTop: '6px', maxHeight: '220px', overflowY: 'auto' }}>
                       {Array.isArray(createTrailSearchResults) && createTrailSearchResults.length === 0 && (
                         <div style={{ textAlign: 'center', padding: '10px', color: '#9ca3af', fontSize: '11px' }}>⏳ {t('general.searching') || 'Searching'}...</div>
                       )}
@@ -3109,7 +3132,7 @@
                             )}
                             {favs.map((r, i) => (
                               <button key={'f' + i} onClick={() => addStopToCreateTrail(r)}
-                                style={{ display: 'block', width: '100%', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left', padding: '6px 10px', border: 'none', borderTop: '1px solid #f3f4f6', background: 'white', cursor: 'pointer', fontSize: '12px' }}>
+                                style={{ display: 'block', width: '100%', textAlign: isRTL ? 'right' : 'left', padding: '6px 10px', border: 'none', borderTop: '1px solid #f3f4f6', background: 'white', cursor: 'pointer', fontSize: '12px' }}>
                                 <div style={{ fontWeight: 'bold' }}>{r.name}</div>
                                 {r.address && <div style={{ fontSize: '10px', color: '#6b7280' }}>{r.address}</div>}
                               </button>
@@ -3119,12 +3142,15 @@
                             )}
                             {goog.map((r, i) => (
                               <button key={'g' + i} onClick={() => addStopToCreateTrail(r)}
-                                style={{ display: 'block', width: '100%', textAlign: window.BKK.i18n.isRTL() ? 'right' : 'left', padding: '6px 10px', border: 'none', borderTop: '1px solid #f3f4f6', background: 'white', cursor: 'pointer', fontSize: '12px' }}>
+                                style={{ display: 'block', width: '100%', textAlign: isRTL ? 'right' : 'left', padding: '6px 10px', border: 'none', borderTop: '1px solid #f3f4f6', background: 'white', cursor: 'pointer', fontSize: '12px' }}>
                                 <div style={{ fontWeight: 'bold' }}>{r.name}</div>
                                 {r.address && <div style={{ fontSize: '10px', color: '#6b7280' }}>{r.address}</div>}
                                 {r.rating && <div style={{ fontSize: '10px', color: '#f59e0b' }}>⭐ {r.rating}{r.ratingCount ? ` (${r.ratingCount})` : ''}</div>}
                               </button>
                             ))}
+                            {favs.length === 0 && goog.length === 0 && (
+                              <div style={{ textAlign: 'center', padding: '10px', color: '#9ca3af', fontSize: '11px' }}>{t('places.noPlacesFound') || 'No places found'}</div>
+                            )}
                           </>
                         );
                       })()}
@@ -3154,7 +3180,7 @@
               </div>
 
               {/* Footer — save / cancel */}
-              <div style={{ padding: '10px 16px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '6px', flexDirection: window.BKK.i18n.isRTL() ? 'row-reverse' : 'row' }}>
+              <div style={{ padding: '10px 16px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '6px', flexDirection: isRTL ? 'row-reverse' : 'row' }}>
                 <button onClick={submitCreateTrail}
                   disabled={!canSave}
                   style={{ flex: 2, padding: '10px 12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px',

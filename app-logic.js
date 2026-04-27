@@ -792,6 +792,8 @@
   const [createTrailNotes, setCreateTrailNotes] = useState('');
   const [createTrailStops, setCreateTrailStops] = useState([]);
   const [createTrailSearchResults, setCreateTrailSearchResults] = useState(null);
+  const [createTrailSearchQuery, setCreateTrailSearchQuery] = useState('');
+  const [createTrailIsSystem, setCreateTrailIsSystem] = useState(false); // editor/admin-only flag
   const [pendingLocations, setPendingLocations] = useState([]);
   const [pendingInterests, setPendingInterests] = useState([]);
   const [locationsLoading, setLocationsLoading] = useState(true);
@@ -7753,10 +7755,11 @@
 
   // v3.23.47: build-and-save a brand-new trail from the "Create new trail" dialog.
   // Mirrors saveRouteAsNew but takes explicit name/notes/stops so it doesn't depend on
-  // (or clobber) the in-memory `route` state. On success, opens the saved trail in the
-  // route view via the existing loadSavedRoute handler — so the user lands in your-route
-  // and can use the existing menu (add manually, reorder, save as, update).
-  const saveCustomTrail = (name, notes, stops, onSuccess) => {
+  // (or clobber) the in-memory `route` state. On success, closes the dialog and scrolls
+  // the saved-trails list to the new entry (via setFocusRouteId) — does NOT auto-navigate
+  // to the route view. The user can open it from the list using the existing button.
+  // v3.23.48: also persists the optional isSystemTrail flag (editor/admin-only).
+  const saveCustomTrail = (name, notes, stops, isSystemTrail, onSuccess) => {
     if (!authUser || authUser.isAnonymous) { showToast(t('auth.signInToSave') || t('auth.saveLoginRequired'), 'warning'); return; }
     if (!isFirebaseAvailable || !database) { showToast(t('toast.firebaseUnavailable') || 'Firebase unavailable', 'error'); return; }
     const nameCheck = validateTrailName(name);
@@ -7773,6 +7776,9 @@
       }
     }
     const finalName = makeUniqueRouteName(name);
+    // Only editors/admins can create a system/recommended trail — flag silently ignored otherwise.
+    // Field is named `system` to match the pre-existing badge rendering in views.js.
+    const systemFlag = (isSystemTrail && (isEditor || isAdmin)) ? true : false;
     const newRoute = {
       name: finalName,
       notes: notes || '',
@@ -7784,16 +7790,16 @@
       savedByName: window.BKK.safeDisplayName(authUser),
       locked: false,
       cityId: selectedCityId,
-      manuallyCreated: true
+      manuallyCreated: true,
+      system: systemFlag
     };
     const stripped = stripRouteForStorage(newRoute);
     database.ref(`cities/${selectedCityId}/routes`).push(stripped)
       .then((ref) => {
-        const savedWithFbId = { ...newRoute, firebaseId: ref.key };
         showToast((t('toast.routeSavedAs') || 'Saved as "{0}"').replace('{0}', finalName), 'success');
-        window.BKK.logEvent?.('custom_trail_created', { city: selectedCityId, stops: stops.length });
-        // Drop user into the route view via the same handler that opens an existing saved trail
-        loadSavedRoute(savedWithFbId);
+        window.BKK.logEvent?.('custom_trail_created', { city: selectedCityId, stops: stops.length, system: systemFlag });
+        // Highlight the new trail in the saved-trails list (existing focus mechanism)
+        setFocusRouteId(ref.key);
         if (onSuccess) onSuccess();
       })
       .catch((err) => {
@@ -7802,7 +7808,42 @@
       });
   };
 
+  // v3.23.48: editor/admin-only inline toggle on the saved-trails card — flip the
+  // `system` flag without opening the trail. Writes a single field to Firebase.
+  const toggleTrailSystemFlag = (route) => {
+    if (!isEditor && !isAdmin) return;
+    if (!isFirebaseAvailable || !database) { showToast(t('toast.firebaseUnavailable') || 'Firebase unavailable', 'error'); return; }
+    if (!route?.firebaseId) return;
+    const cityId = route.cityId || selectedCityId;
+    const next = !route.system;
+    database.ref(`cities/${cityId}/routes/${route.firebaseId}/system`).set(next)
+      .then(() => {
+        showToast(next ? (t('route.markAsRecommended') || 'Marked as recommended') : (t('route.unmarkAsRecommended') || 'Unmarked'), 'success');
+        window.BKK.logEvent?.('trail_system_flag_toggled', { value: next });
+      })
+      .catch((err) => {
+        console.error('[FIREBASE] Error toggling system flag:', err);
+        showToast(t('toast.routeSaveError') || 'Save failed', 'error');
+      });
+  };
+
   // v3.23.47: helpers for the Create-trail dialog
+  // v3.23.48: instant local favorites filter on typing — mirrors the "around a place"
+  // wizard step 2 UX. Empty input clears results; Google search runs only on button/Enter.
+  const createTrailInstantFilter = (val) => {
+    setCreateTrailSearchQuery(val);
+    const q = (val || '').toLowerCase().trim();
+    if (!q) { setCreateTrailSearchResults(null); return; }
+    const favMatches = (customLocations || []).filter(cl =>
+      cl.lat && cl.lng && (cl.name || '').toLowerCase().includes(q)
+    ).slice(0, 5).map(cl => ({
+      name: cl.name, lat: cl.lat, lng: cl.lng,
+      address: cl.address || '', rating: cl.googleRating,
+      ratingCount: cl.googleRatingCount, googlePlaceId: cl.googlePlaceId,
+      isFavorite: true
+    }));
+    setCreateTrailSearchResults({ favorites: favMatches, google: [] });
+  };
   const searchCreateTrailPlace = (query) => _searchPlacesCore(query, setCreateTrailSearchResults);
   const addStopToCreateTrail = (result) => {
     const newStop = {
@@ -7851,14 +7892,17 @@
     setCreateTrailNotes('');
     setCreateTrailStops([]);
     setCreateTrailSearchResults(null);
+    setCreateTrailSearchQuery('');
+    setCreateTrailIsSystem(false);
     setShowCreateTrailDialog(true);
   };
   const closeCreateTrailDialog = () => {
     setShowCreateTrailDialog(false);
     setCreateTrailSearchResults(null);
+    setCreateTrailSearchQuery('');
   };
   const submitCreateTrail = () => {
-    saveCustomTrail(createTrailName, createTrailNotes, createTrailStops, closeCreateTrailDialog);
+    saveCustomTrail(createTrailName, createTrailNotes, createTrailStops, createTrailIsSystem, closeCreateTrailDialog);
   };
 
   // NOTE: addCustomInterest logic is now inline in the dialog footer (see Add Interest Dialog)

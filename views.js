@@ -2438,7 +2438,8 @@
                 </div>
               </div>
             </div>
-            {/* v3.23.15: Me / Others / All filter — hidden for anon (no uid to own anything) */}
+            {/* v3.23.15: Me / Others / All filter — hidden for anon (no uid to own anything).
+                v3.23.48: added "Recommended" filter (system trails curated by editors/admins). */}
             {authUser && !authUser.isAnonymous && (
               <div className="flex bg-gray-200 rounded-lg p-0.5 mb-2" style={{ width: 'fit-content' }}>
                 <button
@@ -2453,13 +2454,19 @@
                   onClick={() => setTrailsFilter('others')}
                   className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${trailsFilter === 'others' ? 'bg-white shadow text-blue-700' : 'text-gray-500'}`}
                 >🌐 {t('route.others') || 'Others'}</button>
+                <button
+                  onClick={() => setTrailsFilter('recommended')}
+                  className={`px-2.5 py-0.5 rounded text-[10px] font-bold ${trailsFilter === 'recommended' ? 'bg-white shadow text-orange-700' : 'text-gray-500'}`}
+                >{t('route.recommended') || '🐾 Recommended'}</button>
               </div>
             )}
             {renderContextHint('hint_saved')}
 
             {/* v3.23.47: "Create new trail" — manual trail builder. Visible to everyone;
-                anonymous users get a sign-in prompt on click (handled in openCreateTrailDialog). */}
-            <div className="mb-2 flex items-center gap-2">
+                anonymous users get a sign-in prompt on click (handled in openCreateTrailDialog).
+                v3.23.48: language-sensitive placement — button sits on the natural-start side
+                in both LTR and RTL. */}
+            <div className="mb-2 flex items-center gap-2" style={{ flexDirection: window.BKK.i18n.isRTL() ? 'row-reverse' : 'row' }}>
               <button
                 onClick={openCreateTrailDialog}
                 className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-emerald-600"
@@ -2483,6 +2490,7 @@
                   const filteredRoutes = citySavedRoutes.filter(r => {
                     if (trailsFilter === 'me') return myUid && r.savedBy === myUid;
                     if (trailsFilter === 'others') return !(myUid && r.savedBy === myUid);
+                    if (trailsFilter === 'recommended') return r.system === true;
                     return true;
                   });
                   const sorted = [...filteredRoutes].sort((a, b) => {
@@ -2514,9 +2522,16 @@
                         >
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1 flex-wrap">
-                              {savedRoute.system && <span style={{ fontSize: '11px' }} title={t('route.recommended')}>⭐</span>}
+                              {savedRoute.system && <span style={{ fontSize: '13px' }} title={t('route.recommendedBadge') || '🐾 Recommended'}>🐾</span>}
                               <span className="font-medium text-sm truncate">{savedRoute.name}</span>
                               {savedRoute.locked && !savedRoute.system && <span title={t("route.public")} style={{ fontSize: '11px' }}>🌐</span>}
+                              {(isEditor || isAdmin) && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); toggleTrailSystemFlag(savedRoute); }}
+                                  title={savedRoute.system ? (t('route.unmarkAsRecommended') || 'Unmark recommended') : (t('route.markAsRecommended') || 'Mark as recommended')}
+                                  style={{ background: savedRoute.system ? '#fed7aa' : '#f3f4f6', color: savedRoute.system ? '#9a3412' : '#6b7280', border: 'none', borderRadius: '4px', padding: '1px 5px', fontSize: '10px', cursor: 'pointer', flexShrink: 0 }}
+                                >🐾 {savedRoute.system ? '✓' : '＋'}</button>
+                              )}
                               {routeInterestIds.slice(0, 5).map((intId, idx) => {
                                 const obj = interestMap[intId];
                                 if (!obj?.icon) return null;
