@@ -2111,9 +2111,10 @@
 
       {/* Manual Add Stop Dialog */}
       {showManualAddDialog && (() => {
+        // v3.23.59: same UX as the Create-trail dialog — instant favorites filter on typing,
+        // "Search Google" button below for the API call. Reuses the shared _instantFavoritesFilter.
         const searchManualPlace = () => {
-          const inp = document.getElementById('manual-stop-input');
-          const q = inp?.value?.trim();
+          const q = (manualSearchQuery || '').trim();
           if (q) searchManualForDialog(q);
         };
 
@@ -2145,8 +2146,8 @@
           }
           showToast(`➕ ${display} ${t('interests.added')} — ${t('general.addedManually') || 'נוסף לתחתית הרשימה'}`, 'success');
           window.BKK.logEvent?.('manual_stop_added', { stop_name: display });
-          const inp = document.getElementById('manual-stop-input');
-          if (inp) inp.value = '';
+          // v3.23.59: input is controlled now — clear React state, not just the DOM
+          setManualSearchQuery('');
           setManualSearchResults(null);
         };
         
@@ -2157,7 +2158,7 @@
               <div className="bg-gradient-to-r from-purple-500 to-violet-600 text-white px-4 py-2.5 rounded-t-xl flex items-center justify-between">
                 <h3 className="text-sm font-bold">{t("route.addManualStop")}</h3>
                 <button
-                  onClick={() => { setShowManualAddDialog(false); setManualSearchResults(null); }}
+                  onClick={() => { setShowManualAddDialog(false); setManualSearchResults(null); setManualSearchQuery(''); }}
                   className="text-xl hover:bg-white hover:bg-opacity-20 rounded-full w-7 h-7 flex items-center justify-center"
                 >
                   ✕
@@ -2170,7 +2171,9 @@
                   <input
                     id="manual-stop-input"
                     type="text"
-                    onKeyDown={(e) => { if (e.key === 'Enter') searchManualPlace(); }}
+                    value={manualSearchQuery}
+                    onChange={(e) => manualInstantFilter(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); searchManualPlace(); } }}
                     placeholder={isRecording && recordingField === 'manual_stop' ? '' : t("form.typeAddressAlt")}
                     className="flex-1 p-2.5 border-2 border-purple-300 rounded-lg text-sm focus:border-purple-500"
                     style={{ direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', borderColor: isRecording && recordingField === 'manual_stop' ? '#ef4444' : undefined }}
@@ -2180,10 +2183,11 @@
                     <button type="button"
                       onClick={() => toggleRecording('manual_stop',
                         (text) => {
-                          const inp = document.getElementById('manual-stop-input');
-                          if (inp) inp.value = (inp.value ? inp.value + ' ' : '') + text;
+                          // v3.23.59: also drive the instant filter so favorites appear as you dictate
+                          const next = (manualSearchQuery ? manualSearchQuery + ' ' : '') + text;
+                          manualInstantFilter(next);
                         },
-                        () => { const inp = document.getElementById('manual-stop-input'); if (inp) inp.value = ''; },
+                        () => { manualInstantFilter(''); },
                         'en-US'
                       )}
                       style={{ width: '34px', height: '34px', borderRadius: '50%', border: 'none', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', background: isRecording && recordingField === 'manual_stop' ? '#ef4444' : '#f3f4f6', color: isRecording && recordingField === 'manual_stop' ? 'white' : '#6b7280', boxShadow: isRecording && recordingField === 'manual_stop' ? '0 0 0 3px rgba(239,68,68,0.3)' : 'none', animation: isRecording && recordingField === 'manual_stop' ? 'pulse 1s ease-in-out infinite' : 'none' }}
@@ -2192,14 +2196,15 @@
                     </button>
                   )}
                 </div>
-                <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                  <button
-                    onClick={searchManualPlace}
-                    className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-purple-500 text-white hover:bg-purple-600"
-                  >
-                    {`🔍 ${t('form.searchPlaceGoogle')}`}
-                  </button>
-                </div>
+                {/* v3.23.59: full-width "Search Google" button — disabled when input is empty.
+                     Matches the Create-trail dialog and the wizard step-2 "around a place" UX. */}
+                <button
+                  onClick={searchManualPlace}
+                  disabled={!(manualSearchQuery || '').trim()}
+                  className={`w-full py-2 rounded-lg text-sm font-bold ${(manualSearchQuery || '').trim() ? 'bg-purple-500 text-white hover:bg-purple-600' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                  style={{ marginTop: '4px' }}>
+                  {`🔍 ${t('form.searchPlaceGoogle')}`}
+                </button>
                 {isRecording && recordingField === 'manual_stop' && interimText && (
                   <div style={{ padding: '4px 8px', background: '#fef3c7', borderRadius: '6px', fontSize: '12px', color: '#92400e', fontStyle: 'italic', direction: 'ltr' }}>🎤 {interimText}</div>
                 )}

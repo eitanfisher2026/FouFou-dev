@@ -794,6 +794,9 @@
   const [createTrailSearchResults, setCreateTrailSearchResults] = useState(null);
   const [createTrailSearchQuery, setCreateTrailSearchQuery] = useState('');
   const [createTrailIsSystem, setCreateTrailIsSystem] = useState(false); // editor/admin-only flag
+  // v3.23.59: query state for the Manual Add Stop dialog so its input can be controlled — needed
+  // for instant favorites filter on typing (was uncontrolled, only filtered on button click).
+  const [manualSearchQuery, setManualSearchQuery] = useState('');
   const [pendingLocations, setPendingLocations] = useState([]);
   const [pendingInterests, setPendingInterests] = useState([]);
   const [locationsLoading, setLocationsLoading] = useState(true);
@@ -7895,13 +7898,14 @@
       });
   };
 
-  // v3.23.47: helpers for the Create-trail dialog
-  // v3.23.48: instant local favorites filter on typing — mirrors the "around a place"
-  // wizard step 2 UX. Empty input clears results; Google search runs only on button/Enter.
-  const createTrailInstantFilter = (val) => {
-    setCreateTrailSearchQuery(val);
+  // v3.23.59: shared instant-favorites filter used by both the Create-trail dialog and the
+  // Manual Add Stop dialog. Filters customLocations by name (synchronous, no API call) and
+  // populates the results state with { favorites: [...], google: [] }. Google search runs
+  // separately on button click / Enter via the caller-provided fetcher.
+  const _instantFavoritesFilter = (val, setQueryFn, setResultsFn) => {
+    setQueryFn(val);
     const q = (val || '').toLowerCase().trim();
-    if (!q) { setCreateTrailSearchResults(null); return; }
+    if (!q) { setResultsFn(null); return; }
     const favMatches = (customLocations || []).filter(cl =>
       cl.lat && cl.lng && (cl.name || '').toLowerCase().includes(q)
     ).slice(0, 5).map(cl => ({
@@ -7910,8 +7914,14 @@
       ratingCount: cl.googleRatingCount, googlePlaceId: cl.googlePlaceId,
       isFavorite: true
     }));
-    setCreateTrailSearchResults({ favorites: favMatches, google: [] });
+    setResultsFn({ favorites: favMatches, google: [] });
   };
+
+  // v3.23.47: helpers for the Create-trail dialog
+  // v3.23.48: instant local favorites filter on typing — mirrors the "around a place" wizard step 2 UX.
+  // v3.23.59: now delegates to the shared _instantFavoritesFilter so the Manual Add Stop dialog can reuse it.
+  const createTrailInstantFilter = (val) => _instantFavoritesFilter(val, setCreateTrailSearchQuery, setCreateTrailSearchResults);
+  const manualInstantFilter = (val) => _instantFavoritesFilter(val, setManualSearchQuery, setManualSearchResults);
   const searchCreateTrailPlace = (query) => _searchPlacesCore(query, setCreateTrailSearchResults);
   const addStopToCreateTrail = (result) => {
     const newStop = {

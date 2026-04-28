@@ -2073,7 +2073,7 @@
                         <button onClick={() => setShowRouteMenu(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#9ca3af', padding: '0 2px', lineHeight: 1 }}>✕</button>
                       </div>
                       {[
-                        { icon: '+', label: t('route.addManualStop').replace('➕ ', ''), action: () => { setShowRouteMenu(false); setShowManualAddDialog(true); } },
+                        { icon: '+', label: t('route.addManualStop').replace('➕ ', ''), action: () => { setShowRouteMenu(false); setManualSearchQuery(''); setManualSearchResults(null); setShowManualAddDialog(true); } },
                         { icon: '≡', label: t('route.reorderStops'), action: () => { setShowRouteMenu(false); reorderOriginalStopsRef.current = route?.stops ? [...route.stops] : null; setShowRoutePreview(true); }, disabled: !route?.optimized },
                         { icon: '↗', label: (!authUser || authUser.isAnonymous) ? (t('auth.loginToShare') || 'Sign in to share') : t('general.shareRoute'), action: () => {
                           if (!authUser || authUser.isAnonymous) { setShowLoginDialog(true); return; }
