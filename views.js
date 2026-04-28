@@ -2534,13 +2534,8 @@
                               {savedRoute.system && <span style={{ fontSize: '13px' }} title={t('route.recommendedBadge') || '🐾 Recommended'}>🐾</span>}
                               <span className="font-medium text-sm truncate">{savedRoute.name}</span>
                               {savedRoute.locked && !savedRoute.system && <span title={t("route.public")} style={{ fontSize: '11px' }}>🌐</span>}
-                              {(isEditor || isAdmin) && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); toggleTrailSystemFlag(savedRoute); }}
-                                  title={savedRoute.system ? (t('route.unmarkAsRecommended') || 'Unmark recommended') : (t('route.markAsRecommended') || 'Mark as recommended')}
-                                  style={{ background: savedRoute.system ? '#fed7aa' : '#f3f4f6', color: savedRoute.system ? '#9a3412' : '#6b7280', border: 'none', borderRadius: '4px', padding: '1px 5px', fontSize: '10px', cursor: 'pointer', flexShrink: 0 }}
-                                >🐾 {savedRoute.system ? '✓' : '＋'}</button>
-                              )}
+                              {/* v3.23.54: removed inline 🐾 toggle — recommendation flag is now only
+                                  flipped from inside the trail dialog (less accidental clicks, single source). */}
                               {routeInterestIds.slice(0, 5).map((intId, idx) => {
                                 const obj = interestMap[intId];
                                 if (!obj?.icon) return null;

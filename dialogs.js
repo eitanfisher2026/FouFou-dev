@@ -1922,15 +1922,58 @@
               </div>
 
               {/* v3.23.53: Recommended trail documentation — reuses the existing renderContextHint
-                   component (same one used for activeTrail / hint_area / hint_interests / etc.).
-                   Visible to all users for read; editors/admins get the full editor (text, dictation,
-                   recording, auto-translate, draggable popup play button). Per-trail key keeps each
-                   recommended trail's doc separate. */}
-              {editingRoute?.firebaseId && editingRoute.system && (
-                <div style={{ marginBottom: '8px' }}>
-                  {renderContextHint('trail_doc_' + editingRoute.firebaseId)}
-                </div>
-              )}
+                   component. v3.23.54: added an explicit section header with edit/info buttons,
+                   because renderContextHint by itself renders nothing visible when there's no text
+                   (it expects a parent renderStepHeader to provide the trigger buttons). */}
+              {editingRoute?.firebaseId && editingRoute.system && (() => {
+                const docId = 'trail_doc_' + editingRoute.firebaseId;
+                const docSection = getHelpSection(docId);
+                const docTxt = (docSection && docSection.content && docSection.content.trim()) || '';
+                const lang = window.BKK.i18n.currentLang || 'he';
+                const hasDocAudio = !!hintAudioUrls[docId + '_' + lang];
+                return (
+                  <div style={{ marginTop: '8px', marginBottom: '8px', padding: '8px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#7c2d12' }}>
+                        {`📄 ${t('route.documentation') || 'Documentation'}`}
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {(isEditor || isAdmin) && (
+                          <button
+                            onClick={() => { setHintEditId(docId); setHintEditText(docTxt); }}
+                            title={t('general.edit') || 'Edit'}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '2px 4px' }}
+                          >✏️</button>
+                        )}
+                        {(docTxt || hasDocAudio) && (
+                          <button
+                            onClick={() => setOpenHintPopup(openHintPopup === docId ? null : docId)}
+                            title={t('general.viewDocumentation') || 'View'}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 9px', fontSize: '13px', fontWeight: '800', background: openHintPopup === docId ? '#fdba74' : '#fed7aa', color: '#7c2d12', border: '1.5px solid #f97316', borderRadius: '999px', cursor: 'pointer' }}
+                          >
+                            <span>ℹ</span>
+                            {hasDocAudio && <span style={{ fontSize: '10px' }}>🔈</span>}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {/* Empty-state hint for editors */}
+                    {!docTxt && !hasDocAudio && (isEditor || isAdmin) && hintEditId !== docId && (
+                      <div style={{ fontSize: '11px', color: '#9a3412', fontStyle: 'italic' }}>
+                        {t('route.documentationEmptyHint') || 'Tap ✏️ to add description, dictation, audio recording, or translation.'}
+                      </div>
+                    )}
+                    {!docTxt && !hasDocAudio && !(isEditor || isAdmin) && (
+                      <div style={{ fontSize: '11px', color: '#9a3412', fontStyle: 'italic' }}>
+                        {t('route.documentationEmptyView') || 'No documentation yet.'}
+                      </div>
+                    )}
+                    {/* renderContextHint renders the edit form (when in edit mode) and the draggable
+                         popup (when ℹ is toggled). The wrapper above provides the section header + buttons. */}
+                    {renderContextHint(docId)}
+                  </div>
+                );
+              })()}
 
               {/* Stops list */}
               <div>
@@ -1939,8 +1982,13 @@
                   {(editingRoute.stops || []).map((stop, idx) => (
                     <div key={idx} className="flex items-center gap-1 text-xs bg-gray-50 px-2 py-1 rounded">
                       <span className="text-gray-400">{window.BKK.stopLabel(idx)}.</span>
-                      <span className="font-medium truncate">{stop.name}</span>
-                      {/* v3.23.52: per-stop ⭐ rating removed from this dialog — kept on the route view. */}
+                      <span className="font-medium truncate" style={{ flex: 1 }}>{stop.name}</span>
+                      {/* v3.23.54: interest icons per stop, same pattern as the trail card in the saved-trails list */}
+                      {(stop.interests || []).filter(id => id !== '_manual').slice(0, 4).map((intId, i) => {
+                        const obj = interestMap[intId];
+                        if (!obj?.icon) return null;
+                        return <span key={i} title={tLabel(obj) || obj.label || intId} style={{ fontSize: '11px', flexShrink: 0 }}>{renderIcon(obj.icon, '13px')}</span>;
+                      })}
                     </div>
                   ))}
                 </div>
