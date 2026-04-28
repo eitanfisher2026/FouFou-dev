@@ -2364,9 +2364,10 @@
     const btnStyle = { background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', padding: '0 1px' };
     const isRTL = window.BKK.i18n.isRTL();
     
-    if (!txt && !isAdmin) return null;
-    
-    // Admin editing mode
+    // v3.23.53: edit access extended from admin-only to editor+ (consistent with the rest of content editing)
+    if (!txt && !isEditor) return null;
+
+    // Editor/admin editing mode
     if (hintEditId === hintId) return (
       <div style={{ margin: '4px 0', padding: '8px', background: '#eff6ff', borderRadius: '8px', border: '1px solid #93c5fd' }}>
         <textarea value={hintEditText + (hintInterimText ? ' ' + hintInterimText : '')} 
@@ -2399,8 +2400,8 @@
       </div>
     );
     
-    // Empty (admin only) - small add button
-    if (!txt && isAdmin) return (
+    // Empty (editor/admin) - small add button
+    if (!txt && isEditor) return (
       <div style={{ display: 'flex', justifyContent: isRTL ? 'flex-start' : 'flex-end', margin: '-4px 0 0 0', lineHeight: 1 }}>
         <button onClick={() => { setHintEditId(hintId); setHintEditText(''); }}
           style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '10px', color: '#d1d5db', padding: '0 2px' }}>＋</button>
@@ -7562,6 +7563,19 @@
   };
 
   const updateRoute = (routeId, updates) => {
+    // v3.23.53: cap recommended trails at 10 per city — only check when flipping false→true
+    if (updates && updates.system === true) {
+      const existing = (savedRoutes || []).find(r => r.id === routeId);
+      const wasSystem = existing?.system === true;
+      if (!wasSystem) {
+        const cityId = existing?.cityId || selectedCityId;
+        const sysCount = (savedRoutes || []).filter(r => (r.cityId || 'bangkok') === cityId && r.system === true).length;
+        if (sysCount >= 10) {
+          showToast(`${t('route.recommendedCapReached') || 'Max 10 recommended trails per city. Unmark one first.'}`, 'warning', 'sticky');
+          return;
+        }
+      }
+    }
     // v3.23.25: block public-cap violations when a non-admin user flips locked false→true
     if (!isRealAdmin && updates && updates.locked === true && authUser?.uid) {
       const existing = (savedRoutes || []).find(r => r.id === routeId);
@@ -7779,6 +7793,14 @@
     // Only editors/admins can create a system/recommended trail — flag silently ignored otherwise.
     // Field is named `system` to match the pre-existing badge rendering in views.js.
     const systemFlag = (isSystemTrail && (isEditor || isAdmin)) ? true : false;
+    // v3.23.53: cap on recommended trails per city
+    if (systemFlag) {
+      const sysCount = (savedRoutes || []).filter(r => (r.cityId || 'bangkok') === selectedCityId && r.system === true).length;
+      if (sysCount >= 10) {
+        showToast(`${t('route.recommendedCapReached') || 'Max 10 recommended trails per city. Unmark one first.'}`, 'warning', 'sticky');
+        return;
+      }
+    }
     const newRoute = {
       name: finalName,
       notes: notes || '',
@@ -7816,6 +7838,14 @@
     if (!route?.firebaseId) return;
     const cityId = route.cityId || selectedCityId;
     const next = !route.system;
+    // v3.23.53: cap on recommended trails per city — only checked when flipping on
+    if (next) {
+      const sysCount = (savedRoutes || []).filter(r => (r.cityId || 'bangkok') === cityId && r.system === true).length;
+      if (sysCount >= 10) {
+        showToast(`${t('route.recommendedCapReached') || 'Max 10 recommended trails per city. Unmark one first.'}`, 'warning', 'sticky');
+        return;
+      }
+    }
     database.ref(`cities/${cityId}/routes/${route.firebaseId}/system`).set(next)
       .then(() => {
         showToast(next ? (t('route.markAsRecommended') || 'Marked as recommended') : (t('route.unmarkAsRecommended') || 'Unmarked'), 'success');

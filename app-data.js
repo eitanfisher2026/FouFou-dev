@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.52
+// FouFou app-data.js v3.23.53
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -493,6 +493,7 @@ route: {
   markAsRecommended: 'סמן כמומלץ',
   unmarkAsRecommended: 'הסר המלצה',
   recommendedTrailHint: 'מסלולים מומלצים ע"י FouFou — זמין לעורכים ומנהלים',
+  recommendedCapReached: '⚠️ הגעת לתקרה של 10 מסלולים מומלצים בעיר. הסר המלצה ממסלול קיים כדי לסמן חדש.',
   editSavedRoute: '🗺️ ערוך מסלול שמור',
   addSavedRoute: '🗺️ הוסף מסלול שמור',
   linear: 'ליניארי',
@@ -1705,6 +1706,7 @@ route: {
   markAsRecommended: 'Mark as recommended',
   unmarkAsRecommended: 'Unmark recommended',
   recommendedTrailHint: 'FouFou-recommended trails — editor/admin only',
+  recommendedCapReached: '⚠️ Max 10 recommended trails per city. Unmark an existing one to mark a new one.',
   editSavedRoute: '🗺️ Edit saved route',
   addSavedRoute: '🗺️ Add saved route',
   linear: 'Linear',
@@ -3514,7 +3516,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.52';
+window.BKK.VERSION = '3.23.53';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));

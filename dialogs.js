@@ -1921,6 +1921,17 @@
                 )}
               </div>
 
+              {/* v3.23.53: Recommended trail documentation — reuses the existing renderContextHint
+                   component (same one used for activeTrail / hint_area / hint_interests / etc.).
+                   Visible to all users for read; editors/admins get the full editor (text, dictation,
+                   recording, auto-translate, draggable popup play button). Per-trail key keeps each
+                   recommended trail's doc separate. */}
+              {editingRoute?.firebaseId && editingRoute.system && (
+                <div style={{ marginBottom: '8px' }}>
+                  {renderContextHint('trail_doc_' + editingRoute.firebaseId)}
+                </div>
+              )}
+
               {/* Stops list */}
               <div>
                 <label className="block text-xs font-bold mb-1">{t("general.stopsCount")} ({editingRoute.stops?.length || 0})</label>

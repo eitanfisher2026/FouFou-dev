@@ -7,7 +7,7 @@
     const hasAudio = hintId && !!hintAudioUrls[hintId + '_' + lang];
     const s = hintId && getHelpSection(hintId);
     const hintTxt = (s && s.content && s.content.trim()) || '';
-    const showHintBtn = hintId && (hintTxt || isAdmin);
+    const showHintBtn = hintId && (hintTxt || isEditor);
     return (
       <div style={{
         display: 'flex', alignItems: 'center', gap: '8px',
@@ -23,7 +23,7 @@
         </div>
         {showHintBtn && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
-            {isAdmin && <button onClick={() => { const s2 = getHelpSection(hintId); setHintEditId(hintId); setHintEditText((s2 && s2.content) || ''); }}
+            {isEditor && <button onClick={() => { const s2 = getHelpSection(hintId); setHintEditId(hintId); setHintEditText((s2 && s2.content) || ''); }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', color: '#d1d5db', padding: '0 1px' }}>✏️</button>}
             <button
               onClick={() => setOpenHintPopup(openHintPopup === hintId ? null : hintId)}

@@ -101,15 +101,15 @@
     },
     "helpContent": {
       ".read": true,
-      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2"
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 1"
     },
     "helpAudio": {
       ".read": true,
-      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2"
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 1"
     },
     "helpAudioDuration": {
       ".read": true,
-      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2"
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 1"
     },
     "users": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2",
