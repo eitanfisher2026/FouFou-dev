@@ -1984,23 +1984,10 @@
                       <div key={idx} className="flex items-center gap-1 text-xs bg-gray-50 px-2 py-1 rounded">
                         <span className="text-gray-400">{window.BKK.stopLabel(idx)}.</span>
                         <span className="font-medium truncate" style={{ flex: 1 }}>{stop.name}</span>
-                        {/* v3.23.56: actual FouFou cat icon (with sunglasses) — same SVG as the splash screen,
-                             scaled down. Was 🐱 emoji which doesn't match the brand. */}
+                        {/* v3.23.58: same FouFou icon used in the route view (icon-32x32.png) — was an inline
+                             SVG in v3.23.56-57 which didn't match the route view exactly. */}
                         {matchedFav && (
-                          <span title={t('places.fouFouFavorite') || 'FouFou place'} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>
-                            <svg viewBox="0 0 200 200" width="16" height="16" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
-                              <circle cx="100" cy="108" r="52" fill="#FFE8D6"/>
-                              <polygon points="62,72 50,28 82,58" fill="#FFE8D6"/>
-                              <polygon points="138,72 150,28 118,58" fill="#FFE8D6"/>
-                              <polygon points="64,70 54,34 80,58" fill="#FFCBA4"/>
-                              <polygon points="136,70 146,34 120,58" fill="#FFCBA4"/>
-                              <rect x="68" y="94" width="26" height="19" rx="6" fill="#2D2D2D" opacity="0.9"/>
-                              <rect x="106" y="94" width="26" height="19" rx="6" fill="#2D2D2D" opacity="0.9"/>
-                              <line x1="94" y1="103" x2="106" y2="103" stroke="#2D2D2D" strokeWidth="3"/>
-                              <path d="M95,120 L100,125 L105,120 Z" fill="#FF8C94"/>
-                              <path d="M90,130 Q100,138 110,130" fill="none" stroke="#8B6F5E" strokeWidth="2.5" strokeLinecap="round"/>
-                            </svg>
-                          </span>
+                          <img src="icon-32x32.png" alt="FouFou" title={t('places.fouFouFavorite') || 'FouFou place'} style={{ width: '16px', height: '16px', flexShrink: 0 }} />
                         )}
                         {/* Interest icons per stop, same pattern as the trail card in the saved-trails list */}
                         {allInterests.slice(0, 4).map((intId, i) => {
@@ -3277,7 +3264,7 @@
                 {createTrailStops.length > 0 && (
                   <div style={{ background: '#f9fafb', borderRadius: '8px', padding: '8px' }}>
                     <div style={{ fontSize: '11px', color: '#4b5563', fontWeight: 'bold', marginBottom: '4px' }}>
-                      📍 {createTrailStops.length} {t('general.stops') || 'stops'}
+                      📍 {createTrailStops.length} {t('general.stopsCount') || 'stops'}
                     </div>
                     {createTrailStops.map((s, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 6px', background: 'white', borderRadius: '6px', marginBottom: '3px', fontSize: '12px' }}>
