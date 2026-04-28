@@ -3327,8 +3327,12 @@
       const onValue = routesRef.on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
+          // v3.23.57: set `id` to the Firebase key, not just `firebaseId`. Multiple lookups
+          // (updateRoute, deleteRoute, etc.) match on `r.id`. If `id` was undefined, every
+          // lookup matched the FIRST route in the array → editing trail B mutated trail A.
           const routesArray = Object.keys(data).map(key => ({
             ...data[key],
+            id: key,
             firebaseId: key
           }));
           setSavedRoutes(routesArray);
@@ -3742,6 +3746,7 @@
           if (routeData) {
             const routesArray = Object.keys(routeData).map(key => ({
               ...routeData[key],
+              id: key,           // v3.23.57: match the primary loader — `id` must equal Firebase key
               firebaseId: key
             }));
             setSavedRoutes(routesArray);
@@ -7563,6 +7568,18 @@
   };
 
   const updateRoute = (routeId, updates) => {
+    // v3.23.57: block name collisions when the name is being changed via the dialog Update button
+    if (updates && typeof updates.name === 'string') {
+      const existing = (savedRoutes || []).find(r => r.id === routeId);
+      const existingName = (existing?.name || '').trim().toLowerCase();
+      const newName = (updates.name || '').trim().toLowerCase();
+      if (newName !== existingName) {
+        if (!validateTrailNameUnique(updates.name, existing?.firebaseId)) {
+          showToast(t('route.nameAlreadyExists') || 'A trail with this name already exists in this city.', 'warning');
+          return;
+        }
+      }
+    }
     // v3.23.53: cap recommended trails at 10 per city — only check when flipping false→true
     if (updates && updates.system === true) {
       const existing = (savedRoutes || []).find(r => r.id === routeId);
@@ -7666,6 +7683,8 @@
     if (!isFirebaseAvailable || !database) { showToast(t('toast.firebaseUnavailable') || 'Firebase unavailable', 'error'); return; }
     // v3.23.47: prevent saving an empty trail (the name is preserved from when it was loaded — grandfathered)
     if (!validateTrailMinStops(route?.stops)) { showToast(t('route.minStopsRequired') || 'Trail must have at least one stop', 'warning'); return; }
+    // v3.23.57: also block name collisions if the name has been changed
+    if (!validateTrailNameUnique(route?.name, route?.firebaseId)) { showToast(t('route.nameAlreadyExists') || 'A trail with this name already exists in this city.', 'warning'); return; }
     const routeToSave = {
       ...route,
       savedAt: new Date().toISOString(),
@@ -7699,6 +7718,21 @@
   };
   const validateTrailMinStops = (stops) => Array.isArray(stops) && stops.length >= 1;
 
+  // v3.23.57: prevent two trails in the same city from sharing a name. Caller passes
+  // excludeFirebaseId when updating an existing trail (so the trail's own current name
+  // doesn't trigger a false collision against itself).
+  const validateTrailNameUnique = (name, excludeFirebaseId) => {
+    const trimmed = (name || '').trim().toLowerCase();
+    if (!trimmed) return true;
+    const dup = (savedRoutes || []).some(r => {
+      if (excludeFirebaseId && r.firebaseId === excludeFirebaseId) return false;
+      const rc = r.cityId || 'bangkok';
+      if (rc !== selectedCityId) return false;
+      return (r.name || '').trim().toLowerCase() === trimmed;
+    });
+    return !dup;
+  };
+
   // v3.23.23: pick a name that doesn't collide with the user's existing saved-route names
   // in the current city. If `base` exists, append " #1", " #2", ... until unique.
   const makeUniqueRouteName = (base) => {
@@ -7725,6 +7759,8 @@
     const nameCheck = validateTrailName(chosenName);
     if (!nameCheck.valid) { showToast(nameCheck.error, 'warning'); return; }
     if (!validateTrailMinStops(route?.stops)) { showToast(t('route.minStopsRequired') || 'Trail must have at least one stop', 'warning'); return; }
+    // v3.23.57: hard-reject duplicate names (was previously auto-suffixed by makeUniqueRouteName)
+    if (!validateTrailNameUnique(chosenName)) { showToast(t('route.nameAlreadyExists') || 'A trail with this name already exists in this city.', 'warning'); return; }
     // v3.23.25: per-city cap on total saved routes per user (admins bypass)
     if (!isRealAdmin) {
       const sp = window.BKK.systemParams || window.BKK._defaultSystemParams || {};
@@ -7779,6 +7815,8 @@
     const nameCheck = validateTrailName(name);
     if (!nameCheck.valid) { showToast(nameCheck.error, 'warning'); return; }
     if (!validateTrailMinStops(stops)) { showToast(t('route.minStopsRequired') || 'Trail must have at least one stop', 'warning'); return; }
+    // v3.23.57: hard-reject duplicate names
+    if (!validateTrailNameUnique(name)) { showToast(t('route.nameAlreadyExists') || 'A trail with this name already exists in this city.', 'warning'); return; }
     if (!isRealAdmin) {
       const sp = window.BKK.systemParams || window.BKK._defaultSystemParams || {};
       const maxTotal = sp.maxRoutesPerUserPerCity ?? 50;

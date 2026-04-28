@@ -1849,20 +1849,29 @@
               )}
               {/* Route info */}
               <div className="bg-blue-50 rounded-lg p-3 space-y-1.5">
-                {/* Area — v3.23.55: editable text input (was read-only label).
-                     Owner/admin/editor can type any area name. Persisted via the existing
-                     dialog Update button (areaName included in the updates payload). */}
+                {/* Area — v3.23.57: dropdown of the city's known areas (was free-text in v3.23.55-56).
+                     Stored as the display label in editingRoute.areaName for backward compatibility
+                     with existing trails. If the current value doesn't match any city area (legacy
+                     auto-generated trail), it's added as an extra option so it stays selectable. */}
                 <div className="text-xs text-gray-700 flex items-center gap-2">
                   <span className="font-bold whitespace-nowrap">{`📍 ${t('general.area')}:`}</span>
-                  {(editingRoute.savedBy === authUser?.uid || isUnlocked) ? (
-                    <input
-                      type="text"
-                      value={editingRoute.areaName || ''}
-                      onChange={(e) => setEditingRoute({...editingRoute, areaName: e.target.value})}
-                      placeholder={t('general.noArea')}
-                      style={{ flex: 1, padding: '2px 6px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', background: 'white', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}
-                    />
-                  ) : (
+                  {(editingRoute.savedBy === authUser?.uid || isUnlocked) ? (() => {
+                    const options = (window.BKK.areaOptions || []).map(a => ({ id: a.id, label: tLabel(a) || a.id }));
+                    const cur = editingRoute.areaName || '';
+                    const knownLabels = new Set(options.map(o => o.label));
+                    const showLegacy = cur && !knownLabels.has(cur);
+                    return (
+                      <select
+                        value={cur}
+                        onChange={(e) => setEditingRoute({...editingRoute, areaName: e.target.value})}
+                        style={{ flex: 1, padding: '2px 6px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', background: 'white', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', cursor: 'pointer' }}
+                      >
+                        <option value="">{t('general.noArea')}</option>
+                        {options.map(o => (<option key={o.id} value={o.label}>{o.label}</option>))}
+                        {showLegacy && (<option value={cur}>{cur}</option>)}
+                      </select>
+                    );
+                  })() : (
                     <span>{editingRoute.areaName || t('general.noArea')}</span>
                   )}
                 </div>
