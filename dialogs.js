@@ -1866,9 +1866,20 @@
                     <span>{editingRoute.areaName || t('general.noArea')}</span>
                   )}
                 </div>
-                {/* Interests */}
+                {/* Interests — v3.23.56: also pull interests from matched FouFou favorites,
+                     same fix as the per-stop icons. Manually-created trails would otherwise show
+                     no interests because their stops only have '_manual'. */}
                 {(() => {
-                  const ids = [...new Set((editingRoute.stops || []).flatMap(s => s.interests || []))];
+                  const ids = [...new Set((editingRoute.stops || []).flatMap(s => {
+                    const stopInterests = s.interests || [];
+                    const stopKey = (s.name || '').toLowerCase().trim();
+                    const matchedFav = (customLocations || []).find(loc =>
+                      (loc.googlePlaceId && s.googlePlaceId && loc.googlePlaceId === s.googlePlaceId) ||
+                      ((loc.name || '').toLowerCase().trim() === stopKey)
+                    );
+                    const favInterests = matchedFav ? (matchedFav.interests || []) : [];
+                    return [...stopInterests, ...favInterests].filter(id => id !== '_manual');
+                  }))];
                   return ids.length > 0 && (
                     <div className="flex gap-1 flex-wrap items-center">
                       <span className="text-xs font-bold text-gray-700">{`🏷️ ${t('general.interestsHeader')}:`}</span>
@@ -1964,8 +1975,24 @@
                       <div key={idx} className="flex items-center gap-1 text-xs bg-gray-50 px-2 py-1 rounded">
                         <span className="text-gray-400">{window.BKK.stopLabel(idx)}.</span>
                         <span className="font-medium truncate" style={{ flex: 1 }}>{stop.name}</span>
-                        {/* v3.23.55: FouFou cat icon if this stop is a curated favorite */}
-                        {matchedFav && <span title={t('places.fouFouFavorite') || 'FouFou place'} style={{ fontSize: '13px', flexShrink: 0 }}>🐱</span>}
+                        {/* v3.23.56: actual FouFou cat icon (with sunglasses) — same SVG as the splash screen,
+                             scaled down. Was 🐱 emoji which doesn't match the brand. */}
+                        {matchedFav && (
+                          <span title={t('places.fouFouFavorite') || 'FouFou place'} style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center' }}>
+                            <svg viewBox="0 0 200 200" width="16" height="16" style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+                              <circle cx="100" cy="108" r="52" fill="#FFE8D6"/>
+                              <polygon points="62,72 50,28 82,58" fill="#FFE8D6"/>
+                              <polygon points="138,72 150,28 118,58" fill="#FFE8D6"/>
+                              <polygon points="64,70 54,34 80,58" fill="#FFCBA4"/>
+                              <polygon points="136,70 146,34 120,58" fill="#FFCBA4"/>
+                              <rect x="68" y="94" width="26" height="19" rx="6" fill="#2D2D2D" opacity="0.9"/>
+                              <rect x="106" y="94" width="26" height="19" rx="6" fill="#2D2D2D" opacity="0.9"/>
+                              <line x1="94" y1="103" x2="106" y2="103" stroke="#2D2D2D" strokeWidth="3"/>
+                              <path d="M95,120 L100,125 L105,120 Z" fill="#FF8C94"/>
+                              <path d="M90,130 Q100,138 110,130" fill="none" stroke="#8B6F5E" strokeWidth="2.5" strokeLinecap="round"/>
+                            </svg>
+                          </span>
+                        )}
                         {/* Interest icons per stop, same pattern as the trail card in the saved-trails list */}
                         {allInterests.slice(0, 4).map((intId, i) => {
                           const obj = interestMap[intId];
@@ -1994,7 +2021,8 @@
                     title={t('route.recommendedTrailHint') || 'FouFou-recommended trails — editor/admin only'}
                     className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold border-2 transition-all cursor-pointer ${editingRoute.system ? 'border-orange-500 bg-orange-500 text-white shadow-md' : 'border-gray-300 bg-white text-gray-600 hover:border-orange-400'}`}
                   >
-                    {editingRoute.system ? `🐾 ${t('route.recommendedBadge') || 'Recommended'}` : `🐾 ${t('route.markAsRecommended') || 'Mark as recommended'}`}
+                    {/* v3.23.56: removed duplicate 🐾 prefixes — paw-less label per user request. */}
+                    {editingRoute.system ? (t('route.recommendedShort') || 'Recommended') : (t('route.markAsRecommended') || 'Mark as recommended')}
                   </button>
                 )}
               </div>
@@ -2009,10 +2037,11 @@
                       setShowRouteDialog(false);
                       setEditingRoute(null);
                     }}
-                    className="flex-1 py-2.5 bg-blue-500 text-white rounded-lg font-bold hover:bg-blue-600"
+                    className="flex-1 py-2.5 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600"
                     style={{ fontSize: '15px' }}
                   >
-                    📍 {t("general.openRoute")}
+                    {/* v3.23.56: green (matching favorites' "Open in Google" green), 🐾 paw icon for trail */}
+                    🐾 {t("general.openRoute")}
                   </button>
                   {(() => {
                     const isOwn = editingRoute.savedBy && authUser?.uid && editingRoute.savedBy === authUser.uid;
@@ -2062,16 +2091,19 @@
                           setShowRouteDialog(false);
                           setEditingRoute(null);
                         }}
-                        className="flex-1 py-2.5 bg-blue-500 text-white rounded-lg text-sm font-bold hover:bg-blue-600"
+                        className="flex-1 py-2.5 bg-purple-500 text-white rounded-lg text-sm font-bold hover:bg-purple-600"
                       >
-                        💾 {t('general.update') || 'Update'}
+                        {/* v3.23.56: purple (matching favorites' Update & Quit), uses existing
+                            updateAndQuit i18n which already includes 🚪 */}
+                        {t('general.updateAndQuit') || '🚪 Update & Close'}
                       </button>
                     )}
                     <button
                       onClick={() => { setShowRouteDialog(false); setEditingRoute(null); }}
-                      className="px-5 py-2.5 rounded-lg bg-green-500 text-white text-sm font-bold hover:bg-green-600"
+                      className="px-5 py-2.5 rounded-lg bg-gray-400 text-white text-sm font-bold hover:bg-gray-500"
                     >
-                      {`✓ ${t("general.close")}`}
+                      {/* v3.23.56: gray (matching favorites' Cancel), no checkmark */}
+                      {`✕ ${t("general.close")}`}
                     </button>
                   </>
                 );
