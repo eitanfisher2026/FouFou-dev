@@ -639,7 +639,9 @@ const FloatingAudioPlayer = ({ isPaused, onPauseResume, onStop }) => {
       onTouchStart={onDown}
       style={{
         position: 'fixed', left: left + 'px', top: top + 'px',
-        zIndex: 1050, background: '#1e293b', color: 'white',
+        // v3.23.55: bumped from 1050 → 10500 so the floating player is visible
+        // above the trail dialog (zIndex: 10300) and any other modal overlay.
+        zIndex: 10500, background: '#1e293b', color: 'white',
         borderRadius: '32px', padding: '6px 10px',
         display: 'flex', alignItems: 'center', gap: '6px',
         boxShadow: '0 4px 20px rgba(0,0,0,0.4)',

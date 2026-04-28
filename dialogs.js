@@ -1830,14 +1830,14 @@
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-2">
           <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl">
             
-            {/* Header */}
+            {/* Header — v3.23.55: just the trail name (was "Edit saved route" / "ערוך מסלול שמור") */}
             <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-2.5 rounded-t-xl flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold">{routeDialogMode === 'add' ? t('route.addSavedRoute') : t('route.editSavedRoute')}</h3>
+              <div className="flex items-center gap-2 min-w-0">
+                <h3 className="text-base font-bold truncate">{editingRoute.name || (routeDialogMode === 'add' ? t('route.addSavedRoute') : t('route.editSavedRoute'))}</h3>
               </div>
               <button
                 onClick={() => { setShowRouteDialog(false); setEditingRoute(null); }}
-                className="text-xl hover:bg-white hover:bg-opacity-20 rounded-full w-7 h-7 flex items-center justify-center"
+                className="text-xl hover:bg-white hover:bg-opacity-20 rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0"
               >✕</button>
             </div>
             
@@ -1849,9 +1849,22 @@
               )}
               {/* Route info */}
               <div className="bg-blue-50 rounded-lg p-3 space-y-1.5">
-                {/* Area */}
-                <div className="text-xs text-gray-700">
-                  <span className="font-bold">{`📍 ${t('general.area')}:`}</span> {editingRoute.areaName || t('general.noArea')}
+                {/* Area — v3.23.55: editable text input (was read-only label).
+                     Owner/admin/editor can type any area name. Persisted via the existing
+                     dialog Update button (areaName included in the updates payload). */}
+                <div className="text-xs text-gray-700 flex items-center gap-2">
+                  <span className="font-bold whitespace-nowrap">{`📍 ${t('general.area')}:`}</span>
+                  {(editingRoute.savedBy === authUser?.uid || isUnlocked) ? (
+                    <input
+                      type="text"
+                      value={editingRoute.areaName || ''}
+                      onChange={(e) => setEditingRoute({...editingRoute, areaName: e.target.value})}
+                      placeholder={t('general.noArea')}
+                      style={{ flex: 1, padding: '2px 6px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '12px', background: 'white', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr' }}
+                    />
+                  ) : (
+                    <span>{editingRoute.areaName || t('general.noArea')}</span>
+                  )}
                 </div>
                 {/* Interests */}
                 {(() => {
@@ -1921,76 +1934,47 @@
                 )}
               </div>
 
-              {/* v3.23.53: Recommended trail documentation — reuses the existing renderContextHint
-                   component. v3.23.54: added an explicit section header with edit/info buttons,
-                   because renderContextHint by itself renders nothing visible when there's no text
-                   (it expects a parent renderStepHeader to provide the trigger buttons). */}
-              {editingRoute?.firebaseId && editingRoute.system && (() => {
-                const docId = 'trail_doc_' + editingRoute.firebaseId;
-                const docSection = getHelpSection(docId);
-                const docTxt = (docSection && docSection.content && docSection.content.trim()) || '';
-                const lang = window.BKK.i18n.currentLang || 'he';
-                const hasDocAudio = !!hintAudioUrls[docId + '_' + lang];
-                return (
-                  <div style={{ marginTop: '8px', marginBottom: '8px', padding: '8px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '4px' }}>
-                      <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#7c2d12' }}>
-                        {`📄 ${t('route.documentation') || 'Documentation'}`}
-                      </label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {(isEditor || isAdmin) && (
-                          <button
-                            onClick={() => { setHintEditId(docId); setHintEditText(docTxt); }}
-                            title={t('general.edit') || 'Edit'}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '2px 4px' }}
-                          >✏️</button>
-                        )}
-                        {(docTxt || hasDocAudio) && (
-                          <button
-                            onClick={() => setOpenHintPopup(openHintPopup === docId ? null : docId)}
-                            title={t('general.viewDocumentation') || 'View'}
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', padding: '2px 9px', fontSize: '13px', fontWeight: '800', background: openHintPopup === docId ? '#fdba74' : '#fed7aa', color: '#7c2d12', border: '1.5px solid #f97316', borderRadius: '999px', cursor: 'pointer' }}
-                          >
-                            <span>ℹ</span>
-                            {hasDocAudio && <span style={{ fontSize: '10px' }}>🔈</span>}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    {/* Empty-state hint for editors */}
-                    {!docTxt && !hasDocAudio && (isEditor || isAdmin) && hintEditId !== docId && (
-                      <div style={{ fontSize: '11px', color: '#9a3412', fontStyle: 'italic' }}>
-                        {t('route.documentationEmptyHint') || 'Tap ✏️ to add description, dictation, audio recording, or translation.'}
-                      </div>
-                    )}
-                    {!docTxt && !hasDocAudio && !(isEditor || isAdmin) && (
-                      <div style={{ fontSize: '11px', color: '#9a3412', fontStyle: 'italic' }}>
-                        {t('route.documentationEmptyView') || 'No documentation yet.'}
-                      </div>
-                    )}
-                    {/* renderContextHint renders the edit form (when in edit mode) and the draggable
-                         popup (when ℹ is toggled). The wrapper above provides the section header + buttons. */}
-                    {renderContextHint(docId)}
-                  </div>
-                );
-              })()}
+              {/* v3.23.55: Documentation — uses renderStepHeader (same UI as wizard step 1's "What interests you?"
+                   header). Provides the same ✏️ + ℹ button row, and renderContextHint below handles the edit form
+                   and draggable popup with floating play/pause/stop button. Same component everywhere. */}
+              {editingRoute?.firebaseId && editingRoute.system && (
+                <>
+                  {renderStepHeader('📄', t('route.documentation') || 'Documentation', null, 'trail_doc_' + editingRoute.firebaseId)}
+                  {renderContextHint('trail_doc_' + editingRoute.firebaseId)}
+                </>
+              )}
 
               {/* Stops list */}
               <div>
                 <label className="block text-xs font-bold mb-1">{t("general.stopsCount")} ({editingRoute.stops?.length || 0})</label>
                 <div className="max-h-32 overflow-y-auto space-y-0.5">
-                  {(editingRoute.stops || []).map((stop, idx) => (
-                    <div key={idx} className="flex items-center gap-1 text-xs bg-gray-50 px-2 py-1 rounded">
-                      <span className="text-gray-400">{window.BKK.stopLabel(idx)}.</span>
-                      <span className="font-medium truncate" style={{ flex: 1 }}>{stop.name}</span>
-                      {/* v3.23.54: interest icons per stop, same pattern as the trail card in the saved-trails list */}
-                      {(stop.interests || []).filter(id => id !== '_manual').slice(0, 4).map((intId, i) => {
-                        const obj = interestMap[intId];
-                        if (!obj?.icon) return null;
-                        return <span key={i} title={tLabel(obj) || obj.label || intId} style={{ fontSize: '11px', flexShrink: 0 }}>{renderIcon(obj.icon, '13px')}</span>;
-                      })}
-                    </div>
-                  ))}
+                  {(editingRoute.stops || []).map((stop, idx) => {
+                    // v3.23.55: detect if this stop matches a FouFou favorite (curated place in customLocations)
+                    // — same matching pattern as views.js route-view: googlePlaceId first, then name fallback.
+                    const stopKey = (stop.name || '').toLowerCase().trim();
+                    const matchedFav = (customLocations || []).find(loc =>
+                      (loc.googlePlaceId && stop.googlePlaceId && loc.googlePlaceId === stop.googlePlaceId) ||
+                      ((loc.name || '').toLowerCase().trim() === stopKey)
+                    );
+                    // Interest IDs come from the stop itself, OR from the matched favorite (manual stops have only '_manual')
+                    const stopInterests = (stop.interests || []).filter(id => id !== '_manual');
+                    const favInterests = matchedFav ? (matchedFav.interests || []).filter(id => id !== '_manual') : [];
+                    const allInterests = [...new Set([...stopInterests, ...favInterests])];
+                    return (
+                      <div key={idx} className="flex items-center gap-1 text-xs bg-gray-50 px-2 py-1 rounded">
+                        <span className="text-gray-400">{window.BKK.stopLabel(idx)}.</span>
+                        <span className="font-medium truncate" style={{ flex: 1 }}>{stop.name}</span>
+                        {/* v3.23.55: FouFou cat icon if this stop is a curated favorite */}
+                        {matchedFav && <span title={t('places.fouFouFavorite') || 'FouFou place'} style={{ fontSize: '13px', flexShrink: 0 }}>🐱</span>}
+                        {/* Interest icons per stop, same pattern as the trail card in the saved-trails list */}
+                        {allInterests.slice(0, 4).map((intId, i) => {
+                          const obj = interestMap[intId];
+                          if (!obj?.icon) return null;
+                          return <span key={i} title={tLabel(obj) || obj.label || intId} style={{ fontSize: '11px', flexShrink: 0 }}>{renderIcon(obj.icon, '13px')}</span>;
+                        })}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
               </div>{/* close inner wrapper */}
@@ -2066,10 +2050,12 @@
                           // v3.23.50: include `system` in the payload — editors/admins can flip the
                           // Recommended flag from inside the dialog. Regular users won't see the toggle,
                           // so editingRoute.system stays at whatever it already was.
+                          // v3.23.55: include areaName since the field is now editable.
                           const updates = {
                             name: editingRoute.name,
                             notes: editingRoute.notes,
-                            locked: editingRoute.locked
+                            locked: editingRoute.locked,
+                            areaName: editingRoute.areaName || ''
                           };
                           if (isEditor || isAdmin) updates.system = !!editingRoute.system;
                           updateRoute(editingRoute.id, updates);
