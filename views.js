@@ -1530,7 +1530,6 @@
               onClick={() => { setWizardStep(2); setRoute(null); setRouteChoiceMade(null); setCurrentView('form'); window.scrollTo(0, 0); }}
               style={{ cursor: 'pointer', textDecoration: 'underline', textDecorationColor: '#d1d5db' }}
             >📍 {(() => {
-              if (formData.searchMode === 'all') return t('wizard.allCity');
               if (formData.searchMode === 'radius') { const locName = formData.radiusSource === 'point' ? (formData.radiusPlaceName || t('wizard.nearMePoint')) : t('wizard.myLocation'); const rLabel = formData.radiusMeters >= 1000 ? (formData.radiusMeters/1000 + 'km') : (formData.radiusMeters + 'm'); return locName + ' (' + rLabel + ')'; }
               const area = (window.BKK.areaOptions || []).find(a => a.id === formData.area);
               return area ? tLabel(area) : '';

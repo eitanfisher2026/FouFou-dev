@@ -10,7 +10,14 @@
         prefs.fetchMoreCount = prefs.fetchMoreCount || 3;
         // User-specific settings preserved from last session
         if (!prefs.searchMode) prefs.searchMode = 'area';
-        if (prefs.searchMode === 'radius' && prefs.radiusMeters === 15000 && prefs.radiusPlaceName === t('general.allCity')) prefs.searchMode = 'all';
+        // v3.23.60: 'all' (whole-city) search mode was retired. Sanitize zombie state from
+        // long-lived localStorage so the city-center coords cached for 'all' don't poison
+        // buildGoogleMapsUrls' GPS distance check (caused 7-day-walk when user was abroad).
+        if (prefs.searchMode === 'all') {
+          prefs.searchMode = 'area';
+          prefs.currentLat = null;
+          prefs.currentLng = null;
+        }
         if (!prefs.radiusMeters) prefs.radiusMeters = 500;
         if (!prefs.radiusSource) prefs.radiusSource = 'gps';
         if (!prefs.radiusPlaceName) prefs.radiusPlaceName = '';
@@ -5731,7 +5738,7 @@
 
   const getStopsForInterests = () => {
     // Now we only collect CUSTOM locations - Google Places will be fetched in generateRoute
-    const isRadiusMode = formData.searchMode === 'radius' || formData.searchMode === 'all';
+    const isRadiusMode = formData.searchMode === 'radius';
     
     // Filter custom locations that match current city, area/radius and selected interests
     const matchingCustomLocations = customLocations.filter(loc => {
@@ -6368,27 +6375,12 @@
 
   const generateRoute = async (extraManualStop = null) => {
     searchRunIdRef.current = Date.now().toString();
-    const isRadiusMode = formData.searchMode === 'radius' || formData.searchMode === 'all';
-    
+    const isRadiusMode = formData.searchMode === 'radius';
+
     // Clear old start point to avoid stale data
     setStartPointCoords(null);
     setFormData(prev => ({...prev, startPoint: ''}));
-    
-    // For 'all' mode, auto-set city center and large radius
-    if (formData.searchMode === 'all') {
-      if (!formData.currentLat) {
-        const cityCenter = window.BKK.selectedCity?.center || window.BKK.activeCityData?.center || { lat: 0, lng: 0 };
-        const cityRadius = window.BKK.selectedCity?.allCityRadius || 15000;
-        const cityName = tLabel(window.BKK.selectedCity) || t('general.allCity');
-        const allCityLabel = t('general.all') + ' ' + cityName;
-        setFormData(prev => ({...prev, currentLat: cityCenter.lat, currentLng: cityCenter.lng, radiusMeters: cityRadius, radiusPlaceName: allCityLabel}));
-        formData.currentLat = cityCenter.lat;
-        formData.currentLng = cityCenter.lng;
-        formData.radiusMeters = cityRadius;
-        formData.radiusPlaceName = allCityLabel;
-      }
-    }
-    
+
     if (isRadiusMode) {
       if (!formData.currentLat || !formData.currentLng) {
         showToast(t('form.findLocationFirst'), 'warning');
@@ -6835,18 +6827,12 @@
       const enLabel = (obj) => obj ? (obj.labelEn || obj.nameEn || obj.label || obj.name || obj.id || '') : '';
       let areaName, interestsText;
       if (isRadiusMode) {
-        const city = window.BKK.selectedCity;
-        const allCityLabel = 'All ' + (enLabel(city) || 'City');
-        if (formData.searchMode === 'all' || formData.radiusPlaceName === allCityLabel) {
-          areaName = allCityLabel;
-        } else {
-          const sourceName = formData.radiusSource === 'myplace' && formData.radiusPlaceId
-            ? customLocations.find(l => l.id === formData.radiusPlaceId)?.name || 'My place'
-            : formData.radiusSource === 'gps'
-            ? 'My location'
-            : formData.radiusPlaceName || 'Current location';
-          areaName = `${formData.radiusMeters}m - ${sourceName}`;
-        }
+        const sourceName = formData.radiusSource === 'myplace' && formData.radiusPlaceId
+          ? customLocations.find(l => l.id === formData.radiusPlaceId)?.name || 'My place'
+          : formData.radiusSource === 'gps'
+          ? 'My location'
+          : formData.radiusPlaceName || 'Current location';
+        areaName = `${formData.radiusMeters}m - ${sourceName}`;
       } else {
         const selectedArea = areaOptions.find(a => a.id === formData.area);
         areaName = enLabel(selectedArea) || 'All City';
@@ -7062,7 +7048,7 @@
     
     try {
       const fetchCount = formData.fetchMoreCount || 3;
-      const isRadiusMode = formData.searchMode === 'radius' || formData.searchMode === 'all';
+      const isRadiusMode = formData.searchMode === 'radius';
       const existingNames = route.stops.map(s => s.name.toLowerCase().trim());
       const interestLabel = allInterestOptions.find(o => o.id === interest)?.label || interest;
       let placesToAdd = [];
@@ -7235,7 +7221,7 @@
     try {
       const fetchCount = formData.fetchMoreCount || 3;
       const perInterest = Math.ceil(fetchCount / formData.interests.length);
-      const isRadiusMode = formData.searchMode === 'radius' || formData.searchMode === 'all';
+      const isRadiusMode = formData.searchMode === 'radius';
       const existingNames = route.stops.map(s => s.name.toLowerCase().trim());
       
       console.log(`[FETCH_MORE_ALL] Need ${perInterest} per interest, total target: ${fetchCount}`);
