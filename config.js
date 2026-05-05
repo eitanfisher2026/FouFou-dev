@@ -57,16 +57,18 @@ window.BKK.mapConfig = {
 })();
 
 // App Version
-window.BKK.VERSION = '3.23.61';
+window.BKK.VERSION = '3.23.62';
 // Convert stop index (0-based) to letter label: 0→A, 1→B, ..., 25→Z, 26→AA
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
 };
 
-// Tile URL - English labels for all cities (Carto Voyager)
+// Tile URL — MapTiler streets-v2 with English labels (uses OSM `name:en` tags)
+// Key is restricted to foufou.city + eitanfisher2026.github.io HTTP origins.
+// 256/ prefix returns 256px tiles so existing Leaflet configs (default tileSize) render correctly.
 window.BKK.getTileUrl = function() {
-  return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  return 'https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=Uvu44hp7joiCfp72GhTj';
 };
 
 // App Name

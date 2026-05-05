@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.61
+// FouFou app-data.js v3.23.62
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -3528,14 +3528,14 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.61';
+window.BKK.VERSION = '3.23.62';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
 };
 
 window.BKK.getTileUrl = function() {
-  return 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  return 'https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=Uvu44hp7joiCfp72GhTj';
 };
 
 window.BKK.APP_NAME = 'FouFou';

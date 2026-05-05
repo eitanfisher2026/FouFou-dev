@@ -4896,8 +4896,8 @@
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <button
               onClick={() => {
-                const appUrl = 'https://eitanfisher2026.github.io/FouFou/';
-                const shareData = { title: 'FouFou', text: t('settings.appDescription') || 'City trails in Bangkok & Singapore', url: appUrl };
+                const appUrl = 'https://foufou.city/';
+                const shareData = { title: 'FouFou', text: t('settings.appDescription') || 'City trails — open in any browser, no install', url: appUrl };
                 window.BKK.logEvent?.('app_shared', {});
                 if (navigator.share) { navigator.share(shareData).catch(() => {}); }
                 else { try { navigator.clipboard.writeText(appUrl); showToast(t('route.linkCopied'), 'success'); } catch(e) { showToast(appUrl, 'info'); } }
