@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.60
+// FouFou app-data.js v3.23.61
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -3128,7 +3128,7 @@ window.BKK.cityData.malaga = {
   "country": "Spain",
   "icon": "☀️",
   "secondaryIcon": "☀️",
-  "active": false,
+  "active": true,
   "distanceMultiplier": 1.2,
   "dayStartHour": 8,
   "nightStartHour": 20,
@@ -3156,8 +3156,8 @@ window.BKK.cityData.malaga = {
       "labelEn": "Este",
       "desc": "",
       "descEn": "",
-      "lat": 36.7319,
-      "lng": -4.3786,
+      "lat": 36.7345,
+      "lng": -4.376,
       "radius": 2000,
       "size": "medium",
       "safety": "safe"
@@ -3168,8 +3168,8 @@ window.BKK.cityData.malaga = {
       "labelEn": "Ciudad Jardin & Palma-Palmilla",
       "desc": "",
       "descEn": "",
-      "lat": 36.7467,
-      "lng": -4.4124,
+      "lat": 36.7526,
+      "lng": -4.4103,
       "radius": 1500,
       "size": "medium",
       "safety": "safe"
@@ -3180,8 +3180,8 @@ window.BKK.cityData.malaga = {
       "labelEn": "Bailen-Miraflores & Cruz de Humilladero",
       "desc": "",
       "descEn": "",
-      "lat": 36.7191,
-      "lng": -4.4683,
+      "lat": 36.7295,
+      "lng": -4.4742,
       "radius": 3000,
       "size": "medium",
       "safety": "safe"
@@ -3192,8 +3192,8 @@ window.BKK.cityData.malaga = {
       "labelEn": "Carretera de Cadiz",
       "desc": "",
       "descEn": "",
-      "lat": 36.6907,
-      "lng": -4.4383,
+      "lat": 36.6877,
+      "lng": -4.4398,
       "radius": 2500,
       "size": "medium",
       "safety": "safe"
@@ -3528,7 +3528,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.60';
+window.BKK.VERSION = '3.23.61';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
