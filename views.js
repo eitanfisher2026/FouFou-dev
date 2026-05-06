@@ -3,8 +3,6 @@
   // Unified wizard step header — optionally pass hintId to embed hint button in title row
   const renderStepHeader = (icon, title, subtitle, hintId) => {
     const isRTL = window.BKK.i18n.isRTL();
-    const lang = window.BKK.i18n.currentLang || 'he';
-    const hasAudio = hintId && !!hintAudioUrls[hintId + '_' + lang];
     const s = hintId && getHelpSection(hintId);
     const hintTxt = (s && s.content && s.content.trim()) || '';
     const showHintBtn = hintId && (hintTxt || isEditor);
@@ -38,7 +36,6 @@
               }}
             >
               <span style={{ fontSize: '14px', fontWeight: '800' }}>ℹ</span>
-              {hasAudio && <span style={{ fontSize: '10px' }}>🔈</span>}
             </button>
           </div>
         )}
@@ -494,8 +491,6 @@
               <span>{t('trail.capturePlace')}</span>
             </button>
               {(() => {
-                const lang = window.BKK.i18n.currentLang || 'he';
-                const hasAudio = !!hintAudioUrls['hint_trail_' + lang];
                 const s = getHelpSection('activeTrail');
                 const txt = (s && s.content && s.content.trim()) || '';
                 // Always show hint button in active trail — even when empty, users expect it
@@ -507,7 +502,7 @@
                     )}
                     <button onClick={() => setOpenHintPopup(openHintPopup === 'activeTrail' ? null : 'activeTrail')}
                       style={{ height: '100%', minHeight: '38px', borderRadius: '10px', padding: '0 10px', border: '1.5px solid #818cf8', background: openHintPopup === 'activeTrail' ? '#c7d2fe' : '#e0e7ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '15px', color: '#3730a3', fontWeight: '800' }}>
-                      <span>ℹ</span>{hasAudio && <span style={{ fontSize: '10px' }}>🔈</span>}
+                      <span>ℹ</span>
                     </button>
                   </div>
                 );
@@ -2013,8 +2008,6 @@
                     {`${t("route.showStopsOnMap")} (${route.stops.filter(s => !isStopDisabled(s) && s.lat && s.lng).length})`}
                   </button>
                   {(() => {
-                    const lang = window.BKK.i18n.currentLang || 'he';
-                    const hasAudio = !!hintAudioUrls['hint_route_menu_' + lang];
                     const s = getHelpSection('hint_route_menu');
                     const txt = (s && s.content && s.content.trim()) || '';
                     return (
@@ -2038,7 +2031,6 @@
                             }}
                           >
                             <span>ℹ</span>
-                            {hasAudio && <span style={{ fontSize: '12px' }}>🔈</span>}
                           </button>
                         )}
                       </div>

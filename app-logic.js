@@ -2273,90 +2273,42 @@
     setHintInterimText('');
   };
 
-  // Audio recording for hints (saves to Firebase Storage)
-  const [hintAudioRecording, setHintAudioRecording] = useState(false);
-  const [hintAudioUrls, setHintAudioUrls] = useState({});
-  
-  // Load audio URLs from Firebase
-  React.useEffect(() => {
-    if (!isFirebaseAvailable || !database) return;
-    database.ref('helpAudio').once('value').then(snap => {
-      const data = snap.val();
-      if (data) setHintAudioUrls(data);
-    }).catch(() => {});
-  }, [isFirebaseAvailable]);
+  // v3.23.63: hint audio playback now uses Web Speech API (TTS) instead of pre-recorded
+  // base64 audio in Firebase. Pros: works for any text without admin pre-recording, supports
+  // both HE & EN automatically, no storage cost. Con: voice quality depends on the OS.
+  // Legacy Firebase data under helpAudio/* and helpAudioDuration/* is no longer read or
+  // written; can be deleted from the Firebase Console at any time without breaking anything.
 
-  const [hintAudioDurations, setHintAudioDurations] = useState({});
-  
-  // Load audio durations from Firebase
-  React.useEffect(() => {
-    if (!isFirebaseAvailable || !database) return;
-    database.ref('helpAudioDuration').once('value').then(snap => {
-      const data = snap.val();
-      if (data) setHintAudioDurations(data);
-    }).catch(() => {});
-  }, [isFirebaseAvailable]);
-
-  const startHintAudioRecord = (hintId) => {
-    const recordStart = Date.now();
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      const chunks = [];
-      mediaRecorder.ondataavailable = e => chunks.push(e.data);
-      mediaRecorder.onstop = () => {
-        stream.getTracks().forEach(t => t.stop());
-        const duration = Math.round((Date.now() - recordStart) / 1000);
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = reader.result;
-          const lang = window.BKK.i18n.currentLang || 'he';
-          const key = hintId + '_' + lang;
-          if (isFirebaseAvailable && database) {
-            // OPTIMIZED: batch 2 writes into single update
-            database.ref().update({
-              ['helpAudio/' + key]: base64,
-              ['helpAudioDuration/' + key]: duration,
-            });
-            setHintAudioUrls(prev => ({ ...prev, [key]: base64 }));
-            setHintAudioDurations(prev => ({ ...prev, [key]: duration }));
-            showToast('🎙️ ' + duration + 's נשמרה!', 'success');
-          }
-        };
-        reader.readAsDataURL(blob);
-      };
-      window._hintMediaRecorder = mediaRecorder;
-      mediaRecorder.start();
-      setHintAudioRecording(hintId);
-      showToast('🔴 מקליט...', 'info');
-    }).catch(() => showToast('אין גישה למיקרופון', 'error'));
-  };
-  const stopHintAudioRecord = () => {
-    if (window._hintMediaRecorder) { window._hintMediaRecorder.stop(); window._hintMediaRecorder = null; }
-    setHintAudioRecording(false);
-  };
-
-  // Play hint audio recording (if exists)
+  // Play the hint text aloud via the browser's speech synthesizer.
   const playHint = (hintId, text) => {
-    if (window._hintAudio) { window._hintAudio.pause(); window._hintAudio = null; }
+    if (!text) return;
+    if (!('speechSynthesis' in window)) {
+      showToast(window.BKK.i18n.currentLang === 'he' ? 'הדפדפן לא תומך בקריאה קולית' : 'Speech not supported on this browser', 'warning');
+      return;
+    }
+    // Cancel any in-flight utterance — single playback at a time.
+    window.speechSynthesis.cancel();
 
     const lang = window.BKK.i18n.currentLang || 'he';
-    const audioUrl = hintAudioUrls[hintId + '_' + lang];
-    if (!audioUrl) return;
-    window.BKK.logEvent?.('hint_audio_played', { hint_id: hintId, lang });
-    const audio = new Audio(audioUrl);
-    window._hintAudio = audio;
-    audio.onended = () => { setIsSpeaking(false); setIsPaused(false); window._hintAudio = null; };
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = lang === 'he' ? 'he-IL' : 'en-US';
+    utter.rate = 1.0;
+    utter.pitch = 1.0;
+    utter.onend = () => { setIsSpeaking(false); setIsPaused(false); window._hintUtter = null; };
+    utter.onerror = () => { setIsSpeaking(false); setIsPaused(false); window._hintUtter = null; };
+    window._hintUtter = utter;
+    window.BKK.logEvent?.('hint_tts_played', { hint_id: hintId, lang });
     setIsSpeaking(true); setIsPaused(false);
-    audio.play();
+    window.speechSynthesis.speak(utter);
   };
   const pauseResumeHint = () => {
-    if (!window._hintAudio) return;
-    if (window._hintAudio.paused) { window._hintAudio.play(); setIsPaused(false); }
-    else { window._hintAudio.pause(); setIsPaused(true); }
+    if (!('speechSynthesis' in window) || !window._hintUtter) return;
+    if (window.speechSynthesis.paused) { window.speechSynthesis.resume(); setIsPaused(false); }
+    else { window.speechSynthesis.pause(); setIsPaused(true); }
   };
   const stopHintPlayback = () => {
-    if (window._hintAudio) { window._hintAudio.pause(); window._hintAudio = null; }
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    window._hintUtter = null;
     setIsSpeaking(false); setIsPaused(false);
   };
 
@@ -2370,7 +2322,6 @@
     const txt = (s && s.content && s.content.trim()) || '';
     trackHintVisit(hintId);
     const lang = window.BKK.i18n.currentLang || 'he';
-    const hasAudio = !!hintAudioUrls[hintId + '_' + lang];
     const btnStyle = { background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', padding: '0 1px' };
     const isRTL = window.BKK.i18n.isRTL();
     
@@ -2395,17 +2346,6 @@
             style={{ padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', background: hintRecording ? '#ef4444' : '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', animation: hintRecording ? 'pulse 1s infinite' : 'none' }}>{hintRecording ? t('speech.stopShort') : t('speech.dictate')}</button>
           <button onClick={() => setHintEditId(null)}
             style={{ padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', background: '#d1d5db', color: '#374151', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>✕</button>
-          {/* Audio recording */}
-          <div style={{ width: '100%', display: 'flex', gap: '4px', marginTop: '2px' }}>
-            {hintAudioRecording === hintId ? (
-              <button onClick={stopHintAudioRecord}
-                style={{ padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', animation: 'pulse 1s infinite' }}>{`🔴 ${t('speech.stopRecording')}`}</button>
-            ) : (
-              <button onClick={() => startHintAudioRecord(hintId)}
-                style={{ padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', background: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>{t('speech.recordVoice').replace('{lang}', lang)}</button>
-            )}
-            {hasAudio && <span style={{ fontSize: '10px', color: '#22c55e', alignSelf: 'center' }}>{t('speech.recordingSaved')}</span>}
-          </div>
         </div>
       </div>
     );
@@ -2477,12 +2417,9 @@
                 <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'white' }}>
                   {t('wizard.audioTitle') || (isRTL ? 'הסבר' : 'Info')}
                 </span>
-                {(() => { const dur = hintAudioDurations[hintId + '_' + lang]; return dur ? (
-                  <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)' }}>{dur}s</span>
-                ) : null; })()}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {hasAudio && <button onClick={() => isSpeaking ? pauseResumeHint() : playHint(hintId, txt)}
+                {txt && <button onClick={() => isSpeaking ? pauseResumeHint() : playHint(hintId, txt)}
                   style={{ ...btnStyle, color: 'white', fontSize: '18px', opacity: 0.9 }}>
                   {isSpeaking ? (isPaused ? '▶️' : '⏸️') : '🔊'}
                 </button>}
