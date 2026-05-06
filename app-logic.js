@@ -2278,37 +2278,88 @@
   // both HE & EN automatically, no storage cost. Con: voice quality depends on the OS.
   // Legacy Firebase data under helpAudio/* and helpAudioDuration/* is no longer read or
   // written; can be deleted from the Firebase Console at any time without breaking anything.
+  //
+  // v3.23.64: pause/resume of speechSynthesis is broken on Chromium (the engine TWA uses on
+  // Android — see crbug.com/679489): pause() works, resume() silently does nothing after a
+  // few seconds. Workaround: never call pause()/resume(). Instead "pause" cancels the
+  // utterance while saving the character offset reached (via the `boundary` event), and
+  // "resume" creates a fresh utterance from text.slice(offset). Resumes mid-word — fine.
 
-  // Play the hint text aloud via the browser's speech synthesizer.
-  const playHint = (hintId, text) => {
-    if (!text) return;
+  // Internal: speak text from a given char offset; updates window._hintOffset on every word
+  // boundary so a later pause/cancel knows where to resume from.
+  const speakFromOffset = (hintId, text, offset, lang, isFirstPlay) => {
     if (!('speechSynthesis' in window)) {
-      showToast(window.BKK.i18n.currentLang === 'he' ? 'הדפדפן לא תומך בקריאה קולית' : 'Speech not supported on this browser', 'warning');
+      showToast(lang === 'he' ? 'הדפדפן לא תומך בקריאה קולית' : 'Speech not supported on this browser', 'warning');
+      setIsSpeaking(false); setIsPaused(false);
       return;
     }
-    // Cancel any in-flight utterance — single playback at a time.
-    window.speechSynthesis.cancel();
+    if (!text || offset >= text.length) {
+      setIsSpeaking(false); setIsPaused(false);
+      window._hintUtter = null;
+      return;
+    }
+    // Save context for pause/resume cycles.
+    window._hintText = text;
+    window._hintLang = lang;
+    window._hintOffset = offset;
 
-    const lang = window.BKK.i18n.currentLang || 'he';
-    const utter = new SpeechSynthesisUtterance(text);
+    const utter = new SpeechSynthesisUtterance(text.slice(offset));
     utter.lang = lang === 'he' ? 'he-IL' : 'en-US';
     utter.rate = 1.0;
     utter.pitch = 1.0;
-    utter.onend = () => { setIsSpeaking(false); setIsPaused(false); window._hintUtter = null; };
-    utter.onerror = () => { setIsSpeaking(false); setIsPaused(false); window._hintUtter = null; };
+    utter.onboundary = (e) => {
+      if (typeof e.charIndex === 'number') window._hintOffset = offset + e.charIndex;
+    };
+    utter.onend = () => {
+      // If this utterance was cancelled to pause, the resume will start a new one — don't
+      // reset state. Otherwise the speech finished naturally.
+      if (utter._cancelledForPause) return;
+      if (window._hintUtter !== utter) return; // stale (newer utterance took over)
+      setIsSpeaking(false); setIsPaused(false);
+      window._hintUtter = null;
+    };
+    utter.onerror = () => {
+      if (utter._cancelledForPause) return;
+      if (window._hintUtter !== utter) return;
+      setIsSpeaking(false); setIsPaused(false);
+      window._hintUtter = null;
+    };
+
     window._hintUtter = utter;
-    window.BKK.logEvent?.('hint_tts_played', { hint_id: hintId, lang });
-    setIsSpeaking(true); setIsPaused(false);
+    if (isFirstPlay) {
+      setIsSpeaking(true); setIsPaused(false);
+      window.BKK.logEvent?.('hint_tts_played', { hint_id: hintId, lang });
+    } else {
+      // Resume — speech state is already true; just clear paused.
+      setIsPaused(false);
+    }
     window.speechSynthesis.speak(utter);
   };
+
+  const playHint = (hintId, text) => {
+    if (!text) return;
+    const lang = window.BKK.i18n.currentLang || 'he';
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    speakFromOffset(hintId, text, 0, lang, true);
+  };
   const pauseResumeHint = () => {
-    if (!('speechSynthesis' in window) || !window._hintUtter) return;
-    if (window.speechSynthesis.paused) { window.speechSynthesis.resume(); setIsPaused(false); }
-    else { window.speechSynthesis.pause(); setIsPaused(true); }
+    if (!('speechSynthesis' in window)) return;
+    if (isPaused) {
+      // Resume from where we paused — fresh utterance with the remaining text.
+      speakFromOffset(null, window._hintText, window._hintOffset || 0, window._hintLang || 'he', false);
+    } else {
+      // Pause = cancel + remember offset. Mark the current utterance so its onend callback
+      // doesn't reset isSpeaking (we want to STAY in paused state).
+      if (window._hintUtter) window._hintUtter._cancelledForPause = true;
+      window.speechSynthesis.cancel();
+      setIsPaused(true);
+    }
   };
   const stopHintPlayback = () => {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     window._hintUtter = null;
+    window._hintText = null;
+    window._hintOffset = 0;
     setIsSpeaking(false); setIsPaused(false);
   };
 
