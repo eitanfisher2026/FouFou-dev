@@ -352,25 +352,43 @@
     const timeoutMs = window.BKK.systemParams?.gpsTimeoutMs || 8000;
     window.BKK.getUserGPS(timeoutMs).catch(() => {});
   }, [wizardStep]);
-  const [disabledStops, setDisabledStops] = useState([]); // Track disabled stop IDs
-  const disabledStopsRef = React.useRef(disabledStops);
-  React.useEffect(() => { disabledStopsRef.current = disabledStops; }, [disabledStops]);
+  // v3.23.65: Unified skip mechanism. The previous design had THREE parallel state stores
+  // (disabledStops array, skippedTrailStops Set, mapSkippedStops Set) that drifted apart and
+  // leaked across trail loads. Now there is a single source of truth: the boolean flag
+  // `trailSkipped` directly on each stop object. To skip a stop, mutate the flag on the
+  // stop in route.stops (or activeTrail.stops). To check skip state, read the flag.
+  // stripRouteForStorage already filters by this flag, so saved trails never carry skipped
+  // stops — and loaded trails are always fresh because saved data has no flags.
   const reoptimizeTimerRef = React.useRef(null);
   const [isReoptimizing, setIsReoptimizing] = useState(false);
 
-  // Trigger 3: auto-reoptimize when disabled stops change (skip/unskip)
-  const prevDisabledRef = React.useRef(disabledStops);
+  // Trigger 3: auto-reoptimize when any stop's trailSkipped flag toggles. We compute a
+  // signature string of the skip state (e.g. "01001") and re-run the reoptimize when it
+  // changes, regardless of which specific stop's flag flipped.
+  const skipSignature = React.useMemo(() =>
+    (route?.stops || []).map(s => s.trailSkipped ? '1' : '0').join(''),
+    [route?.stops]
+  );
+  const prevSkipSigRef = React.useRef(skipSignature);
   React.useEffect(() => {
-    if (!route?.stops?.length) { prevDisabledRef.current = disabledStops; return; }
-    if (prevDisabledRef.current === disabledStops) return;
-    prevDisabledRef.current = disabledStops;
+    if (!route?.stops?.length) { prevSkipSigRef.current = skipSignature; return; }
+    if (prevSkipSigRef.current === skipSignature) return;
+    prevSkipSigRef.current = skipSignature;
     scheduleReoptimize();
-  }, [disabledStops]);
-  
+  }, [skipSignature]);
+
   // === SHARED HELPERS (avoid code duplication) ===
-  
-  // Check if a stop is disabled — single source of truth
-  const isStopDisabled = (stop) => disabledStops.includes((stop.name || '').toLowerCase().trim()) || !!stop.trailSkipped;
+
+  // Check if a stop is disabled — single source of truth, just the flag.
+  const isStopDisabled = (stop) => !!stop?.trailSkipped;
+
+  // Toggle the trailSkipped flag on a stop matched by name. Used by both the route view
+  // and the active trail to flip skip state.
+  const toggleSkipInStops = (stops, targetName) => {
+    const t = (targetName || '').toLowerCase().trim();
+    return stops.map(s => (s.name || '').toLowerCase().trim() === t
+      ? { ...s, trailSkipped: !s.trailSkipped } : s);
+  };
   
   // Find smart start point: GPS nearest → circular first → null (let optimizer pick)
   // Debounced auto-reoptimize — called when stops/start change, never cuts stops
@@ -431,27 +449,26 @@
     
     const isCircular = overrideType !== null ? overrideType === 'circular' : routeType === 'circular';
     
-    // Step 1: Smart select or respect manual choices
-    let selected, disabledList, newDisabled;
+    // Step 1: Smart select or respect manual choices.
+    // After v3.23.65, skip state lives on each stop as `trailSkipped`. The "respect manual
+    // choices" branch just reads that flag directly off route.stops; the smart-select
+    // branch marks newly-disabled stops with the flag so subsequent rebuilds preserve it.
+    let selected, disabledList;
     if (skipSmartSelect) {
-      const curDisabled = disabledStopsRef.current || [];
-      selected = allStops.filter(s => !curDisabled.includes((s.name || '').toLowerCase().trim()));
-      disabledList = allStops.filter(s => curDisabled.includes((s.name || '').toLowerCase().trim()));
-      newDisabled = curDisabled;
+      selected = allStops.filter(s => !s.trailSkipped);
+      disabledList = allStops.filter(s => s.trailSkipped);
     }
     // Always ensure manuallyAdded stops are in selected (never dropped by smart select)
-    if (selected.length > 0) {
+    if (selected && selected.length > 0) {
       const manualInDisabled = disabledList.filter(s => s.manuallyAdded);
       if (manualInDisabled.length > 0) {
-        selected = [...selected, ...manualInDisabled];
+        selected = [...selected, ...manualInDisabled.map(s => ({ ...s, trailSkipped: false }))];
         disabledList = disabledList.filter(s => !s.manuallyAdded);
       }
     } else {
       const result = smartSelectStops(allStops, formData.interests);
       selected = result.selected;
-      disabledList = result.disabled;
-      newDisabled = disabledList.map(s => (s.name || '').toLowerCase().trim());
-      setDisabledStops(newDisabled);
+      disabledList = result.disabled.map(s => ({ ...s, trailSkipped: true }));
     }
     if (selected.length < 2) { showToast(t('places.noPlacesWithCoords'), 'warning'); return null; }
     
@@ -510,7 +527,7 @@
       }
     }
     
-    return { optimized, disabled: disabledList, autoStart, newDisabled, isCircular };
+    return { optimized, disabled: disabledList, autoStart, isCircular };
   };
   
   const [showRoutePreview, setShowRoutePreview] = useState(false); // Route reorder dialog
@@ -556,7 +573,7 @@
     } catch(e) {}
     return null;
   });
-  const [skippedTrailStops, setSkippedTrailStops] = useState(new Set());
+  // skippedTrailStops removed — skip state now lives as trailSkipped flag on each stop.
   const [showQuickCapture, setShowQuickCapture] = useState(false);
   const [showQuickAddDialog, setShowQuickAddDialog] = useState(false);
   const [quickAddPlace, setQuickAddPlace] = useState(null); // Google place being added
@@ -1044,7 +1061,7 @@
   const [mapMode, setMapMode] = useState('areas'); // 'areas', 'radius', or 'stops'
   const [mapStops, setMapStops] = useState([]); // stops to show when mapMode='stops'
   const [mapUserLocation, setMapUserLocation] = useState(null); // { lat, lng } for blue dot on map
-  const [mapSkippedStops, setMapSkippedStops] = useState(new Set()); // indices of skipped stops on map
+  // mapSkippedStops removed — skip state now lives as trailSkipped flag on each stop.
   const [mapFavFilter, setMapFavFilter] = useState(new Set()); // interest IDs to show (empty=all)
   const [mapFavArea, setMapFavArea] = useState(null); // area to focus on (null=all)
   const [mapFavRadius, setMapFavRadius] = useState(null); // { lat, lng, meters } for radius mode on fav map
@@ -1215,11 +1232,10 @@
               const clickedIdx = trailStops.findIndex(s => (s.name || '').toLowerCase().trim() === data.toLowerCase().trim());
               if (clickedIdx < 0) { map.closePopup(); return; }
 
-              // Skip all stops before clicked one in the trail
-              const newSkipped = new Set();
-              for (let si = 0; si < clickedIdx; si++) newSkipped.add(si);
-              setSkippedTrailStops(newSkipped);
-              setMapSkippedStops(new Set(newSkipped));
+              // Skip all stops BEFORE the clicked one in the active trail by setting their flag.
+              if (activeTrail) {
+                setActiveTrail(prev => prev ? { ...prev, stops: prev.stops.map((s, i) => ({ ...s, trailSkipped: i < clickedIdx })) } : prev);
+              }
 
               // Build Google Maps URL: origin = clicked stop, waypoints = remaining stops
               const origin = parseFloat(lat) + ',' + parseFloat(lng);
@@ -1245,22 +1261,13 @@
               }
               return;
             }
-            if (action === 'skiptrail') {
-              const trailStops = (activeTrail && activeTrail.stops) || stopsOrderRef.current || stops;
-              const idx = trailStops.findIndex(s => (s.name||'').toLowerCase().trim() === data.toLowerCase().trim());
-              if (idx >= 0) {
-                setSkippedTrailStops(prev => { const next = new Set(prev); next.add(idx); return next; });
-                setMapSkippedStops(prev => { const next = new Set(prev); next.add(idx); return next; });
-              }
-              map.closePopup();
-              return;
-            }
-            if (action === 'unskiptrail') {
-              const trailStops = (activeTrail && activeTrail.stops) || stopsOrderRef.current || stops;
-              const idx = trailStops.findIndex(s => (s.name||'').toLowerCase().trim() === data.toLowerCase().trim());
-              if (idx >= 0) {
-                setSkippedTrailStops(prev => { const next = new Set(prev); next.delete(idx); return next; });
-                setMapSkippedStops(prev => { const next = new Set(prev); next.delete(idx); return next; });
+            if (action === 'skiptrail' || action === 'unskiptrail') {
+              const target = (data || '').toLowerCase().trim();
+              const next = action === 'skiptrail';
+              if (activeTrail) {
+                setActiveTrail(prev => prev ? { ...prev, stops: prev.stops.map(s =>
+                  (s.name || '').toLowerCase().trim() === target ? { ...s, trailSkipped: next } : s
+                )} : prev);
               }
               map.closePopup();
               return;
@@ -1280,38 +1287,37 @@
               return;
             }
             const nameKey = data.toLowerCase().trim();
-            if (action === 'disable') {
-              setDisabledStops(prev => [...prev, nameKey]);
+            if (action === 'disable' || action === 'enable') {
+              const next = action === 'disable';
+              setRoute(prev => prev ? { ...prev, optimized: false, stops: prev.stops.map(s =>
+                (s.name || '').toLowerCase().trim() === nameKey ? { ...s, trailSkipped: next } : s
+              )} : prev);
               if (markerRefs[nameKey]) {
-                markerRefs[nameKey].circle.setStyle({ fillOpacity: window.BKK.mapConfig.marker.disabledFillOpacity, opacity: window.BKK.mapConfig.marker.disabledOpacity });
-                markerRefs[nameKey].label.setOpacity(0.3);
-              }
-              map.closePopup();
-              // If disabling the current start point, clear it so recompute picks a new one
-              const curStart = startPointCoordsRef_local.current;
-              if (curStart) {
-                const stopObj = stops.find(s => (s.name || '').toLowerCase().trim() === nameKey);
-                if (stopObj && Math.abs(stopObj.lat - curStart.lat) < 0.0001 && Math.abs(stopObj.lng - curStart.lng) < 0.0001) {
-                  startPointCoordsRef_local.current = null;
-                  if (startMarkerRef) { map.removeLayer(startMarkerRef); startMarkerRef = null; }
-                  setStartPointCoords(null);
-                  startPointCoordsRef.current = null;
+                if (next) {
+                  markerRefs[nameKey].circle.setStyle({ fillOpacity: window.BKK.mapConfig.marker.disabledFillOpacity, opacity: window.BKK.mapConfig.marker.disabledOpacity });
+                  markerRefs[nameKey].label.setOpacity(0.3);
+                } else {
+                  markerRefs[nameKey].circle.setStyle({ fillOpacity: window.BKK.mapConfig.marker.fillOpacity, opacity: 1 });
+                  markerRefs[nameKey].label.setOpacity(1);
                 }
               }
-              showToast(`⏸️ ${data}`, 'info');
-              // Trigger route recompute
-              setRoute(prev => prev ? {...prev, optimized: false} : prev);
-              setTimeout(() => { if (window._mapRedrawLine) window._mapRedrawLine(); }, 50);
-            } else if (action === 'enable') {
-              setDisabledStops(prev => prev.filter(n => n !== nameKey));
-              if (markerRefs[nameKey]) {
-                markerRefs[nameKey].circle.setStyle({ fillOpacity: window.BKK.mapConfig.marker.fillOpacity, opacity: 1 });
-                markerRefs[nameKey].label.setOpacity(1);
-              }
               map.closePopup();
-              showToast(`▶️ ${data}`, 'success');
-              // Trigger route recompute
-              setRoute(prev => prev ? {...prev, optimized: false} : prev);
+              if (next) {
+                // If disabling the current start point, clear it so recompute picks a new one
+                const curStart = startPointCoordsRef_local.current;
+                if (curStart) {
+                  const stopObj = stops.find(s => (s.name || '').toLowerCase().trim() === nameKey);
+                  if (stopObj && Math.abs(stopObj.lat - curStart.lat) < 0.0001 && Math.abs(stopObj.lng - curStart.lng) < 0.0001) {
+                    startPointCoordsRef_local.current = null;
+                    if (startMarkerRef) { map.removeLayer(startMarkerRef); startMarkerRef = null; }
+                    setStartPointCoords(null);
+                    startPointCoordsRef.current = null;
+                  }
+                }
+                showToast(`⏸️ ${data}`, 'info');
+              } else {
+                showToast(`▶️ ${data}`, 'success');
+              }
               setTimeout(() => { if (window._mapRedrawLine) window._mapRedrawLine(); }, 50);
             }
           };
@@ -1331,9 +1337,7 @@
           const mapLetterMap = {};
           let mapLetterIdx = 0;
           stops.forEach((s, idx) => {
-            const nk = (s.name || '').toLowerCase().trim();
-            const disabled = disabledStops.includes(nk) || mapSkippedStops.has(idx);
-            if (!disabled) {
+            if (!s.trailSkipped) {
               mapLetterMap[idx] = window.BKK.stopLabel(mapLetterIdx);
               mapLetterIdx++;
             }
@@ -1349,7 +1353,7 @@
             const fillColor = isManualStop ? 'white' : interestColor;
             const labelTextColor = isManualStop ? '#15803d' : 'white';
             const nameKey = (stop.name || '').toLowerCase().trim();
-            const isDisabled = disabledStops.includes(nameKey) || mapSkippedStops.has(i);
+            const isDisabled = !!stop.trailSkipped;
             const stopLetter = mapLetterMap[i] || '';
             const isStart = startPointCoordsRef_local.current && Math.abs(stop.lat - startPointCoordsRef_local.current.lat) < 0.0001 && Math.abs(stop.lng - startPointCoordsRef_local.current.lng) < 0.0001;
             
@@ -1387,8 +1391,7 @@
             // Dynamic popup - different content based on whether trail is active
             const makePopup = () => {
               const isTrailActive = !!activeTrail;
-              const curDisabled = disabledStopsRef.current || [];
-              const curIsDisabled = curDisabled.includes(nameKey);
+              const curIsDisabled = !!stop.trailSkipped;
               const header = '<div style="font-weight:bold;font-size:14px;margin-bottom:6px;">' + (stopLetter ? stopLetter + '. ' : '') + (stop.name || '') + '</div>' +
                 (stop.rating ? '<div style="color:#f59e0b;margin-bottom:6px;">⭐ ' + stop.rating + (stop.ratingCount ? ' (' + stop.ratingCount + ')' : '') + '</div>' : '');
               const googleBtn = '<a href="' + googleUrl + '" target="_blank" style="flex:1;display:inline-block;padding:6px 10px;border-radius:8px;background:#3b82f6;color:white;text-decoration:none;font-size:12px;font-weight:bold;">Google Maps ↗</a>';
@@ -1397,9 +1400,9 @@
                 // Trail active: Google Maps + Skip + Continue from here
                 const continueLabel = isRTL ? 'המשך מנקודה זו ▶' : 'Continue from here ▶';
                 const skipTrailLabel = isRTL ? '⏭️ דלג' : '⏭️ Skip';
-                const isAlreadySkipped = skippedTrailStops.has(
-                  activeTrail?.stops ? activeTrail.stops.findIndex(s => (s.name||'').toLowerCase().trim() === (stop.name||'').toLowerCase().trim()) : -1
-                );
+                const targetName = (stop.name || '').toLowerCase().trim();
+                const matchingTrailStop = activeTrail?.stops?.find(s => (s.name || '').toLowerCase().trim() === targetName);
+                const isAlreadySkipped = !!matchingTrailStop?.trailSkipped;
                 const skipColor = isAlreadySkipped ? '#6b7280' : '#ea580c';
                 const skipAction = isAlreadySkipped ? 'unskiptrail' : 'skiptrail';
                 const skipLabel = isAlreadySkipped ? (isRTL ? '↩️ בטל דילוג' : '↩️ Unskip') : skipTrailLabel;
@@ -1685,7 +1688,7 @@
     }); // end loadLeaflet().then
     
     return () => { if (leafletMapRef.current) { leafletMapRef.current.remove(); leafletMapRef.current = null; } delete window._mapStopAction; delete window._mapRedrawLine; delete window._mapStopsOrderRef; delete window._favMapSheet; delete window._favMapAreaClick; setMapBottomSheet(null); };
-  }, [showMapModal, mapMode, mapStops, mapUserLocation, mapSkippedStops, mapFavFilter, mapFavArea, mapFavRadius, mapFocusPlace, customLocations, formData.currentLat, formData.currentLng, formData.radiusMeters, mapVersion]);
+  }, [showMapModal, mapMode, mapStops, mapUserLocation, mapFavFilter, mapFavArea, mapFavRadius, mapFocusPlace, customLocations, formData.currentLat, formData.currentLng, formData.radiusMeters, mapVersion]);
   const [modalImage, setModalImage] = useState(null);
   const [modalImageCtx, setModalImageCtx] = useState(null); // { description, location } for image modal
   const [modalAddingDesc, setModalAddingDesc] = useState(false); // inline description input visible
@@ -4351,7 +4354,7 @@
       setCurrentView('form');
       window.scrollTo(0, 0);
     }
-    setDisabledStops([]);
+    // (skip state used to be cleared here; now it lives on each stop and dies with the route)
     setShowRoutePreview(false);
     setShowRouteMenu(false);
     setManualStops([]);
@@ -6988,16 +6991,8 @@
         .map(s => s.name);
       if (customNames.length > 0) loadReviewAverages(customNames);
       
-      // Clean up disabled stops: keep only those that still exist in the new route
-      if (disabledStops.length > 0) {
-        const newStopNames = new Set(newRoute.stops.map(s => (s.name || '').toLowerCase().trim()));
-        const stillRelevant = disabledStops.filter(name => newStopNames.has(name));
-        if (stillRelevant.length !== disabledStops.length) {
-          console.log('[ROUTE] Cleaned disabled stops:', disabledStops.length, '->', stillRelevant.length);
-          setDisabledStops(stillRelevant);
-        }
-      }
-      
+      // (no separate disabled-stops state to clean — the trailSkipped flag travels with each stop)
+
       console.log('[ROUTE] Route set, staying in form view');
       console.log('[ROUTE] Route object:', newRoute);
       
@@ -7016,7 +7011,7 @@
   };
 
   // Recompute route for map — returns data for immediate use (avoids React state timing issues)
-  // When skipSmartSelect=true, respects current disabledStops (for user manual changes)
+  // When skipSmartSelect=true, respects current trailSkipped flags (for user manual changes)
   // Thin wrapper for backward compatibility — delegates to runSmartPlan
   // Uses routeTypeRef to avoid stale closures in useEffect/setTimeout
   // Keep runSmartPlanRef updated so scheduleReoptimize always uses latest version
@@ -9081,15 +9076,20 @@
   };
 
   const endActiveTrail = () => {
-    // Restore the route snapshot from when the trail started
-    // Mark skipped stops with trailSkipped:true so route results screen can show them grayed
+    // Restore the route snapshot from when the trail started, with skip flags propagated
+    // from the active-trail's stops (matched by name) so the route view shows what the
+    // user skipped during the trail.
     if (activeTrail?.routeSnapshot) {
-      const skippedIdxSet = skippedTrailStops;
+      const skippedNames = new Set(
+        (activeTrail.stops || [])
+          .filter(s => s.trailSkipped)
+          .map(s => (s.name || '').toLowerCase().trim())
+      );
       const restoredRoute = { ...activeTrail.routeSnapshot };
       if (restoredRoute.stops) {
-        restoredRoute.stops = restoredRoute.stops.map((stop, idx) => ({
+        restoredRoute.stops = restoredRoute.stops.map(stop => ({
           ...stop,
-          trailSkipped: skippedIdxSet.has(idx) ? true : undefined
+          trailSkipped: skippedNames.has((stop.name || '').toLowerCase().trim()) ? true : (stop.trailSkipped || undefined)
         }));
       }
       setRoute(restoredRoute);
@@ -9098,7 +9098,6 @@
       setRouteChoiceMade('manual'); // show route results panel
     }
     setActiveTrail(null);
-    setSkippedTrailStops(new Set());
     localStorage.removeItem('foufou_active_trail');
   };
 

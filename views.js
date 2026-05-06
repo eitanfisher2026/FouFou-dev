@@ -513,7 +513,7 @@
             {activeTrail.stops?.length > 0 && (
               <div style={{ background: 'white', borderRadius: '12px', padding: '8px', marginBottom: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
                 <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#6b7280', marginBottom: '4px' }}>
-                  {`📍 ${t('trail.stops')} (${activeTrail.stops.length - skippedTrailStops.size}/${activeTrail.stops.length})`}
+                  {`📍 ${t('trail.stops')} (${activeTrail.stops.filter(s => !s.trailSkipped).length}/${activeTrail.stops.length})`}
                 </div>
                 {/* Legend — active trail interests with their colors */}
                 {(() => {
@@ -546,14 +546,14 @@
                     // Build sequential letter map: only active stops get letters
                     const trailLetterMap = {};
                     let tLetterIdx = 0;
-                    activeTrail.stops.forEach((_, idx) => {
-                      if (!skippedTrailStops.has(idx)) {
+                    activeTrail.stops.forEach((s, idx) => {
+                      if (!s.trailSkipped) {
                         trailLetterMap[idx] = String.fromCharCode(65 + tLetterIdx);
                         tLetterIdx++;
                       }
                     });
                     return activeTrail.stops.slice(0, 12).map((stop, idx) => {
-                    const isSkipped = skippedTrailStops.has(idx);
+                    const isSkipped = !!stop.trailSkipped;
                     const letter = trailLetterMap[idx] || '';
                     const isFavorite = customLocations.find(cl => cl.name === stop.name || (cl.lat && stop.lat && Math.abs(cl.lat - stop.lat) < 0.0001 && Math.abs(cl.lng - stop.lng) < 0.0001));
                     const pk = (stop.name || '').replace(/[.#$/\\[\]]/g, '_');
@@ -658,7 +658,6 @@
                       (pos) => {
                         setMapUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy });
                         setMapStops(activeTrail.stops);
-                        setMapSkippedStops(new Set(skippedTrailStops));
                         setMapMode('stops');
                         setShowMapModal(true);
                       },
@@ -666,7 +665,6 @@
                         // Even without GPS, show the stops on map
                         setMapUserLocation(null);
                         setMapStops(activeTrail.stops);
-                        setMapSkippedStops(new Set(skippedTrailStops));
                         setMapMode('stops');
                         setShowMapModal(true);
                       }
@@ -674,7 +672,6 @@
                   } else {
                     setMapUserLocation(null);
                     setMapStops(activeTrail.stops);
-                    setMapSkippedStops(new Set(skippedTrailStops));
                     setMapMode('stops');
                     setShowMapModal(true);
                   }
@@ -691,7 +688,7 @@
               <button
                 onClick={() => {
                   // Reopen Google Maps with active (non-skipped) stops — always in new tab to avoid "Exit navigation?" prompt
-                  const activeStops = activeTrail.stops?.filter((_, i) => !skippedTrailStops.has(i));
+                  const activeStops = activeTrail.stops?.filter(s => !s.trailSkipped);
                   if (activeStops?.length >= 2) {
                     const coords = activeStops.map(s => `${s.lat},${s.lng}`).join('/');
                     window.open(`https://www.google.com/maps/dir//${coords}/data=!4m2!4m1!3e2`, '_blank');
@@ -828,9 +825,9 @@
                   const onTab = (id) => {
                     setPointSearchResults(null);
                     setPointSearchQuery('');
-                    // Clear disabled stops when switching search type (area ↔ gps ↔ point)
+                    // Clear skip flags from current route when switching search type (area ↔ gps ↔ point)
                     const prevTab = formData.searchMode !== 'radius' ? 'area' : (formData.radiusSource || 'gps') === 'point' ? 'point' : 'gps';
-                    if (id !== prevTab) setDisabledStops([]);
+                    if (id !== prevTab) setRoute(prev => prev ? { ...prev, stops: (prev.stops || []).map(s => ({ ...s, trailSkipped: false })) } : prev);
                     if (id === 'area') {
                       setFormData(prev => ({...prev, searchMode: 'area'}));
                     } else if (id === 'point') {
@@ -1840,7 +1837,11 @@
                                           e.preventDefault();
                                           e.stopPropagation();
                                           const nk = (stop.name || '').toLowerCase().trim();
-                                          const _wasSkip = !disabledStops.includes(nk); setDisabledStops(prev => prev.includes(nk) ? prev.filter(n => n !== nk) : [...prev, nk]); window.BKK.logEvent?.(_wasSkip ? 'stop_skipped' : 'stop_unskipped', { stop_name: stop.name, interest: (stop.interests || [])[0] || null });
+                                          const willSkip = !stop.trailSkipped;
+                                          setRoute(prev => prev ? { ...prev, stops: prev.stops.map(s =>
+                                            (s.name || '').toLowerCase().trim() === nk ? { ...s, trailSkipped: willSkip } : s
+                                          )} : prev);
+                                          window.BKK.logEvent?.(willSkip ? 'stop_skipped' : 'stop_unskipped', { stop_name: stop.name, interest: (stop.interests || [])[0] || null });
                                         }}
                                         style={{
                                           cursor: 'pointer', fontSize: '10px', flexShrink: 0,
@@ -4972,7 +4973,7 @@
               <button
                 onClick={() => {
                   const returnPlace = mapReturnPlace;
-                  setShowMapModal(false); setMapUserLocation(null); setMapSkippedStops(new Set()); setMapBottomSheet(null); setShowFavMapFilter(false); setMapFavFilter(new Set()); setMapFavArea(null); setMapFavRadius(null); setMapFocusPlace(null); setMapReturnPlace(null); setRoute(prev => prev ? {...prev, _refresh: Date.now()} : prev);
+                  setShowMapModal(false); setMapUserLocation(null); setMapBottomSheet(null); setShowFavMapFilter(false); setMapFavFilter(new Set()); setMapFavArea(null); setMapFavRadius(null); setMapFocusPlace(null); setMapReturnPlace(null); setRoute(prev => prev ? {...prev, _refresh: Date.now()} : prev);
                   if (returnPlace) { setTimeout(() => handleEditLocation(returnPlace), 100); }
                 }}
                 style={{ 
@@ -5404,7 +5405,7 @@
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                     <span style={{ flex: 1, fontSize: '9px', color: '#9ca3af', textAlign: 'center' }}>{t('route.tapStopForStart')}</span>
                     <button
-                      onClick={() => { setShowMapModal(false); setMapUserLocation(null); setMapSkippedStops(new Set()); }}
+                      onClick={() => { setShowMapModal(false); setMapUserLocation(null); }}
                       style={{ padding: '8px 24px', borderRadius: '8px', border: 'none', background: '#374151', color: 'white', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
                     >{t('general.close')}</button>
                   </div>
