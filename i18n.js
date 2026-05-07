@@ -464,6 +464,12 @@ form: {
   allowLocationAccess: 'אשר גישה למיקום בדפדפן',
 },
 
+// --- Tips (per-city tips popup, accessible from city dropdown on wizard step 1) ---
+tips: {
+  cityTipsTitle: 'טיפים על העיר',
+  editCityTips: 'ערוך טיפים',
+},
+
 // --- Route ---
 route: {
   navigate: 'נווט',
@@ -1682,6 +1688,11 @@ form: {
   useGpsForRadius: '📍 Press GPS or set location to use radius mode',
   waitingForGps: 'Waiting for location...',
   allowLocationAccess: 'Allow location access in your browser',
+},
+
+tips: {
+  cityTipsTitle: 'City tips',
+  editCityTips: 'Edit tips',
 },
 
 route: {
