@@ -2231,6 +2231,7 @@
   const [hintRecording, setHintRecording] = useState(false);
   const [hintInterimText, setHintInterimText] = useState('');
   const hintEditTextRef = React.useRef('');
+  const hintTextareaRef = React.useRef(null);
   const startHintDictation = () => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { showToast('Speech recognition not supported', 'error'); return; }
@@ -2343,7 +2344,8 @@
     if (!text) return;
     const lang = window.BKK.i18n.currentLang || 'he';
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    speakFromOffset(hintId, text, 0, lang, true);
+    // v3.23.68: TTS reads the human-friendly version — strip markdown markers
+    speakFromOffset(hintId, stripHintMarkdown(text), 0, lang, true);
   };
   const pauseResumeHint = () => {
     if (!('speechSynthesis' in window)) return;
@@ -2366,6 +2368,107 @@
     setIsSpeaking(false); setIsPaused(false);
   };
 
+  // ── v3.23.68: lightweight markdown for hint content ──
+  // Edit-mode toolbar inserts these markers; renderHintMarkdown converts them
+  // to React elements at display time. stripHintMarkdown produces a clean
+  // string for TTS so the reader doesn't say "asterisk asterisk bold".
+  const stripHintMarkdown = (txt) => {
+    if (!txt) return '';
+    return txt
+      .replace(/^\s*[-*]\s+/gm, '')
+      .replace(/^\s*\d+\.\s+/gm, '')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1');
+  };
+  const renderInlineMarkdown = (str, keyBase) => {
+    if (!str) return null;
+    const tokens = [];
+    let i = 0;
+    while (i < str.length) {
+      if (str[i] === '*' && str[i + 1] === '*') {
+        const end = str.indexOf('**', i + 2);
+        if (end !== -1) { tokens.push({ k: 'b', t: str.slice(i + 2, end) }); i = end + 2; continue; }
+      }
+      if (str[i] === '*') {
+        const end = str.indexOf('*', i + 1);
+        if (end !== -1) { tokens.push({ k: 'i', t: str.slice(i + 1, end) }); i = end + 1; continue; }
+      }
+      let j = i;
+      while (j < str.length && str[j] !== '*') j++;
+      if (j > i) { tokens.push({ k: 't', t: str.slice(i, j) }); i = j; } else { tokens.push({ k: 't', t: str[i] }); i++; }
+    }
+    return tokens.map((tk, idx) => {
+      const key = keyBase + ':' + idx;
+      if (tk.k === 'b') return <strong key={key}>{tk.t}</strong>;
+      if (tk.k === 'i') return <em key={key}>{tk.t}</em>;
+      return <React.Fragment key={key}>{tk.t}</React.Fragment>;
+    });
+  };
+  const renderHintMarkdown = (text) => {
+    if (!text) return null;
+    const lines = text.split('\n');
+    const blocks = [];
+    let curList = null;
+    const flush = () => { if (curList) { blocks.push(curList); curList = null; } };
+    lines.forEach((line, idx) => {
+      const bul = line.match(/^\s*[-*]\s+(.*)$/);
+      const num = line.match(/^\s*(\d+)\.\s+(.*)$/);
+      if (bul) {
+        if (!curList || curList.kind !== 'ul') { flush(); curList = { kind: 'ul', items: [] }; }
+        curList.items.push(bul[1]);
+      } else if (num) {
+        if (!curList || curList.kind !== 'ol') { flush(); curList = { kind: 'ol', items: [] }; }
+        curList.items.push(num[2]);
+      } else {
+        flush();
+        blocks.push({ kind: 'p', text: line, idx });
+      }
+    });
+    flush();
+    return blocks.map((b, i) => {
+      if (b.kind === 'p') return <div key={'p' + i} style={{ minHeight: b.text ? undefined : '0.7em', marginBottom: b.text ? '4px' : '0' }}>{renderInlineMarkdown(b.text, 'p' + i)}</div>;
+      if (b.kind === 'ul') return <ul key={'u' + i} style={{ paddingInlineStart: '1.4em', margin: '4px 0', listStyleType: 'disc' }}>{b.items.map((it, j) => <li key={j}>{renderInlineMarkdown(it, 'u' + i + '-' + j)}</li>)}</ul>;
+      if (b.kind === 'ol') return <ol key={'o' + i} style={{ paddingInlineStart: '1.4em', margin: '4px 0', listStyleType: 'decimal' }}>{b.items.map((it, j) => <li key={j}>{renderInlineMarkdown(it, 'o' + i + '-' + j)}</li>)}</ol>;
+      return null;
+    });
+  };
+  // Toolbar helpers — wrap selection (or insert markers around the cursor)
+  const wrapSelection = (before, after) => {
+    const ta = hintTextareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const txt = hintEditTextRef.current || hintEditText;
+    const sel = txt.slice(start, end);
+    const next = txt.slice(0, start) + before + sel + after + txt.slice(end);
+    setHintEditText(next);
+    hintEditTextRef.current = next;
+    setTimeout(() => {
+      ta.focus();
+      const a = start + before.length;
+      const b = a + sel.length;
+      ta.setSelectionRange(a, b);
+    }, 0);
+  };
+  const prefixCurrentLine = (prefix) => {
+    const ta = hintTextareaRef.current;
+    if (!ta) return;
+    const cursor = ta.selectionStart;
+    const txt = hintEditTextRef.current || hintEditText;
+    const lineStart = txt.lastIndexOf('\n', cursor - 1) + 1;
+    const existing = txt.slice(lineStart);
+    // Toggle: if line already starts with this prefix, remove it
+    if (existing.startsWith(prefix)) {
+      const next = txt.slice(0, lineStart) + existing.slice(prefix.length);
+      setHintEditText(next); hintEditTextRef.current = next;
+      setTimeout(() => { ta.focus(); ta.setSelectionRange(Math.max(lineStart, cursor - prefix.length), Math.max(lineStart, cursor - prefix.length)); }, 0);
+    } else {
+      const next = txt.slice(0, lineStart) + prefix + txt.slice(lineStart);
+      setHintEditText(next); hintEditTextRef.current = next;
+      setTimeout(() => { ta.focus(); ta.setSelectionRange(cursor + prefix.length, cursor + prefix.length); }, 0);
+    }
+  };
+
   // Render a context-sensitive hint bar
   const [openHintPopup, setOpenHintPopup] = useState(null);
   const [hintDragPos, setHintDragPos] = React.useState({ x: 0, y: 0 });
@@ -2385,12 +2488,30 @@
     // Editor/admin editing mode
     if (hintEditId === hintId) return (
       <div style={{ margin: '4px 0', padding: '8px', background: '#eff6ff', borderRadius: '8px', border: '1px solid #93c5fd' }}>
-        <textarea value={hintEditText + (hintInterimText ? ' ' + hintInterimText : '')} 
+        {/* v3.23.68: formatting toolbar — bold, italic, bullet list, numbered list */}
+        <div style={{ display: 'flex', gap: '4px', marginBottom: '6px', flexWrap: 'wrap', direction: isRTL ? 'rtl' : 'ltr' }}>
+          <button type="button" onMouseDown={(e) => { e.preventDefault(); wrapSelection('**', '**'); }}
+            title={isRTL ? 'מודגש' : 'Bold'}
+            style={{ padding: '2px 8px', fontSize: '12px', fontWeight: 'bold', background: 'white', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>B</button>
+          <button type="button" onMouseDown={(e) => { e.preventDefault(); wrapSelection('*', '*'); }}
+            title={isRTL ? 'נטוי' : 'Italic'}
+            style={{ padding: '2px 8px', fontSize: '12px', fontStyle: 'italic', background: 'white', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>I</button>
+          <button type="button" onMouseDown={(e) => { e.preventDefault(); prefixCurrentLine('- '); }}
+            title={isRTL ? 'רשימה עם נקודות' : 'Bullet list'}
+            style={{ padding: '2px 8px', fontSize: '12px', background: 'white', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>• {isRTL ? 'רשימה' : 'List'}</button>
+          <button type="button" onMouseDown={(e) => { e.preventDefault(); prefixCurrentLine('1. '); }}
+            title={isRTL ? 'רשימה ממוספרת' : 'Numbered list'}
+            style={{ padding: '2px 8px', fontSize: '12px', background: 'white', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>1. {isRTL ? 'רשימה' : 'List'}</button>
+        </div>
+        <textarea value={hintEditText + (hintInterimText ? ' ' + hintInterimText : '')}
           readOnly={!!hintInterimText}
           onChange={(e) => { if (!hintInterimText) { setHintEditText(e.target.value); hintEditTextRef.current = e.target.value; } }}
           onFocus={(e) => { e.target.style.minHeight = Math.max(120, e.target.scrollHeight) + 'px'; }}
-          ref={(el) => { if (el) { el.style.height = 'auto'; el.style.height = Math.max(120, el.scrollHeight) + 'px'; } }}
+          ref={(el) => { hintTextareaRef.current = el; if (el) { el.style.height = 'auto'; el.style.height = Math.max(120, el.scrollHeight) + 'px'; } }}
           style={{ width: '100%', minHeight: '120px', padding: '6px', fontSize: '12px', border: '1px solid #93c5fd', borderRadius: '6px', resize: 'vertical', direction: isRTL ? 'rtl' : 'ltr', userSelect: 'text', WebkitUserSelect: 'text', touchAction: 'auto' }} />
+        <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px', direction: isRTL ? 'rtl' : 'ltr' }}>
+          {isRTL ? 'טיפ: סמנו טקסט ולחצו B/I, או עמדו על שורה ולחצו על סוג הרשימה' : 'Tip: select text and click B/I, or place cursor on a line and click a list button'}
+        </div>
         <div style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
           <button onClick={() => saveHint(hintId, hintEditText)}
             style={{ padding: '3px 10px', fontSize: '11px', fontWeight: 'bold', background: '#22c55e', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>💾</button>
@@ -2489,7 +2610,7 @@
               onMouseDown={(e) => e.stopPropagation()}
               style={{ padding: '12px 16px', lineHeight: '1.7', maxHeight: '50vh', overflowY: 'auto', userSelect: 'text', cursor: 'text', touchAction: 'pan-y', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}
             >
-              {txt}
+              {renderHintMarkdown(txt)}
             </div>
           </div>
       </>)}
