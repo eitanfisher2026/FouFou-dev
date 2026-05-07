@@ -152,12 +152,12 @@ def build():
     # Pre-compile: JSX → plain JS → minified (removes browser Babel dependency)
     import subprocess, shutil
     if shutil.which('node') and os.path.exists('compile.js') and os.path.exists('node_modules'):
-        result = subprocess.run(['node', 'compile.js', 'app-code.js'], capture_output=True, text=True)
+        result = subprocess.run(['node', 'compile.js', 'app-code.js'], capture_output=True, text=True, encoding='utf-8', errors='replace')
         if result.returncode == 0:
-            print(result.stdout.strip())
+            print((result.stdout or '').strip())
         else:
             print(f"⚠️  compile.js failed — shipping JSX source (browser Babel fallback active)")
-            print(result.stderr[:200])
+            print((result.stderr or '')[:200])
     else:
         # Try fallback: use our installed Babel at /tmp/babel-test
         import os as _os

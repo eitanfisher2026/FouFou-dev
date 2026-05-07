@@ -7492,7 +7492,7 @@
       database.ref(`cities/${selectedCityId}/routes`).push(stripped)
         .then((ref) => {
           console.log('[FIREBASE] Route saved');
-          const savedWithFbId = { ...routeToSave, firebaseId: ref.key };
+          const savedWithFbId = { ...routeToSave, id: ref.key, firebaseId: ref.key };
           setRoute(savedWithFbId);
           setEditingRoute({...savedWithFbId});
           setRouteDialogMode('add');
