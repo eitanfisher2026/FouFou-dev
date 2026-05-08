@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.70
+// FouFou app-data.js v3.23.71
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -3681,7 +3681,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.70';
+window.BKK.VERSION = '3.23.71';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -3715,7 +3715,8 @@ window.BKK.cityRegistry = {
   bangkok: { id: 'bangkok', name: 'בנגקוק', nameEn: 'Bangkok', country: 'Thailand', icon: '🛺', secondaryIcon: '🍜', file: 'city-bangkok.js' },
   telaviv: { id: 'gushdan', name: 'תל אביב', nameEn: 'Tel Aviv', country: 'Israel', icon: '🏖️', file: 'city-telaviv.js' },
   singapore: { id: 'singapore', name: 'סינגפור', nameEn: 'Singapore', country: 'Singapore', icon: '🦁', secondaryIcon: '🌳', file: 'city-singapore.js' },
-  malaga: { id: 'malaga', name: 'מלגה', nameEn: 'Malaga', country: 'Spain', icon: '☀️', secondaryIcon: '☀️', file: 'city-malaga.js' }
+  malaga: { id: 'malaga', name: 'מלגה', nameEn: 'Malaga', country: 'Spain', icon: '☀️', secondaryIcon: '☀️', file: 'city-malaga.js' },
+  rome: { id: 'rome', name: 'רומא', nameEn: 'Rome', country: 'Italy', icon: '🏛️', secondaryIcon: '🍕', file: 'city-rome.js' }
 };
 
 window.BKK.cities = {};
