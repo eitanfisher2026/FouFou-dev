@@ -491,7 +491,11 @@
       radiusCenterStop.isRadiusCenter = false;
     }
     const pinnedFirstStop = (radiusCenterStop && !userOverrodeStart) ? radiusCenterStop : null;
-    const optimized = optimizeStopOrder(selected, autoStart, isCircular, pinnedFirstStop);
+    // v3.23.69: when the user has fixed the order (manually reordered, or loaded a saved trail),
+    // keep stops in their existing order — never re-run the TSP optimizer.
+    const optimized = userManualOrderRef.current
+      ? (pinnedFirstStop ? [pinnedFirstStop, ...selected.filter(s => s !== pinnedFirstStop)] : selected.slice())
+      : optimizeStopOrder(selected, autoStart, isCircular, pinnedFirstStop);
     
     // For linear without explicit start: use first optimized stop
     if (!autoStart && optimized.length > 0) {
@@ -7735,7 +7739,11 @@
   }, [focusRouteId, currentView]);
 
   const loadSavedRoute = (savedRoute) => {
-    setRoute(savedRoute);
+    // v3.23.69: saved trails are frozen — the order the user saved is the order they get.
+    // Marking the route optimized=true blocks the auto-compute effect, and setting
+    // userManualOrderRef pins runSmartPlan so any later reoptimize keeps the order.
+    userManualOrderRef.current = true;
+    setRoute({ ...savedRoute, optimized: true });
     // v3.23.23: remember where this came from so "Back to Saved Trails" can focus the right row
     setRouteOpenedFromId(savedRoute?.firebaseId || null);
     // Restore startPoint: prefer startPointCoords.address (validated), then route.startPoint, then preferences
