@@ -5,7 +5,7 @@ window.BKK.cityData.paris = {
   "name": "פריז",
   "nameEn": "Paris",
   "country": "France",
-  "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWYyOTM3IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48bGluZSB4MT0iMTYiIHkxPSIzIiB4Mj0iMTYiIHkyPSIxIi8+PHBhdGggZD0iTTMgMzBMMTAgMjJMMTMgMTRMMTUgOEwxNiAzTDE3IDhMMTkgMTRMMjIgMjJMMjkgMzAiLz48bGluZSB4MT0iMTAiIHkxPSIyMiIgeDI9IjIyIiB5Mj0iMjIiLz48bGluZSB4MT0iMTMiIHkxPSIxNCIgeDI9IjE5IiB5Mj0iMTQiLz48L3N2Zz4K",
+  "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiA0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxLjYiIHI9IjAuNiIgZmlsbD0iIzAwMCIvPjxsaW5lIHgxPSIxNiIgeTE9IjIuNCIgeDI9IjE2IiB5Mj0iNSIvPjxwYXRoIGQ9Ik0xNiA1IEwxNCAxMCBMMTggMTAgWiIvPjxwYXRoIGQ9Ik0xNCAxMCBMMTMgMjIgTDE5IDIyIEwxOCAxMCIvPjxsaW5lIHgxPSIxNiIgeTE9IjEwIiB4Mj0iMTYiIHkyPSIyMiIvPjxsaW5lIHgxPSIxMyIgeTE9IjE0IiB4Mj0iMTkiIHkyPSIxNCIvPjxsaW5lIHgxPSIxMyIgeTE9IjE4IiB4Mj0iMTkiIHkyPSIxOCIvPjxsaW5lIHgxPSIxMyIgeTE9IjIyIiB4Mj0iMTkiIHkyPSIyMiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iMTMiIHkxPSIyMyIgeDI9IjE5IiB5Mj0iMjMiLz48cGF0aCBkPSJNMTMgMjMgTDExIDM1IEwyMSAzNSBMMTkgMjMiLz48bGluZSB4MT0iMTQiIHkxPSIyMyIgeDI9IjEzLjMiIHkyPSIzNSIvPjxsaW5lIHgxPSIxOCIgeTE9IjIzIiB4Mj0iMTguNyIgeTI9IjM1Ii8+PGxpbmUgeDE9IjE2IiB5MT0iMjMiIHgyPSIxNiIgeTI9IjM1Ii8+PGxpbmUgeDE9IjEyLjUiIHkxPSIyOSIgeDI9IjE5LjUiIHkyPSIyOSIvPjxsaW5lIHgxPSIxMiIgeTE9IjMyIiB4Mj0iMjAiIHkyPSIzMiIvPjxsaW5lIHgxPSIxMSIgeTE9IjM1IiB4Mj0iMjEiIHkyPSIzNSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iMTEiIHkxPSIzNiIgeDI9IjIxIiB5Mj0iMzYiLz48bGluZSB4MT0iMTEiIHkxPSIzNiIgeDI9IjYiIHkyPSI0NiIvPjxsaW5lIHgxPSIyMSIgeTE9IjM2IiB4Mj0iMjYiIHkyPSI0NiIvPjxsaW5lIHgxPSIxNCIgeTE9IjM2IiB4Mj0iMTEiIHkyPSI0NiIvPjxsaW5lIHgxPSIxOCIgeTE9IjM2IiB4Mj0iMjEiIHkyPSI0NiIvPjxwYXRoIGQ9Ik0xMSAzNiBRIDE2IDQ0IDIxIDM2Ii8+PHBhdGggZD0iTTExIDM2IFEgMTIgNDEgMTQgMzYiLz48cGF0aCBkPSJNMTggMzYgUSAyMCA0MSAyMSAzNiIvPjxsaW5lIHgxPSIzIiB5MT0iNDYiIHgyPSIyOSIgeTI9IjQ2IiBzdHJva2Utd2lkdGg9IjEuMyIvPjwvc3ZnPgo=",
   "secondaryIcon": "🥐",
   "theme": {
     "color": "#1f2937",
@@ -67,18 +67,6 @@ window.BKK.cityData.paris = {
       "lat": 48.8527,
       "lng": 2.3195,
       "radius": 1400,
-      "size": "medium",
-      "safety": "safe"
-    },
-    {
-      "id": "_____7",
-      "label": "רובע 15",
-      "labelEn": "Quartier 15",
-      "desc": "רובע מגורים, בתי קפה מקומיים",
-      "descEn": "Quiet residential, local cafés",
-      "lat": 48.8365,
-      "lng": 2.2913,
-      "radius": 2000,
       "size": "medium",
       "safety": "safe"
     },
@@ -163,6 +151,18 @@ window.BKK.cityData.paris = {
       "lat": 48.8252,
       "lng": 2.3294,
       "radius": 1500,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____7",
+      "label": "רובע 15",
+      "labelEn": "Quartier 15",
+      "desc": "רובע מגורים, בתי קפה מקומיים",
+      "descEn": "Quiet residential, local cafés",
+      "lat": 48.8365,
+      "lng": 2.2913,
+      "radius": 2000,
       "size": "medium",
       "safety": "safe"
     },
