@@ -1451,7 +1451,7 @@
                           return (
                             <label key={city.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 6px', cursor: 'pointer', borderRadius: '6px', marginBottom: '2px', background: isVisible ? '#f0fdf4' : '#fafafa' }}>
                               <input type="checkbox" checked={isVisible} onChange={() => toggleCity(city.id)} style={{ cursor: 'pointer', width: '14px', height: '14px' }} />
-                              <span style={{ fontSize: '14px' }}>{city.icon?.startsWith?.('data:') ? '🏙️' : (city.icon || '🏙️')}</span>
+                              <span style={{ fontSize: '14px', display: 'inline-flex', alignItems: 'center' }}>{city.icon?.startsWith?.('data:') ? <img src={city.icon} alt="" style={{ height: '1.2em', width: 'auto', verticalAlign: 'middle', objectFit: 'contain' }} /> : (city.icon || '🏙️')}</span>
                               <span style={{ fontSize: '12px', fontWeight: isVisible ? 'bold' : 'normal', color: isVisible ? '#166534' : '#9ca3af' }}>{tLabel(city)}</span>
                             </label>
                           );

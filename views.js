@@ -1211,7 +1211,7 @@
                             onClick={() => setShowCityDropdown(prev => !prev)}
                             style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '12px', border: '1.5px solid #e5e7eb', fontSize: '12px', fontWeight: 'bold', color: '#374151', background: 'white', cursor: 'pointer' }}
                           >
-                            <span>{selectedCity?.icon?.startsWith?.('data:') ? '🏙️' : (selectedCity?.icon || '🏙️')} {tLabel(selectedCity)}</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{selectedCity?.icon?.startsWith?.('data:') ? <img src={selectedCity.icon} alt="" style={{ height: '1.3em', width: 'auto', verticalAlign: 'middle', objectFit: 'contain' }} /> : (selectedCity?.icon || '🏙️')} {tLabel(selectedCity)}</span>
                             <span style={{ fontSize: '10px', color: '#9ca3af' }}>▾</span>
                           </button>
                           {showCityDropdown && (<>
@@ -1223,7 +1223,7 @@
                                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px', width: '100%', padding: '12px 16px', background: city.id === selectedCityId ? 'rgba(255,255,255,0.1)' : 'transparent', border: 'none', color: 'white', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', direction: 'rtl' }}
                                 >
                                   <span>{tLabel(city)}</span>
-                                  <span>{city.icon?.startsWith?.('data:') ? '🏙️' : (city.icon || '🏙️')}</span>
+                                  <span style={{ display: 'inline-flex', alignItems: 'center' }}>{city.icon?.startsWith?.('data:') ? <img src={city.icon} alt="" style={{ height: '1.4em', width: 'auto', verticalAlign: 'middle', objectFit: 'contain', filter: 'brightness(0) invert(1)' }} /> : (city.icon || '🏙️')}</span>
                                   {city.id === selectedCityId && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'white', display: 'inline-block', flexShrink: 0 }} />}
                                 </button>
                               ))}
@@ -3248,7 +3248,7 @@
                           />
                         </React.Fragment>
                       ) : (
-                        <span style={{ fontSize: '13px', fontWeight: 'bold' }}>{city.icon?.startsWith?.('data:') ? '🏙️' : (city.icon || '🏙️')} {tLabel(city)}</span>
+                        <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{city.icon?.startsWith?.('data:') ? <img src={city.icon} alt="" style={{ height: '1.3em', width: 'auto', verticalAlign: 'middle', objectFit: 'contain' }} /> : (city.icon || '🏙️')} {tLabel(city)}</span>
                       )}
                       <span style={{ fontSize: '10px', color: '#6b7280' }}>{city.areas?.length || 0} {t('general.areas')} · {city.interests?.length || 0} {t('nav.myInterests')}</span>
                           <button onClick={() => {
@@ -5794,7 +5794,7 @@
                       <input type="checkbox" checked={!isHidden}
                         onChange={() => toggleCityForInterest(i.id, city.id)}
                         style={{ cursor: 'pointer', width: '16px', height: '16px' }} />
-                      <span style={{ fontSize: '18px' }}>{city.icon?.startsWith?.('data:') ? '🏙️' : (city.icon || '🏙️')}</span>
+                      <span style={{ fontSize: '18px', display: 'inline-flex', alignItems: 'center' }}>{city.icon?.startsWith?.('data:') ? <img src={city.icon} alt="" style={{ height: '1.2em', width: 'auto', verticalAlign: 'middle', objectFit: 'contain' }} /> : (city.icon || '🏙️')}</span>
                       <span style={{ fontSize: '14px', fontWeight: '500' }}>{tLabel(city) || city.nameEn || city.id}</span>
                       <span style={{ marginRight: 'auto', fontSize: '11px', color: isHidden ? '#9ca3af' : '#16a34a' }}>{isHidden ? 'מוסתר' : 'גלוי'}</span>
                     </label>

@@ -3596,7 +3596,11 @@
         if (!window.BKK.cities[selectedCityId] || !g) return;
         const city = window.BKK.cities[selectedCityId];
         const regKey = Object.keys(window.BKK.cityRegistry || {}).find(k => window.BKK.cityRegistry[k].id === selectedCityId) || selectedCityId;
-        if (g.icon) { city.icon = g.icon; if (window.BKK.cityRegistry[regKey]) window.BKK.cityRegistry[regKey].icon = g.icon; }
+        // v3.23.74: don't let a Firebase emoji clobber a static data: URI (custom SVG/PNG icon).
+        // Static SVG wins unless Firebase also has a data: icon (i.e. user explicitly overrode it).
+        const staticIsData = (city.icon || '').startsWith && city.icon.startsWith('data:');
+        const firebaseIsData = (g.icon || '').startsWith && g.icon.startsWith('data:');
+        if (g.icon && (!staticIsData || firebaseIsData)) { city.icon = g.icon; if (window.BKK.cityRegistry[regKey]) window.BKK.cityRegistry[regKey].icon = g.icon; }
         if (g.iconLeft) { if (!city.theme) city.theme = {}; city.theme.iconLeft = g.iconLeft; }
         if (g.iconRight) { if (!city.theme) city.theme = {}; city.theme.iconRight = g.iconRight; }
         if (g.color) { if (!city.theme) city.theme = {}; city.theme.color = g.color; }
