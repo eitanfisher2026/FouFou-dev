@@ -9398,10 +9398,16 @@
     }
 
     if (action === 'accept') {
-      // From addGooglePlaceToCustom: open the existing location for editing
+      // v3.24.0: "Already in your list — open and rate" routes to the rating-only
+      // dialog (openReviewDialog), not the full editor. The button's contract is
+      // "rate", and we don't want the user accidentally changing the existing
+      // place's name/description/interests. Also unconditionally close any
+      // capture/add forms so they don't linger underneath.
       if (dedupConfirm.pendingGooglePlace) {
         setDedupConfirm(null);
-        setTimeout(() => handleEditLocation(match), 200);
+        setShowAddLocationDialog(false);
+        setShowQuickCapture(false);
+        setTimeout(() => openReviewDialog(match), 200);
         showToast(`📍 "${match.name}" ${t('dedup.alreadyExists')}`, 'info');
         return;
       }      if (type === 'google') {
@@ -9445,14 +9451,15 @@
           }).join(', ');
           showToast(`🔗 "${match.name}" +${interestNames}`, 'success');
         }
-        // Close dedup and open the FouFou place info popup on the existing match
+        // v3.24.0: route to the rating-only dialog. Previously this opened the
+        // image viewer (setShowImageModal) AND left showAddLocationDialog open
+        // underneath — so the user landed back on the new-place form when the
+        // viewer closed. Now we close every capture/add surface and route to
+        // the rating dialog, matching the button's "open and rate" contract.
         setDedupConfirm(null);
-        if (closeQuickCapture) setShowQuickCapture(false);
-        setTimeout(() => {
-          setModalImage(finalMatch.uploadedImage || (finalMatch.imageUrls && finalMatch.imageUrls[0]) || '__placeholder__');
-          setModalImageCtx({ description: finalMatch.description, location: finalMatch });
-          setShowImageModal(true);
-        }, 120);
+        setShowAddLocationDialog(false);
+        setShowQuickCapture(false);
+        setTimeout(() => openReviewDialog(finalMatch), 120);
         return;
       }
     } else if (action === 'addNew') {

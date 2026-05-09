@@ -3769,7 +3769,18 @@
                   <div style={{ width: '24px' }}></div>
                 </div>
               </div>
-              
+
+              {/* v3.24.0: draft hint — only the creator and editors/admins can ever
+                  reach this dialog with a draft place, since drafts are filtered out
+                  for everyone else. Helps avoid confusion when rating something that
+                  isn't yet visible to other users. */}
+              {reviewDialog.place?.locked === false && (
+                <div style={{ padding: '6px 12px', background: '#fffbeb', borderBottom: '1px solid #fde68a', fontSize: '11px', color: '#92400e', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <span>🟡</span>
+                  <span>{window.BKK.i18n.isRTL() ? 'מקום זה הוא טיוטה — רק את/ה ועורכים יכולים לראות אותו' : 'This place is a draft — only you and editors can see it'}</span>
+                </div>
+              )}
+
               {/* My Review Section */}
               <div className="p-3 border-b bg-blue-50">
                 <h4 className="text-xs font-bold text-blue-700 mb-2">⭐ {t('reviews.myReview')}</h4>
