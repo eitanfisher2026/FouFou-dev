@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.23.71
+// FouFou app-data.js v3.23.72
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -3270,6 +3270,244 @@ window.BKK.cityData.malaga = {
   "boundaryFactor": 1.2
 };
 
+// City data: Paris
+window.BKK.cityData = window.BKK.cityData || {};
+window.BKK.cityData.paris = {
+  "id": "paris",
+  "name": "פריז",
+  "nameEn": "Paris",
+  "country": "France",
+  "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWYyOTM3IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48bGluZSB4MT0iMTYiIHkxPSIzIiB4Mj0iMTYiIHkyPSIxIi8+PHBhdGggZD0iTTMgMzBMMTAgMjJMMTMgMTRMMTUgOEwxNiAzTDE3IDhMMTkgMTRMMjIgMjJMMjkgMzAiLz48bGluZSB4MT0iMTAiIHkxPSIyMiIgeDI9IjIyIiB5Mj0iMjIiLz48bGluZSB4MT0iMTMiIHkxPSIxNCIgeDI9IjE5IiB5Mj0iMTQiLz48L3N2Zz4K",
+  "secondaryIcon": "🥐",
+  "theme": {
+    "color": "#1f2937",
+    "iconLeft": "🥐",
+    "iconRight": "🎨"
+  },
+  "active": false,
+  "distanceMultiplier": 1.2,
+  "dayStartHour": 7,
+  "nightStartHour": 18,
+  "center": {
+    "lat": 48.857547499999995,
+    "lng": 2.3513764999999998
+  },
+  "allCityRadius": 13633,
+  "areas": [
+    {
+      "id": "arrondissement_of_paris",
+      "label": "רובע 1 & 2",
+      "labelEn": "Quartier 1 & 2",
+      "desc": "הלובר, טווילרי, פריז המלכותית",
+      "descEn": "Louvre, Tuileries, royal Paris",
+      "lat": 48.8667,
+      "lng": 2.3367,
+      "radius": 1000,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____3___4",
+      "label": "רובע 3 & 4",
+      "labelEn": "Quartier 3 & 4",
+      "desc": "המארה, נוטרדאם, סמטאות תוססות",
+      "descEn": "Marais, Notre Dame, lively cafés",
+      "lat": 48.8595,
+      "lng": 2.3566,
+      "radius": 1000,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____5",
+      "label": "רובע 5",
+      "labelEn": "Quartier 5",
+      "desc": "הרובע הלטיני, סורבון, פנתאון",
+      "descEn": "Latin Quarter, Sorbonne, Pantheon",
+      "lat": 48.8419,
+      "lng": 2.3521,
+      "radius": 1200,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____6",
+      "label": "רובע 6 & 7",
+      "labelEn": "Quartier 6 & 7",
+      "desc": "סן-ז'רמן ומגדל אייפל",
+      "descEn": "Saint-Germain, Eiffel Tower",
+      "lat": 48.8527,
+      "lng": 2.3195,
+      "radius": 1400,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____7",
+      "label": "רובע 15",
+      "labelEn": "Quartier 15",
+      "desc": "רובע מגורים, בתי קפה מקומיים",
+      "descEn": "Quiet residential, local cafés",
+      "lat": 48.8365,
+      "lng": 2.2913,
+      "radius": 2000,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____8",
+      "label": "רובע 8",
+      "labelEn": "Quartier 8",
+      "desc": "שאנז-אליזה ושער הניצחון",
+      "descEn": "Champs-Élysées, Arc de Triomphe",
+      "lat": 48.8717,
+      "lng": 2.3088,
+      "radius": 1000,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____9",
+      "label": "רובע 9",
+      "labelEn": "Quartier 9",
+      "desc": "האופרה, תיאטרונים וקניות גדולות",
+      "descEn": "Opera, theaters, grand shopping",
+      "lat": 48.878,
+      "lng": 2.3349,
+      "radius": 800,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____10",
+      "label": "רובע 10",
+      "labelEn": "Quartier 10",
+      "desc": "תעלת סן-מרטן, רחובות אוכל",
+      "descEn": "Canal Saint-Martin, foodie streets",
+      "lat": 48.8765,
+      "lng": 2.36,
+      "radius": 1000,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____11",
+      "label": "רובע 11",
+      "labelEn": "Quartier 11",
+      "desc": "הבסטיליה, ברים וחיי לילה",
+      "descEn": "Bastille bars, lively nightlife",
+      "lat": 48.8595,
+      "lng": 2.3823,
+      "radius": 1100,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____12",
+      "label": "רובע 12",
+      "labelEn": "Quartier 12",
+      "desc": "יער ונסן וברסי",
+      "descEn": "Bois de Vincennes, Bercy",
+      "lat": 48.8426,
+      "lng": 2.3926,
+      "radius": 1600,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____13",
+      "label": "רובע 13",
+      "labelEn": "Quartier 13",
+      "desc": "צ'יינה טאון ואדריכלות מודרנית",
+      "descEn": "Chinatown, modern architecture",
+      "lat": 48.824,
+      "lng": 2.3652,
+      "radius": 1500,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____14",
+      "label": "רובע 14",
+      "labelEn": "Quartier 14",
+      "desc": "מונפרנס וקטקומבות",
+      "descEn": "Montparnasse, Catacombs",
+      "lat": 48.8252,
+      "lng": 2.3294,
+      "radius": 1500,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____16",
+      "label": "רובע 16",
+      "labelEn": "Quartier 16",
+      "desc": "טרוקדרו, מוזיאונים, שגרירויות",
+      "descEn": "Trocadéro, museums, embassies",
+      "lat": 48.8647,
+      "lng": 2.2532,
+      "radius": 3000,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____17",
+      "label": "רובע 17",
+      "labelEn": "Quartier 17",
+      "desc": "בטיניול ושווקי שכונה",
+      "descEn": "Batignolles, neighborhood markets",
+      "lat": 48.8932,
+      "lng": 2.2999,
+      "radius": 1900,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____18",
+      "label": "רובע 18",
+      "labelEn": "Quartier 18",
+      "desc": "מונמרטר, סקרה-קר ואמנים",
+      "descEn": "Montmartre, Sacré-Cœur, artists",
+      "lat": 48.8966,
+      "lng": 2.348,
+      "radius": 1700,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____19",
+      "label": "רובע 19",
+      "labelEn": "Quartier 19",
+      "desc": "פארק שומון ולה ווילט",
+      "descEn": "Buttes-Chaumont, La Villette",
+      "lat": 48.8868,
+      "lng": 2.395,
+      "radius": 2000,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "_____20",
+      "label": "רובע 20",
+      "labelEn": "Quartier 20",
+      "desc": "פר לאשז ובל-וויל הרב-תרבותית",
+      "descEn": "Père Lachaise, multicultural Belleville",
+      "lat": 48.8597,
+      "lng": 2.4239,
+      "radius": 1900,
+      "size": "medium",
+      "safety": "safe"
+    }
+  ],
+  "interests": [],
+  "interestToGooglePlaces": {},
+  "textSearchInterests": {
+    "graffiti": "street art"
+  },
+  "interestTooltips": {},
+  "systemRoutes": []
+};
+
 // City data: Rome
 window.BKK.cityData = window.BKK.cityData || {};
 window.BKK.cityData.rome = {
@@ -3298,8 +3536,8 @@ window.BKK.cityData.rome = {
       "id": "centro_storico",
       "label": "המרכז המודרני ",
       "labelEn": "Centro moderno",
-      "desc": "",
-      "descEn": "",
+      "desc": "רחובות שופינג מודרניים וכיכרות",
+      "descEn": "Modern shopping streets and squares",
       "lat": 41.901,
       "lng": 12.5309,
       "radius": 1400,
@@ -3310,8 +3548,8 @@ window.BKK.cityData.rome = {
       "id": "rome",
       "label": "הקולוסיאום",
       "labelEn": "Colosseo",
-      "desc": "",
-      "descEn": "",
+      "desc": "קולוסיאום, פורום רומאי, פלטינוס",
+      "descEn": "Colosseum, Roman Forum, Palatine",
       "lat": 41.8938,
       "lng": 12.5035,
       "radius": 1400,
@@ -3322,8 +3560,8 @@ window.BKK.cityData.rome = {
       "id": "rione_xi_sant_angelo",
       "label": "קריית הוותיקן ",
       "labelEn": "Vaticano",
-      "desc": "",
-      "descEn": "",
+      "desc": "כיכר פטרוס ומוזיאוני הוותיקן",
+      "descEn": "St. Peter's, Vatican Museums",
       "lat": 41.9079,
       "lng": 12.4592,
       "radius": 1100,
@@ -3334,8 +3572,8 @@ window.BKK.cityData.rome = {
       "id": "sant_eustachio",
       "label": "טרסטוורה ",
       "labelEn": "Trastevere",
-      "desc": "",
-      "descEn": "",
+      "desc": "סמטאות, טרטוריות וחיי לילה",
+      "descEn": "Narrow lanes, trattorias, nightlife",
       "lat": 41.8849,
       "lng": 12.4554,
       "radius": 1600,
@@ -3346,8 +3584,8 @@ window.BKK.cityData.rome = {
       "id": "villa_borghese",
       "label": "רומא העתיקה ",
       "labelEn": "Vecchia Roma",
-      "desc": "",
-      "descEn": "",
+      "desc": "רובע היסטורי, רומא הקלאסית",
+      "descEn": "Historic quarter, classic Rome",
       "lat": 41.8969,
       "lng": 12.4777,
       "radius": 900,
@@ -3358,8 +3596,8 @@ window.BKK.cityData.rome = {
       "id": "piazza_navona",
       "label": "צפון-מרכז",
       "labelEn": "Centro Nord",
-      "desc": "",
-      "descEn": "",
+      "desc": "שדרות אלגנטיות ובתי קפה",
+      "descEn": "Elegant boulevards, grand cafés",
       "lat": 41.938,
       "lng": 12.4904,
       "radius": 3500,
@@ -3370,8 +3608,8 @@ window.BKK.cityData.rome = {
       "id": "monti",
       "label": "אבנטינו-טסטאצ'יו",
       "labelEn": "Aventino-Testaccio",
-      "desc": "",
-      "descEn": "",
+      "desc": "גבעות שקטות וסצנת אוכל",
+      "descEn": "Quiet hills, lively food scene",
       "lat": 41.8734,
       "lng": 12.4918,
       "radius": 1600,
@@ -3382,8 +3620,8 @@ window.BKK.cityData.rome = {
       "id": "piazza_del_popolo",
       "label": "אסקווילינו-סן ג'ובאני",
       "labelEn": "Esquilino-San Giovanni",
-      "desc": "",
-      "descEn": "",
+      "desc": "שווקים מגוונים ובזיליקות",
+      "descEn": "Diverse markets and basilicas",
       "lat": 41.8877,
       "lng": 12.5642,
       "radius": 2000,
@@ -3394,8 +3632,8 @@ window.BKK.cityData.rome = {
       "id": "spanish_steps",
       "label": "נומנטאנו ",
       "labelEn": "Nomentano",
-      "desc": "",
-      "descEn": "",
+      "desc": "רובע מגורים מוצל ופארקים",
+      "descEn": "Leafy residential streets, parks",
       "lat": 41.9288,
       "lng": 12.5615,
       "radius": 2500,
@@ -3681,7 +3919,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.23.71';
+window.BKK.VERSION = '3.23.72';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -3716,7 +3954,8 @@ window.BKK.cityRegistry = {
   telaviv: { id: 'gushdan', name: 'תל אביב', nameEn: 'Tel Aviv', country: 'Israel', icon: '🏖️', file: 'city-telaviv.js' },
   singapore: { id: 'singapore', name: 'סינגפור', nameEn: 'Singapore', country: 'Singapore', icon: '🦁', secondaryIcon: '🌳', file: 'city-singapore.js' },
   malaga: { id: 'malaga', name: 'מלגה', nameEn: 'Malaga', country: 'Spain', icon: '☀️', secondaryIcon: '☀️', file: 'city-malaga.js' },
-  rome: { id: 'rome', name: 'רומא', nameEn: 'Rome', country: 'Italy', icon: '🏛️', secondaryIcon: '🍕', file: 'city-rome.js' }
+  rome: { id: 'rome', name: 'רומא', nameEn: 'Rome', country: 'Italy', icon: '🏛️', secondaryIcon: '🍕', file: 'city-rome.js' },
+  paris: { id: 'paris', name: 'פריז', nameEn: 'Paris', country: 'France', icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWYyOTM3IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48bGluZSB4MT0iMTYiIHkxPSIzIiB4Mj0iMTYiIHkyPSIxIi8+PHBhdGggZD0iTTMgMzBMMTAgMjJMMTMgMTRMMTUgOEwxNiAzTDE3IDhMMTkgMTRMMjIgMjJMMjkgMzAiLz48bGluZSB4MT0iMTAiIHkxPSIyMiIgeDI9IjIyIiB5Mj0iMjIiLz48bGluZSB4MT0iMTMiIHkxPSIxNCIgeDI9IjE5IiB5Mj0iMTQiLz48L3N2Zz4K', secondaryIcon: '🥐', file: 'city-paris.js' }
 };
 
 window.BKK.cities = {};

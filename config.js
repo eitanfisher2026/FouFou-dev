@@ -57,7 +57,7 @@ window.BKK.mapConfig = {
 })();
 
 // App Version
-window.BKK.VERSION = '3.23.71';
+window.BKK.VERSION = '3.23.72';
 // Convert stop index (0-based) to letter label: 0→A, 1→B, ..., 25→Z, 26→AA
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
@@ -100,7 +100,8 @@ window.BKK.cityRegistry = {
   telaviv: { id: 'gushdan', name: 'תל אביב', nameEn: 'Tel Aviv', country: 'Israel', icon: '🏖️', file: 'city-telaviv.js' },
   singapore: { id: 'singapore', name: 'סינגפור', nameEn: 'Singapore', country: 'Singapore', icon: '🦁', secondaryIcon: '🌳', file: 'city-singapore.js' },
   malaga: { id: 'malaga', name: 'מלגה', nameEn: 'Malaga', country: 'Spain', icon: '☀️', secondaryIcon: '☀️', file: 'city-malaga.js' },
-  rome: { id: 'rome', name: 'רומא', nameEn: 'Rome', country: 'Italy', icon: '🏛️', secondaryIcon: '🍕', file: 'city-rome.js' }
+  rome: { id: 'rome', name: 'רומא', nameEn: 'Rome', country: 'Italy', icon: '🏛️', secondaryIcon: '🍕', file: 'city-rome.js' },
+  paris: { id: 'paris', name: 'פריז', nameEn: 'Paris', country: 'France', icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMWYyOTM3IiBzdHJva2Utd2lkdGg9IjEuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48bGluZSB4MT0iMTYiIHkxPSIzIiB4Mj0iMTYiIHkyPSIxIi8+PHBhdGggZD0iTTMgMzBMMTAgMjJMMTMgMTRMMTUgOEwxNiAzTDE3IDhMMTkgMTRMMjIgMjJMMjkgMzAiLz48bGluZSB4MT0iMTAiIHkxPSIyMiIgeDI9IjIyIiB5Mj0iMjIiLz48bGluZSB4MT0iMTMiIHkxPSIxNCIgeDI9IjE5IiB5Mj0iMTQiLz48L3N2Zz4K', secondaryIcon: '🥐', file: 'city-paris.js' }
 };
 
 // Active cities (loaded from localStorage or defaults)
