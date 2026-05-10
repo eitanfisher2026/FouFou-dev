@@ -3162,7 +3162,7 @@
       }
 
       // ONE-TIME MIGRATION: Fill missing name/nameEn/icon in cities/{cityId}/general (v3.12.28)
-      if (localStorage.getItem('city_general_completed_v3242') !== 'true') {
+      if (localStorage.getItem('city_general_completed_v3243') !== 'true') {
         const regEntries = Object.entries(window.BKK.cityRegistry || {});
         Promise.all(
           regEntries.map(([regKey, reg]) => database.ref(`cities/${reg.id}/general`).once('value').then(s => ({ regKey, reg, g: s.val() || {} })))
@@ -3184,10 +3184,10 @@
           });
           if (Object.keys(writes).length > 0) {
             database.ref().update(writes)
-              .then(() => { localStorage.setItem('city_general_completed_v3242', 'true'); })
+              .then(() => { localStorage.setItem('city_general_completed_v3243', 'true'); })
               .catch(e => console.error('[MIGRATION] city general complete failed:', e));
           } else {
-            localStorage.setItem('city_general_completed_v3242', 'true');
+            localStorage.setItem('city_general_completed_v3243', 'true');
           }
         });
       }
