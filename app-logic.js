@@ -210,37 +210,42 @@
 
   const authDeleteAccount = async () => {
     if (!auth || !authUser || authUser.isAnonymous) return;
-    const confirmed = window.confirm(
-      (t('auth.deleteAccountConfirm') || 'האם אתה בטוח שברצונך למחוק את החשבון?\nפעולה זו בלתי הפיכה.')
-    );
-    if (!confirmed) return;
-    try {
-      // v3.24.4: remove /users/{uid} from Realtime DB BEFORE deleting from Auth.
-      // Order matters: the rule requires auth.uid === $uid, and once we call
-      // authUser.delete() auth is null and the DB write would be rejected,
-      // leaving an orphan profile record.
-      const uidToClean = authUser.uid;
-      if (database && uidToClean) {
+    // v3.24.5: replaced the native browser confirm() with the app's styled
+    // showConfirm dialog so the prompt matches the rest of the UI. Also
+    // surface the DB-delete result via toasts so failures are visible
+    // instead of buried in console.
+    showConfirm(
+      t('auth.deleteAccountConfirm') || 'האם אתה בטוח שברצונך למחוק את החשבון?\nפעולה זו בלתי הפיכה.',
+      async () => {
         try {
-          await database.ref(`users/${uidToClean}`).remove();
-        } catch (dbErr) {
-          // Don't block the Auth delete — the user explicitly chose to leave.
-          // Log the orphan UID so we can clean it up later if needed.
-          console.error('[AUTH] Failed to remove /users/' + uidToClean + ' before account delete:', dbErr);
+          // Remove /users/{uid} from Realtime DB BEFORE deleting from Auth.
+          // Once authUser.delete() runs, auth is null and the rule
+          // auth.uid === $uid would reject the write — leaving an orphan.
+          const uidToClean = authUser.uid;
+          if (database && uidToClean) {
+            try {
+              await database.ref(`users/${uidToClean}`).remove();
+            } catch (dbErr) {
+              console.error('[AUTH] Failed to remove /users/' + uidToClean + ':', dbErr);
+              showToast('⚠️ DB delete failed: ' + (dbErr.code || dbErr.message || 'unknown'), 'warning');
+              // Continue to Auth delete anyway — user chose to leave.
+            }
+          }
+          await authUser.delete();
+          setShowLoginDialog(false);
+          showToast(t('auth.accountDeleted') || '🗑️ החשבון נמחק', 'info');
+        } catch (err) {
+          if (err.code === 'auth/requires-recent-login') {
+            showToast(t('auth.recentLoginRequired') || '⚠️ יש להתחבר מחדש לפני מחיקת החשבון', 'error');
+            await auth.signOut();
+          } else {
+            console.error('[AUTH] Delete account error:', err);
+            showToast(t('auth.deleteAccountError') || '❌ שגיאה במחיקת החשבון', 'error');
+          }
         }
-      }
-      await authUser.delete();
-      setShowLoginDialog(false);
-      showToast(t('auth.accountDeleted') || '🗑️ החשבון נמחק', 'info');
-    } catch (err) {
-      if (err.code === 'auth/requires-recent-login') {
-        showToast(t('auth.recentLoginRequired') || '⚠️ יש להתחבר מחדש לפני מחיקת החשבון', 'error');
-        await auth.signOut();
-      } else {
-        console.error('[AUTH] Delete account error:', err);
-        showToast(t('auth.deleteAccountError') || '❌ שגיאה במחיקת החשבון', 'error');
-      }
-    }
+      },
+      { confirmLabel: t('auth.deleteAccount') || 'מחק חשבון', confirmColor: '#ef4444' }
+    );
   };
 
   const authUpdateUserRole = async (uid, newRole) => {
