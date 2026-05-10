@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.24.1
+// FouFou app-data.js v3.24.2
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -3436,6 +3436,136 @@ window.BKK.cityData.malaga = {
   "boundaryFactor": 1.2
 };
 
+// City data: New York
+window.BKK.cityData = window.BKK.cityData || {};
+window.BKK.cityData.new_york = {
+  "id": "new_york",
+  "name": "ניו יורק",
+  "nameEn": "New York",
+  "country": "USA",
+  "icon": "🗽",
+  "secondaryIcon": "🥯",
+  "theme": {
+    "color": "#1e3a8a",
+    "iconLeft": "🥯",
+    "iconRight": "🚕"
+  },
+  "active": false,
+  "distanceMultiplier": 1.2,
+  "dayStartHour": 7,
+  "nightStartHour": 18,
+  "center": {
+    "lat": 40.7127753,
+    "lng": -74.0059728
+  },
+  "allCityRadius": 29800,
+  "areas": [
+    {
+      "id": "downtown_manhattan",
+      "label": "דאון טאון מנהטן",
+      "labelEn": "Downtown Manhattan",
+      "desc": "פיננסים, חיי לילה, רחובות היסטוריים, שכונות טרנדיות, אווירה עירונית יצירתית.",
+      "descEn": "Finance, nightlife, historic streets, trendy neighborhoods, creative urban atmosphere.",
+      "lat": 40.7236,
+      "lng": -73.9994,
+      "radius": 2700,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "midtown_manhattan",
+      "label": "מידטאון מנהטן",
+      "labelEn": "Midtown Manhattan",
+      "desc": "גורדי שחקים, ברודוויי, קניות, משרדים, אתרים אייקוניים, אזור תיירות מרכזי.",
+      "descEn": "Skyscrapers, Broadway, shopping, offices, iconic landmarks, busiest tourist area.",
+      "lat": 40.7567,
+      "lng": -73.9847,
+      "radius": 1800,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "uptown_manhattan",
+      "label": "אפטאון מנהטן",
+      "labelEn": "Uptown Manhattan",
+      "desc": "סנטרל פארק, מוזיאונים, Upper East/West, הארלם.",
+      "descEn": "Central Park, museums, Upper East/West Sides, Harlem.",
+      "lat": 40.7951,
+      "lng": -73.9552,
+      "radius": 3400,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "northern_manhattan",
+      "label": "צפון מנהטן",
+      "labelEn": "Northern Manhattan",
+      "desc": "“האצבע” הצפונית — שכונות מגורים ירוקות ורגועות, פחות תיירותיות.",
+      "descEn": "Washington Heights, Inwood, greener residential neighborhoods, less touristy.",
+      "lat": 40.8486,
+      "lng": -73.9304,
+      "radius": 3000,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "brooklyn",
+      "label": "ברוקלין",
+      "labelEn": "Brooklyn",
+      "desc": "שכונות מגוונות, אמנות, אוכל, פארקים, אווירה צעירה והיפסטרית.",
+      "descEn": "Diverse neighborhoods, arts, food, parks, trendy and creative atmosphere.",
+      "lat": 40.6374,
+      "lng": -73.9517,
+      "radius": 8100,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "queens",
+      "label": "קווינס",
+      "labelEn": "Queens",
+      "desc": "רב־תרבותיות, אוכל מכל העולם, שכונות מגורים, פחות תיירותי.",
+      "descEn": "Multicultural neighborhoods, global food scene, residential and less touristy.",
+      "lat": 40.7233,
+      "lng": -73.8418,
+      "radius": 10000,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "staten_island",
+      "label": "סטטן איילנד",
+      "labelEn": "Staten Island",
+      "desc": "פרברים שקטים, פארקים, מעבורת עם נוף לפסל החירות.",
+      "descEn": "Quiet suburban feel, parks, ferry views of the Statue of Liberty",
+      "lat": 40.5597,
+      "lng": -74.1344,
+      "radius": 9500,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "the_bronx",
+      "label": "הברונקס",
+      "labelEn": "The Bronx",
+      "desc": "יאנקיז, היפ־הופ, תרבות לטינית, גן חיות ופארקים גדולים.",
+      "descEn": "Yankees, hip-hop roots, Latin culture, zoo and large parks",
+      "lat": 40.8445,
+      "lng": -73.8501,
+      "radius": 6800,
+      "size": "medium",
+      "safety": "safe"
+    }
+  ],
+  "interests": [],
+  "interestToGooglePlaces": {},
+  "textSearchInterests": {
+    "graffiti": "street art"
+  },
+  "interestTooltips": {},
+  "systemRoutes": []
+};
+
 // City data: Paris
 window.BKK.cityData = window.BKK.cityData || {};
 window.BKK.cityData.paris = {
@@ -4085,7 +4215,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.24.1';
+window.BKK.VERSION = '3.24.2';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -4122,7 +4252,8 @@ window.BKK.cityRegistry = {
   malaga: { id: 'malaga', name: 'מלגה', nameEn: 'Malaga', country: 'Spain', icon: '☀️', secondaryIcon: '☀️', file: 'city-malaga.js' },
   rome: { id: 'rome', name: 'רומא', nameEn: 'Rome', country: 'Italy', icon: '🏛️', secondaryIcon: '🍕', file: 'city-rome.js' },
   paris: { id: 'paris', name: 'פריז', nameEn: 'Paris', country: 'France', icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiA0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxLjYiIHI9IjAuNiIgZmlsbD0iIzAwMCIvPjxsaW5lIHgxPSIxNiIgeTE9IjIuNCIgeDI9IjE2IiB5Mj0iNSIvPjxwYXRoIGQ9Ik0xNiA1IEwxNCAxMCBMMTggMTAgWiIvPjxwYXRoIGQ9Ik0xNCAxMCBMMTMgMjIgTDE5IDIyIEwxOCAxMCIvPjxsaW5lIHgxPSIxNiIgeTE9IjEwIiB4Mj0iMTYiIHkyPSIyMiIvPjxsaW5lIHgxPSIxMyIgeTE9IjE0IiB4Mj0iMTkiIHkyPSIxNCIvPjxsaW5lIHgxPSIxMyIgeTE9IjE4IiB4Mj0iMTkiIHkyPSIxOCIvPjxsaW5lIHgxPSIxMyIgeTE9IjIyIiB4Mj0iMTkiIHkyPSIyMiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iMTMiIHkxPSIyMyIgeDI9IjE5IiB5Mj0iMjMiLz48cGF0aCBkPSJNMTMgMjMgTDExIDM1IEwyMSAzNSBMMTkgMjMiLz48bGluZSB4MT0iMTQiIHkxPSIyMyIgeDI9IjEzLjMiIHkyPSIzNSIvPjxsaW5lIHgxPSIxOCIgeTE9IjIzIiB4Mj0iMTguNyIgeTI9IjM1Ii8+PGxpbmUgeDE9IjE2IiB5MT0iMjMiIHgyPSIxNiIgeTI9IjM1Ii8+PGxpbmUgeDE9IjEyLjUiIHkxPSIyOSIgeDI9IjE5LjUiIHkyPSIyOSIvPjxsaW5lIHgxPSIxMiIgeTE9IjMyIiB4Mj0iMjAiIHkyPSIzMiIvPjxsaW5lIHgxPSIxMSIgeTE9IjM1IiB4Mj0iMjEiIHkyPSIzNSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iMTEiIHkxPSIzNiIgeDI9IjIxIiB5Mj0iMzYiLz48bGluZSB4MT0iMTEiIHkxPSIzNiIgeDI9IjYiIHkyPSI0NiIvPjxsaW5lIHgxPSIyMSIgeTE9IjM2IiB4Mj0iMjYiIHkyPSI0NiIvPjxsaW5lIHgxPSIxNCIgeTE9IjM2IiB4Mj0iMTEiIHkyPSI0NiIvPjxsaW5lIHgxPSIxOCIgeTE9IjM2IiB4Mj0iMjEiIHkyPSI0NiIvPjxwYXRoIGQ9Ik0xMSAzNiBRIDE2IDQ0IDIxIDM2Ii8+PHBhdGggZD0iTTExIDM2IFEgMTIgNDEgMTQgMzYiLz48cGF0aCBkPSJNMTggMzYgUSAyMCA0MSAyMSAzNiIvPjxsaW5lIHgxPSIzIiB5MT0iNDYiIHgyPSIyOSIgeTI9IjQ2IiBzdHJva2Utd2lkdGg9IjEuMyIvPjwvc3ZnPgo=', secondaryIcon: '🥐', file: 'city-paris.js' },
-  london: { id: 'london', name: 'לונדון', nameEn: 'London', country: 'UK', icon: '🚌', secondaryIcon: '🎡', file: 'city-london.js' }
+  london: { id: 'london', name: 'לונדון', nameEn: 'London', country: 'UK', icon: '🚌', secondaryIcon: '🎡', file: 'city-london.js' },
+  new_york: { id: 'new_york', name: 'ניו יורק', nameEn: 'New York', country: 'USA', icon: '🗽', secondaryIcon: '🥯', file: 'city-new_york.js' }
 };
 
 window.BKK.cities = {};
