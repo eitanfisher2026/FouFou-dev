@@ -215,6 +215,20 @@
     );
     if (!confirmed) return;
     try {
+      // v3.24.4: remove /users/{uid} from Realtime DB BEFORE deleting from Auth.
+      // Order matters: the rule requires auth.uid === $uid, and once we call
+      // authUser.delete() auth is null and the DB write would be rejected,
+      // leaving an orphan profile record.
+      const uidToClean = authUser.uid;
+      if (database && uidToClean) {
+        try {
+          await database.ref(`users/${uidToClean}`).remove();
+        } catch (dbErr) {
+          // Don't block the Auth delete — the user explicitly chose to leave.
+          // Log the orphan UID so we can clean it up later if needed.
+          console.error('[AUTH] Failed to remove /users/' + uidToClean + ' before account delete:', dbErr);
+        }
+      }
       await authUser.delete();
       setShowLoginDialog(false);
       showToast(t('auth.accountDeleted') || '🗑️ החשבון נמחק', 'info');
