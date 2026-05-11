@@ -4020,7 +4020,10 @@
                     }
                   });
                   const ids = new Set(drafts.map(d => d.firebaseId));
+                  // Update local state so the count refreshes immediately
                   setCustomLocations(prev => prev.map(l => ids.has(l.firebaseId) ? {...l, locked: true} : l));
+                  // v3.24.6: also drop approved drafts from the cross-city map so non-selected cities update too
+                  setAllCitiesDrafts(prev => ({ ...prev, [cityId]: (prev[cityId] || []).filter(l => !ids.has(l.firebaseId)) }));
                   showToast(`✅ ${count} ${t('settings.approved')}`, 'success');
                 });
               };
@@ -4031,7 +4034,13 @@
                   <p className="text-xs text-gray-600 mb-2">{t('settings.bulkApproveAllCitiesDesc') || 'Approve draft locations per city'}</p>
                   <div style={{ maxHeight: '40vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px', padding: '2px' }}>
                     {allCities.map(city => {
-                      const cityLocs = customLocations.filter(l => (l.cityId || 'bangkok') === city.id && l.status !== 'blacklist' && !l.locked);
+                      // v3.24.6: for the SELECTED city, customLocations is the live source (subscribed).
+                      // For OTHER cities, use allCitiesDrafts which is fetched once when settings/general
+                      // opens. This is what makes the bulk-approve list show drafts for all cities,
+                      // not just the one currently in focus.
+                      const cityLocs = (city.id === selectedCityId)
+                        ? customLocations.filter(l => (l.cityId || 'bangkok') === city.id && l.status !== 'blacklist' && !l.locked)
+                        : (allCitiesDrafts[city.id] || []);
                       const myDrafts = cityLocs.filter(l => l.addedBy === authUser?.uid);
                       const totalDrafts = cityLocs.length;
                       const mineCount = myDrafts.length;

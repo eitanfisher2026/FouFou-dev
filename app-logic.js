@@ -825,6 +825,10 @@
 
 
   const [customLocations, setCustomLocations] = useState([]);
+  // v3.24.6: drafts (locked === false) from ALL cities, loaded on demand for the
+  // bulk-approve UI in settings. Without this, the UI only saw the selected
+  // city's drafts because customLocations is per-city.
+  const [allCitiesDrafts, setAllCitiesDrafts] = useState({}); // { cityId: [drafts] }
   const [savedRoutes, setSavedRoutes] = useState([]);
   // v3.23.23: track source when a saved route is loaded into the editor (for "Back to Saved Trails" focus)
   const [routeOpenedFromId, setRouteOpenedFromId] = useState(null);
@@ -1078,6 +1082,32 @@
   const [showMapModal, setShowMapModal] = useState(false);
   const [mapVersion, setMapVersion] = useState(0); // Increment to force map re-render
   const [settingsTab, setSettingsTab] = useState('general'); // 'general', 'cities', 'interests', 'sysparams', 'debug'
+
+  // v3.24.6: when settings/general opens for an editor/admin, fetch drafts from
+  // EVERY city in parallel so the bulk-approve UI can show counts per city,
+  // not just for the currently-selected one.
+  React.useEffect(() => {
+    if (settingsTab !== 'general') return;
+    if (!isFirebaseAvailable || !database) return;
+    if (userRole < 1) return; // editor+ only — same gate as the UI itself
+    const cityIds = Object.keys(window.BKK.cities || {});
+    if (cityIds.length === 0) return;
+    Promise.all(cityIds.map(cid =>
+      database.ref(`cities/${cid}/locations`).once('value')
+        .then(snap => {
+          const data = snap.val() || {};
+          const drafts = Object.entries(data)
+            .map(([fbKey, val]) => ({ ...val, firebaseId: fbKey, cityId: cid }))
+            .filter(loc => loc.status !== 'blacklist' && loc.locked === false);
+          return [cid, drafts];
+        })
+        .catch(() => [cid, []])
+    )).then(results => {
+      const byCity = {};
+      results.forEach(([cid, drafts]) => { byCity[cid] = drafts; });
+      setAllCitiesDrafts(byCity);
+    });
+  }, [settingsTab, userRole, selectedCityId]);
   const [editingParamKey, setEditingParamKey] = useState(null); // key of param being edited inline
   const [editingParamVal, setEditingParamVal] = useState('');
   const [editingArea, setEditingArea] = useState(null); // area being edited on map
@@ -4876,7 +4906,7 @@
                 headers: {
                   'Content-Type': 'application/json',
                   'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-                  'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType'
+                  'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType,places.businessStatus,places.currentOpeningHours'
                 },
                 body: JSON.stringify({
                   includedTypes: [singleType],
@@ -4914,32 +4944,44 @@
             let blacklistFilteredCountRetry = 0;
             let relevanceFilteredCountRetry = 0;
             
-            const places = data.places.map(place => {
-              const name = place.displayName?.text || 'Unknown';
-              const placeTypesFromGoogle = place.types || [];
-              const openingHours = place.currentOpeningHours;
-              const todayIndex = new Date().getDay();
-              const googleDayIndex = todayIndex === 0 ? 6 : todayIndex - 1;
-              const todayHours = openingHours?.weekdayDescriptions?.[googleDayIndex] || '';
-              const hoursOnly = todayHours.includes(':') ? todayHours.substring(todayHours.indexOf(':') + 1).trim() : todayHours;
-              return {
-                name,
-                description: place.formattedAddress || '',
-                address: place.formattedAddress || '',
-                lat: place.location?.latitude || 0,
-                lng: place.location?.longitude || 0,
-                rating: place.rating || 0,
-                ratingCount: place.userRatingCount || 0,
-                interests: validInterests,
-                googleTypes: placeTypesFromGoogle,
-                primaryType: place.primaryType || null,
-                googlePlaceId: place.id || null,
-                openNow: openingHours?.openNow ?? null,
-                todayHours: hoursOnly || '',
-                businessStatus: place.businessStatus || 'OPERATIONAL',
-                custom: false
-              };
-            }).filter(place => place.lat !== 0 && place.lng !== 0);
+            // v3.24.6: filter by businessStatus and openNow in the retry path too
+            // (was only applied in the main path — closed places leaked through here).
+            const _filteredStatuses = window.BKK.systemParams?.filteredBusinessStatuses || ['CLOSED_PERMANENTLY', 'CLOSED_TEMPORARILY'];
+            const _filterClosedNow = !!window.BKK.systemParams?.filterClosedNow;
+            const places = data.places
+              .filter(place => {
+                const bStatus = place.businessStatus || 'OPERATIONAL';
+                if (_filteredStatuses.includes(bStatus)) return false;
+                const openNow = place.currentOpeningHours?.openNow;
+                if (_filterClosedNow && openNow === false) return false;
+                return true;
+              })
+              .map(place => {
+                const name = place.displayName?.text || 'Unknown';
+                const placeTypesFromGoogle = place.types || [];
+                const openingHours = place.currentOpeningHours;
+                const todayIndex = new Date().getDay();
+                const googleDayIndex = todayIndex === 0 ? 6 : todayIndex - 1;
+                const todayHours = openingHours?.weekdayDescriptions?.[googleDayIndex] || '';
+                const hoursOnly = todayHours.includes(':') ? todayHours.substring(todayHours.indexOf(':') + 1).trim() : todayHours;
+                return {
+                  name,
+                  description: place.formattedAddress || '',
+                  address: place.formattedAddress || '',
+                  lat: place.location?.latitude || 0,
+                  lng: place.location?.longitude || 0,
+                  rating: place.rating || 0,
+                  ratingCount: place.userRatingCount || 0,
+                  interests: validInterests,
+                  googleTypes: placeTypesFromGoogle,
+                  primaryType: place.primaryType || null,
+                  googlePlaceId: place.id || null,
+                  openNow: openingHours?.openNow ?? null,
+                  todayHours: hoursOnly || '',
+                  businessStatus: place.businessStatus || 'OPERATIONAL',
+                  custom: false
+                };
+              }).filter(place => place.lat !== 0 && place.lng !== 0);
             
             const filteredPlaces = blacklistWords.length === 0 ? places : places.filter(place => {
               const placeName = place.name.toLowerCase();
