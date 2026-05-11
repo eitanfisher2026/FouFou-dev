@@ -8087,6 +8087,8 @@
   const manualInstantFilter = (val) => _instantFavoritesFilter(val, setManualSearchQuery, setManualSearchResults);
   const searchCreateTrailPlace = (query) => _searchPlacesCore(query, setCreateTrailSearchResults);
   const addStopToCreateTrail = (result) => {
+    // v3.24.7: block adding a stop outside the city — same guard as favorites add
+    if (!requireWithinCity(result.lat, result.lng)) return;
     const newStop = {
       name: result.name,
       lat: result.lat,
@@ -8833,6 +8835,18 @@
     const maxRadius = (cityData.allCityRadius || 15000) * factor;
     if (distance <= maxRadius) return 'ok';
     return isAdmin ? 'warn' : 'block';
+  };
+
+  // v3.24.7: shared guard used by the manual-add flows — Create-trail dialog,
+  // in-route manual add, and the "around a point" radius picker. Blocks
+  // EVERYONE including admins (uniformity > admin convenience). Reuses
+  // checkLocationBoundary's distance math, then shows the same toast that
+  // the favorites flow already uses. Callers do:  if (!requireWithinCity(lat, lng)) return;
+  const requireWithinCity = (lat, lng) => {
+    const status = checkLocationBoundary(lat, lng);
+    if (status === 'ok') return true;
+    showToast(t('toast.savingOutsideCity'), 'warning', 'sticky');
+    return false;
   };
 
   // Save a place from the QuickAddDialog (enriched by user before saving)

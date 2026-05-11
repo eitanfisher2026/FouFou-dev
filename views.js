@@ -1002,6 +1002,9 @@
                                   {pointSearchResults && !Array.isArray(pointSearchResults) && (() => {
                                     const { favorites, google } = pointSearchResults;
                                     const applyResult = (result, skipFavMatch = false) => {
+                                      // v3.24.7: block "around a point" with a center outside the city.
+                                      // Same guard as add-to-favorites — keeps the policy uniform.
+                                      if (!requireWithinCity(result.lat, result.lng)) return;
                                       // skipFavMatch=true when user explicitly chose Google — null out placeId so buildRadiusStop won't re-match the favorite
                                       setFormData(prev => ({...prev, currentLat: result.lat, currentLng: result.lng, radiusPlaceName: result.name, radiusSource: 'point', radiusPlaceId: skipFavMatch ? null : (result.googlePlaceId || null)}));
                                       setPointSearchResults(null);

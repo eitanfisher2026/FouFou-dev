@@ -2119,6 +2119,8 @@
         };
 
         const addManualStop = (result) => {
+          // v3.24.7: block adding a stop outside the city — same guard as favorites add
+          if (!requireWithinCity(result.lat, result.lng)) return;
           const display = result.name;
           const newStop = {
             name: display,
