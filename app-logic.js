@@ -4553,6 +4553,23 @@
   // Text Search URL
   const GOOGLE_PLACES_TEXT_SEARCH_URL = window.BKK.GOOGLE_PLACES_TEXT_SEARCH_URL || 'https://places.googleapis.com/v1/places:searchText';
 
+  // v3.24.8: single source of truth for Google Places search calls.
+  // Every user-facing search uses this field mask AND runs results through
+  // passesBusinessFilter. Without this, "Filter closed places" only worked
+  // for some paths and silently leaked closed places through others — as
+  // happened with Turtle House (Nearby Search path missed businessStatus
+  // in its field mask, so Google never returned the field, so the filter
+  // had nothing to act on).
+  const PLACES_SEARCH_FIELDS = 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType,places.primaryTypeDisplayName,places.businessStatus,places.currentOpeningHours,places.googleMapsUri';
+  const passesBusinessFilter = (place) => {
+    const sp = window.BKK.systemParams || {};
+    const bStatus = place.businessStatus || 'OPERATIONAL';
+    const filtered = sp.filteredBusinessStatuses || ['CLOSED_PERMANENTLY', 'CLOSED_TEMPORARILY'];
+    if (filtered.includes(bStatus)) return false;
+    if (sp.filterClosedNow && place.currentOpeningHours?.openNow === false) return false;
+    return true;
+  };
+
   // Calculate distance between two coordinates in meters (Haversine)
   const calcDistance = (lat1, lng1, lat2, lng2) => {
     const R = 6371e3;
@@ -4633,7 +4650,7 @@
         const uniqueTextQueries = [...new Set(textQueries)];
         const uniqueBlacklist = [...new Set(blacklistWords)];
         const searchRadius = Math.max(radius, 50);
-        const fieldMask = 'places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.id,places.types,places.googleMapsUri';
+        const fieldMask = PLACES_SEARCH_FIELDS;
 
         const mapPlace = (p) => ({
           name: p.displayName?.text || '',
@@ -4830,7 +4847,7 @@
           headers: {
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType'
+            'X-Goog-FieldMask': PLACES_SEARCH_FIELDS
           },
           body: textSearchBodyStr
         });
@@ -4874,7 +4891,7 @@
           headers: {
             'Content-Type': 'application/json',
             'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-            'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType'
+            'X-Goog-FieldMask': PLACES_SEARCH_FIELDS
           },
           body: nearbySearchBodyStr
         });
@@ -4906,7 +4923,7 @@
                 headers: {
                   'Content-Type': 'application/json',
                   'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-                  'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType,places.businessStatus,places.currentOpeningHours'
+                  'X-Goog-FieldMask': PLACES_SEARCH_FIELDS
                 },
                 body: JSON.stringify({
                   includedTypes: [singleType],
@@ -4944,18 +4961,9 @@
             let blacklistFilteredCountRetry = 0;
             let relevanceFilteredCountRetry = 0;
             
-            // v3.24.6: filter by businessStatus and openNow in the retry path too
-            // (was only applied in the main path — closed places leaked through here).
-            const _filteredStatuses = window.BKK.systemParams?.filteredBusinessStatuses || ['CLOSED_PERMANENTLY', 'CLOSED_TEMPORARILY'];
-            const _filterClosedNow = !!window.BKK.systemParams?.filterClosedNow;
+            // v3.24.8: replaced inline filter with central passesBusinessFilter
             const places = data.places
-              .filter(place => {
-                const bStatus = place.businessStatus || 'OPERATIONAL';
-                if (_filteredStatuses.includes(bStatus)) return false;
-                const openNow = place.currentOpeningHours?.openNow;
-                if (_filterClosedNow && openNow === false) return false;
-                return true;
-              })
+              .filter(passesBusinessFilter)
               .map(place => {
                 const name = place.displayName?.text || 'Unknown';
                 const placeTypesFromGoogle = place.types || [];
@@ -5141,23 +5149,20 @@
             googlePlaceId: place.id || null,
           };
           
-          // Filter 0: Business status — filter based on systemParams.filteredBusinessStatuses
-          const bStatus = place.businessStatus || 'OPERATIONAL';
-          const filteredStatuses = window.BKK.systemParams?.filteredBusinessStatuses || ['CLOSED_PERMANENTLY', 'CLOSED_TEMPORARILY'];
-          if (filteredStatuses.includes(bStatus)) {
+          // v3.24.8: business-status + openNow filtering routed through the
+          // central passesBusinessFilter helper. Previous inline version read
+          // place.openNow (which Google doesn't return) instead of
+          // place.currentOpeningHours.openNow — fixed by passing the raw
+          // Google place into the helper.
+          if (!passesBusinessFilter(place)) {
+            const bStatus = place.businessStatus || 'OPERATIONAL';
             debugEntry.status = '❌ CLOSED';
-            debugEntry.reason = bStatus;
+            debugEntry.reason = bStatus !== 'OPERATIONAL' ? bStatus : 'CLOSED_NOW';
             debugPlaceResults.push(debugEntry);
             return false;
           }
-
-          // Filter 0b: openNow — filter closed-now places if filterClosedNow is enabled
-          if (window.BKK.systemParams?.filterClosedNow && place.openNow === false) {
-            debugEntry.status = '❌ CLOSED';
-            debugEntry.reason = 'CLOSED_NOW';
-            debugPlaceResults.push(debugEntry);
-            return false;
-          }
+          // Stash businessStatus on the debug entry so the filter log shows it
+          debugEntry.businessStatus = place.businessStatus || 'OPERATIONAL';
 
           // Filter 1: Blacklist check - filter out places with blacklisted words in name OR types
           if (blacklistWords.length > 0) {
@@ -10230,13 +10235,14 @@
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.primaryType,places.primaryTypeDisplayName'
+          'X-Goog-FieldMask': PLACES_SEARCH_FIELDS
         },
         body: JSON.stringify({ textQuery: searchQuery, maxResultCount: Math.min(window.BKK.systemParams?.pointSearchMaxGoogle || 10, 20), languageCode: 'en' })
       });
       const data = await response.json();
+      // v3.24.8: drop closed places from the manual-add search results too
       if (data.places && data.places.length > 0) {
-        setLocationSearchResults(data.places.map(p => ({
+        setLocationSearchResults(data.places.filter(passesBusinessFilter).map(p => ({
           name: p.displayName?.text || '',
           lat: p.location?.latitude,
           lng: p.location?.longitude,
@@ -10290,13 +10296,14 @@
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.primaryType,places.primaryTypeDisplayName'
+          'X-Goog-FieldMask': PLACES_SEARCH_FIELDS
         },
         body: JSON.stringify({ textQuery: searchQuery, maxResultCount: Math.min(window.BKK.systemParams?.pointSearchMaxGoogle || 10, 20), languageCode: 'en' })
       });
       const data = await response.json();
+      // v3.24.8: drop closed places from the radius-point picker results too
       const googleResults = data.places && data.places.length > 0
-        ? data.places.map(p => ({
+        ? data.places.filter(passesBusinessFilter).map(p => ({
             name: p.displayName?.text || '',
             lat: p.location?.latitude, lng: p.location?.longitude,
             address: p.formattedAddress || '', rating: p.rating,
