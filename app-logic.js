@@ -3211,7 +3211,7 @@
       }
 
       // ONE-TIME MIGRATION: Fill missing name/nameEn/icon in cities/{cityId}/general (v3.12.28)
-      if (localStorage.getItem('city_general_completed_v3249') !== 'true') {
+      if (localStorage.getItem('city_general_completed_v32410') !== 'true') {
         const regEntries = Object.entries(window.BKK.cityRegistry || {});
         Promise.all(
           regEntries.map(([regKey, reg]) => database.ref(`cities/${reg.id}/general`).once('value').then(s => ({ regKey, reg, g: s.val() || {} })))
@@ -3224,13 +3224,16 @@
             if (!g.name && (reg.name || cityJs.name)) writes[`cities/${cid}/general/name`] = reg.name || cityJs.name;
             if (!g.nameEn && (reg.nameEn || cityJs.nameEn)) writes[`cities/${cid}/general/nameEn`] = reg.nameEn || cityJs.nameEn;
             // icon — from JS file if missing
-            // v3.24.9: push data: URI icons (custom SVGs like Paris's Eiffel) to Firebase.
-            // Also force-overwrite Firebase emoji icons when the static file has a custom
-            // SVG (corrects legacy Paris case where Firebase had 🍷 and static had Eiffel).
-            // Regular emojis aren't overwritten — only emoji→SVG upgrades happen.
+            // v3.24.10: keep Firebase /cities/{id}/general/icon in sync with the
+            // static file's icon. Writes if Firebase is missing the icon entirely,
+            // OR if the static file's icon differs and either side is a data: URI
+            // (so SVG ↔ emoji swaps are caught). Regular emoji-to-different-emoji
+            // changes from the admin UI are left alone — only force-overwrite when
+            // a data: URI is involved on either side.
             const _staticIsData = cityJs.icon && cityJs.icon.startsWith && cityJs.icon.startsWith('data:');
-            const _fbIsNonData = g.icon && (!g.icon.startsWith || !g.icon.startsWith('data:'));
-            if (cityJs.icon && (!g.icon || (_staticIsData && _fbIsNonData))) {
+            const _fbIsData = g.icon && g.icon.startsWith && g.icon.startsWith('data:');
+            const _eitherSideIsData = _staticIsData || _fbIsData;
+            if (cityJs.icon && (!g.icon || (_eitherSideIsData && g.icon !== cityJs.icon))) {
               writes[`cities/${cid}/general/icon`] = cityJs.icon;
             }
             // dayStartHour/nightStartHour fallback
@@ -3241,10 +3244,10 @@
           });
           if (Object.keys(writes).length > 0) {
             database.ref().update(writes)
-              .then(() => { localStorage.setItem('city_general_completed_v3249', 'true'); })
+              .then(() => { localStorage.setItem('city_general_completed_v32410', 'true'); })
               .catch(e => console.error('[MIGRATION] city general complete failed:', e));
           } else {
-            localStorage.setItem('city_general_completed_v3249', 'true');
+            localStorage.setItem('city_general_completed_v32410', 'true');
           }
         });
       }

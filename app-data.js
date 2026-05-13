@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.24.9
+// FouFou app-data.js v3.24.10
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -3827,7 +3827,7 @@ window.BKK.cityData.paris = {
   "name": "פריז",
   "nameEn": "Paris",
   "country": "France",
-  "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiA0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxLjYiIHI9IjAuNiIgZmlsbD0iIzAwMCIvPjxsaW5lIHgxPSIxNiIgeTE9IjIuNCIgeDI9IjE2IiB5Mj0iNSIvPjxwYXRoIGQ9Ik0xNiA1IEwxNCAxMCBMMTggMTAgWiIvPjxwYXRoIGQ9Ik0xNCAxMCBMMTMgMjIgTDE5IDIyIEwxOCAxMCIvPjxsaW5lIHgxPSIxNiIgeTE9IjEwIiB4Mj0iMTYiIHkyPSIyMiIvPjxsaW5lIHgxPSIxMyIgeTE9IjE0IiB4Mj0iMTkiIHkyPSIxNCIvPjxsaW5lIHgxPSIxMyIgeTE9IjE4IiB4Mj0iMTkiIHkyPSIxOCIvPjxsaW5lIHgxPSIxMyIgeTE9IjIyIiB4Mj0iMTkiIHkyPSIyMiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iMTMiIHkxPSIyMyIgeDI9IjE5IiB5Mj0iMjMiLz48cGF0aCBkPSJNMTMgMjMgTDExIDM1IEwyMSAzNSBMMTkgMjMiLz48bGluZSB4MT0iMTQiIHkxPSIyMyIgeDI9IjEzLjMiIHkyPSIzNSIvPjxsaW5lIHgxPSIxOCIgeTE9IjIzIiB4Mj0iMTguNyIgeTI9IjM1Ii8+PGxpbmUgeDE9IjE2IiB5MT0iMjMiIHgyPSIxNiIgeTI9IjM1Ii8+PGxpbmUgeDE9IjEyLjUiIHkxPSIyOSIgeDI9IjE5LjUiIHkyPSIyOSIvPjxsaW5lIHgxPSIxMiIgeTE9IjMyIiB4Mj0iMjAiIHkyPSIzMiIvPjxsaW5lIHgxPSIxMSIgeTE9IjM1IiB4Mj0iMjEiIHkyPSIzNSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iMTEiIHkxPSIzNiIgeDI9IjIxIiB5Mj0iMzYiLz48bGluZSB4MT0iMTEiIHkxPSIzNiIgeDI9IjYiIHkyPSI0NiIvPjxsaW5lIHgxPSIyMSIgeTE9IjM2IiB4Mj0iMjYiIHkyPSI0NiIvPjxsaW5lIHgxPSIxNCIgeTE9IjM2IiB4Mj0iMTEiIHkyPSI0NiIvPjxsaW5lIHgxPSIxOCIgeTE9IjM2IiB4Mj0iMjEiIHkyPSI0NiIvPjxwYXRoIGQ9Ik0xMSAzNiBRIDE2IDQ0IDIxIDM2Ii8+PHBhdGggZD0iTTExIDM2IFEgMTIgNDEgMTQgMzYiLz48cGF0aCBkPSJNMTggMzYgUSAyMCA0MSAyMSAzNiIvPjxsaW5lIHgxPSIzIiB5MT0iNDYiIHgyPSIyOSIgeTI9IjQ2IiBzdHJva2Utd2lkdGg9IjEuMyIvPjwvc3ZnPgo=",
+  "icon": "🗼",
   "theme": {
     "color": "#1f2937",
     "iconLeft": "🥐",
@@ -4467,7 +4467,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.24.9';
+window.BKK.VERSION = '3.24.10';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -4503,7 +4503,7 @@ window.BKK.cityRegistry = {
   singapore: { id: 'singapore', name: 'סינגפור', nameEn: 'Singapore', country: 'Singapore', icon: '🦁', file: 'city-singapore.js' },
   malaga: { id: 'malaga', name: 'מלגה', nameEn: 'Malaga', country: 'Spain', icon: '☀️', file: 'city-malaga.js' },
   rome: { id: 'rome', name: 'רומא', nameEn: 'Rome', country: 'Italy', icon: '🏛️', file: 'city-rome.js' },
-  paris: { id: 'paris', name: 'פריז', nameEn: 'Paris', country: 'France', icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiA0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxLjYiIHI9IjAuNiIgZmlsbD0iIzAwMCIvPjxsaW5lIHgxPSIxNiIgeTE9IjIuNCIgeDI9IjE2IiB5Mj0iNSIvPjxwYXRoIGQ9Ik0xNiA1IEwxNCAxMCBMMTggMTAgWiIvPjxwYXRoIGQ9Ik0xNCAxMCBMMTMgMjIgTDE5IDIyIEwxOCAxMCIvPjxsaW5lIHgxPSIxNiIgeTE9IjEwIiB4Mj0iMTYiIHkyPSIyMiIvPjxsaW5lIHgxPSIxMyIgeTE9IjE0IiB4Mj0iMTkiIHkyPSIxNCIvPjxsaW5lIHgxPSIxMyIgeTE9IjE4IiB4Mj0iMTkiIHkyPSIxOCIvPjxsaW5lIHgxPSIxMyIgeTE9IjIyIiB4Mj0iMTkiIHkyPSIyMiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iMTMiIHkxPSIyMyIgeDI9IjE5IiB5Mj0iMjMiLz48cGF0aCBkPSJNMTMgMjMgTDExIDM1IEwyMSAzNSBMMTkgMjMiLz48bGluZSB4MT0iMTQiIHkxPSIyMyIgeDI9IjEzLjMiIHkyPSIzNSIvPjxsaW5lIHgxPSIxOCIgeTE9IjIzIiB4Mj0iMTguNyIgeTI9IjM1Ii8+PGxpbmUgeDE9IjE2IiB5MT0iMjMiIHgyPSIxNiIgeTI9IjM1Ii8+PGxpbmUgeDE9IjEyLjUiIHkxPSIyOSIgeDI9IjE5LjUiIHkyPSIyOSIvPjxsaW5lIHgxPSIxMiIgeTE9IjMyIiB4Mj0iMjAiIHkyPSIzMiIvPjxsaW5lIHgxPSIxMSIgeTE9IjM1IiB4Mj0iMjEiIHkyPSIzNSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iMTEiIHkxPSIzNiIgeDI9IjIxIiB5Mj0iMzYiLz48bGluZSB4MT0iMTEiIHkxPSIzNiIgeDI9IjYiIHkyPSI0NiIvPjxsaW5lIHgxPSIyMSIgeTE9IjM2IiB4Mj0iMjYiIHkyPSI0NiIvPjxsaW5lIHgxPSIxNCIgeTE9IjM2IiB4Mj0iMTEiIHkyPSI0NiIvPjxsaW5lIHgxPSIxOCIgeTE9IjM2IiB4Mj0iMjEiIHkyPSI0NiIvPjxwYXRoIGQ9Ik0xMSAzNiBRIDE2IDQ0IDIxIDM2Ii8+PHBhdGggZD0iTTExIDM2IFEgMTIgNDEgMTQgMzYiLz48cGF0aCBkPSJNMTggMzYgUSAyMCA0MSAyMSAzNiIvPjxsaW5lIHgxPSIzIiB5MT0iNDYiIHgyPSIyOSIgeTI9IjQ2IiBzdHJva2Utd2lkdGg9IjEuMyIvPjwvc3ZnPgo=', file: 'city-paris.js' },
+  paris: { id: 'paris', name: 'פריז', nameEn: 'Paris', country: 'France', icon: '🗼', file: 'city-paris.js' },
   london: { id: 'london', name: 'לונדון', nameEn: 'London', country: 'UK', icon: '🚌', file: 'city-london.js' },
   new_york: { id: 'new_york', name: 'ניו יורק', nameEn: 'New York', country: 'USA', icon: '🗽', file: 'city-new_york.js' },
   jerusalem: { id: 'jerusalem', name: 'ירושלים', nameEn: 'Jerusalem', country: 'Israel', icon: '🕍', file: 'city-jerusalem.js' },
