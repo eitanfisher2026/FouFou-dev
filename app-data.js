@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.24.8
+// FouFou app-data.js v3.24.9
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -2584,7 +2584,6 @@ window.BKK.cityData.bangkok = {
   "nameEn": "Bangkok",
   "country": "Thailand",
   "icon": "🛺",
-  "secondaryIcon": "🍜",
   "theme": {
     "color": "#e74c3c",
     "iconLeft": "🏯",
@@ -3130,6 +3129,135 @@ window.BKK.seedSystemRoutes = function(database) {
   });
 };
 
+// City data: Budapest
+window.BKK.cityData = window.BKK.cityData || {};
+window.BKK.cityData.budapest = {
+  "id": "budapest",
+  "name": "בודפשט",
+  "nameEn": "Budapest",
+  "country": "Hungary",
+  "icon": "🏰",
+  "theme": {
+    "color": "#8b1538",
+    "iconLeft": "🌶️",
+    "iconRight": "🌉"
+  },
+  "active": false,
+  "distanceMultiplier": 1.2,
+  "dayStartHour": 7,
+  "nightStartHour": 18,
+  "center": {
+    "lat": 47.497912,
+    "lng": 19.040235
+  },
+  "allCityRadius": 20066,
+  "areas": [
+    {
+      "id": "central_pest",
+      "label": "מרכז פשט",
+      "labelEn": "Central Pest",
+      "desc": "הלב התיירותי של בודפשט עם הפרלמנט, הרובע היהודי, מסעדות, חיי לילה ושופינג.",
+      "descEn": " The tourist heart of Budapest with Parliament, the Jewish Quarter, restaurants, nightlife and shopping.",
+      "lat": 47.5089,
+      "lng": 19.0702,
+      "radius": 2000,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "southern_pest",
+      "label": "דרום פשט",
+      "labelEn": "Southern Pest",
+      "desc": "אזור צעיר ומקומי יותר עם השוק המקורה הגדול, ברים ואוניברסיטאות.",
+      "descEn": "A more local and youthful area with the Great Market Hall, bars and universities",
+      "lat": 47.4787,
+      "lng": 19.0956,
+      "radius": 2400,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "northern_pest",
+      "label": "צפון פשט",
+      "labelEn": "Northern Pest",
+      "desc": "אזור מגורים ועסקים מודרני לאורך הדנובה עם פארקים, קניונים ואווירה רגועה יותר.",
+      "descEn": " Modern residential and business area along the Danube with parks, malls and a calmer atmosphere.",
+      "lat": 47.5418,
+      "lng": 19.0874,
+      "radius": 2200,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "eastern_pest",
+      "label": "מזרח פשט",
+      "labelEn": "Eastern Pest",
+      "desc": "כולל את פארק העיר, כיכר הגיבורים ומרחצאות סצ'ני.",
+      "descEn": "Includes City Park, Heroes’ Square and Széchenyi Baths.",
+      "lat": 47.5116,
+      "lng": 19.1313,
+      "radius": 2600,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "margit_sziget",
+      "label": "האי מרגיט",
+      "labelEn": "Margit-sziget",
+      "desc": "אי ירוק בלב הדנובה עם פארקים, שבילי הליכה ומרחצאות.",
+      "descEn": "Green island in the middle of the Danube with parks, walking paths and thermal baths.",
+      "lat": 47.5272,
+      "lng": 19.0475,
+      "radius": 1100,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "central_buda",
+      "label": "מרכז בודה",
+      "labelEn": "Central Buda",
+      "desc": "האזור ההיסטורי של בודה עם טירת בודה, מצודת הדייגים ותצפיות יפות.",
+      "descEn": "Historic Buda area with Buda Castle, Fisherman’s Bastion and panoramic views.",
+      "lat": 47.5079,
+      "lng": 19.0146,
+      "radius": 2100,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "southern_buda",
+      "label": "דרום בודה",
+      "labelEn": "Southern Buda",
+      "desc": "אזור ירוק ורגוע עם גבעת גלרט ומרחצאות מפורסמים",
+      "descEn": "Green and relaxed area with Gellért Hill and famous thermal baths.",
+      "lat": 47.4692,
+      "lng": 19.0273,
+      "radius": 2600,
+      "size": "medium",
+      "safety": "safe"
+    },
+    {
+      "id": "northern_buda",
+      "label": "צפון בודה",
+      "labelEn": "Northern Buda",
+      "desc": "אזור שקט יותר עם אובודה, שרידים רומיים וטיילות לאורך הנהר.",
+      "descEn": "A quieter area with Óbuda, Roman ruins and riverside promenades.",
+      "lat": 47.5478,
+      "lng": 19.016,
+      "radius": 2500,
+      "size": "medium",
+      "safety": "safe"
+    }
+  ],
+  "interests": [],
+  "interestToGooglePlaces": {},
+  "textSearchInterests": {
+    "graffiti": "street art"
+  },
+  "interestTooltips": {},
+  "systemRoutes": []
+};
+
 // City data: Jerusalem
 window.BKK.cityData = window.BKK.cityData || {};
 window.BKK.cityData.jerusalem = {
@@ -3138,7 +3266,6 @@ window.BKK.cityData.jerusalem = {
   "nameEn": "Jerusalem",
   "country": "Israel",
   "icon": "🕍",
-  "secondaryIcon": "🧆",
   "theme": {
     "color": "#a16207",
     "iconLeft": "🧆",
@@ -3268,7 +3395,6 @@ window.BKK.cityData.london = {
   "nameEn": "London",
   "country": "UK",
   "icon": "🚌",
-  "secondaryIcon": "🎡",
   "theme": {
     "color": "#c8102e",
     "iconLeft": "🎡",
@@ -3434,7 +3560,6 @@ window.BKK.cityData.malaga = {
   "nameEn": "Malaga",
   "country": "Spain",
   "icon": "☀️",
-  "secondaryIcon": "☀️",
   "active": true,
   "distanceMultiplier": 1.2,
   "dayStartHour": 8,
@@ -3574,7 +3699,6 @@ window.BKK.cityData.new_york = {
   "nameEn": "New York",
   "country": "USA",
   "icon": "🗽",
-  "secondaryIcon": "🥯",
   "theme": {
     "color": "#1e3a8a",
     "iconLeft": "🥯",
@@ -3704,7 +3828,6 @@ window.BKK.cityData.paris = {
   "nameEn": "Paris",
   "country": "France",
   "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiA0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxLjYiIHI9IjAuNiIgZmlsbD0iIzAwMCIvPjxsaW5lIHgxPSIxNiIgeTE9IjIuNCIgeDI9IjE2IiB5Mj0iNSIvPjxwYXRoIGQ9Ik0xNiA1IEwxNCAxMCBMMTggMTAgWiIvPjxwYXRoIGQ9Ik0xNCAxMCBMMTMgMjIgTDE5IDIyIEwxOCAxMCIvPjxsaW5lIHgxPSIxNiIgeTE9IjEwIiB4Mj0iMTYiIHkyPSIyMiIvPjxsaW5lIHgxPSIxMyIgeTE9IjE0IiB4Mj0iMTkiIHkyPSIxNCIvPjxsaW5lIHgxPSIxMyIgeTE9IjE4IiB4Mj0iMTkiIHkyPSIxOCIvPjxsaW5lIHgxPSIxMyIgeTE9IjIyIiB4Mj0iMTkiIHkyPSIyMiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iMTMiIHkxPSIyMyIgeDI9IjE5IiB5Mj0iMjMiLz48cGF0aCBkPSJNMTMgMjMgTDExIDM1IEwyMSAzNSBMMTkgMjMiLz48bGluZSB4MT0iMTQiIHkxPSIyMyIgeDI9IjEzLjMiIHkyPSIzNSIvPjxsaW5lIHgxPSIxOCIgeTE9IjIzIiB4Mj0iMTguNyIgeTI9IjM1Ii8+PGxpbmUgeDE9IjE2IiB5MT0iMjMiIHgyPSIxNiIgeTI9IjM1Ii8+PGxpbmUgeDE9IjEyLjUiIHkxPSIyOSIgeDI9IjE5LjUiIHkyPSIyOSIvPjxsaW5lIHgxPSIxMiIgeTE9IjMyIiB4Mj0iMjAiIHkyPSIzMiIvPjxsaW5lIHgxPSIxMSIgeTE9IjM1IiB4Mj0iMjEiIHkyPSIzNSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iMTEiIHkxPSIzNiIgeDI9IjIxIiB5Mj0iMzYiLz48bGluZSB4MT0iMTEiIHkxPSIzNiIgeDI9IjYiIHkyPSI0NiIvPjxsaW5lIHgxPSIyMSIgeTE9IjM2IiB4Mj0iMjYiIHkyPSI0NiIvPjxsaW5lIHgxPSIxNCIgeTE9IjM2IiB4Mj0iMTEiIHkyPSI0NiIvPjxsaW5lIHgxPSIxOCIgeTE9IjM2IiB4Mj0iMjEiIHkyPSI0NiIvPjxwYXRoIGQ9Ik0xMSAzNiBRIDE2IDQ0IDIxIDM2Ii8+PHBhdGggZD0iTTExIDM2IFEgMTIgNDEgMTQgMzYiLz48cGF0aCBkPSJNMTggMzYgUSAyMCA0MSAyMSAzNiIvPjxsaW5lIHgxPSIzIiB5MT0iNDYiIHgyPSIyOSIgeTI9IjQ2IiBzdHJva2Utd2lkdGg9IjEuMyIvPjwvc3ZnPgo=",
-  "secondaryIcon": "🥐",
   "theme": {
     "color": "#1f2937",
     "iconLeft": "🥐",
@@ -3942,7 +4065,6 @@ window.BKK.cityData.rome = {
   "nameEn": "Rome",
   "country": "Italy",
   "icon": "🏛️",
-  "secondaryIcon": "🍕",
   "theme": {
     "color": "#6366f1",
     "iconLeft": "🛵",
@@ -4345,7 +4467,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.24.8';
+window.BKK.VERSION = '3.24.9';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -4376,15 +4498,16 @@ window.BKK.GOOGLE_PLACES_TEXT_SEARCH_URL = 'https://places.googleapis.com/v1/pla
 // ============================================================================
 
 window.BKK.cityRegistry = {
-  bangkok: { id: 'bangkok', name: 'בנגקוק', nameEn: 'Bangkok', country: 'Thailand', icon: '🛺', secondaryIcon: '🍜', file: 'city-bangkok.js' },
+  bangkok: { id: 'bangkok', name: 'בנגקוק', nameEn: 'Bangkok', country: 'Thailand', icon: '🛺', file: 'city-bangkok.js' },
   telaviv: { id: 'gushdan', name: 'תל אביב', nameEn: 'Tel Aviv', country: 'Israel', icon: '🏖️', file: 'city-telaviv.js' },
-  singapore: { id: 'singapore', name: 'סינגפור', nameEn: 'Singapore', country: 'Singapore', icon: '🦁', secondaryIcon: '🌳', file: 'city-singapore.js' },
-  malaga: { id: 'malaga', name: 'מלגה', nameEn: 'Malaga', country: 'Spain', icon: '☀️', secondaryIcon: '☀️', file: 'city-malaga.js' },
-  rome: { id: 'rome', name: 'רומא', nameEn: 'Rome', country: 'Italy', icon: '🏛️', secondaryIcon: '🍕', file: 'city-rome.js' },
-  paris: { id: 'paris', name: 'פריז', nameEn: 'Paris', country: 'France', icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiA0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxLjYiIHI9IjAuNiIgZmlsbD0iIzAwMCIvPjxsaW5lIHgxPSIxNiIgeTE9IjIuNCIgeDI9IjE2IiB5Mj0iNSIvPjxwYXRoIGQ9Ik0xNiA1IEwxNCAxMCBMMTggMTAgWiIvPjxwYXRoIGQ9Ik0xNCAxMCBMMTMgMjIgTDE5IDIyIEwxOCAxMCIvPjxsaW5lIHgxPSIxNiIgeTE9IjEwIiB4Mj0iMTYiIHkyPSIyMiIvPjxsaW5lIHgxPSIxMyIgeTE9IjE0IiB4Mj0iMTkiIHkyPSIxNCIvPjxsaW5lIHgxPSIxMyIgeTE9IjE4IiB4Mj0iMTkiIHkyPSIxOCIvPjxsaW5lIHgxPSIxMyIgeTE9IjIyIiB4Mj0iMTkiIHkyPSIyMiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iMTMiIHkxPSIyMyIgeDI9IjE5IiB5Mj0iMjMiLz48cGF0aCBkPSJNMTMgMjMgTDExIDM1IEwyMSAzNSBMMTkgMjMiLz48bGluZSB4MT0iMTQiIHkxPSIyMyIgeDI9IjEzLjMiIHkyPSIzNSIvPjxsaW5lIHgxPSIxOCIgeTE9IjIzIiB4Mj0iMTguNyIgeTI9IjM1Ii8+PGxpbmUgeDE9IjE2IiB5MT0iMjMiIHgyPSIxNiIgeTI9IjM1Ii8+PGxpbmUgeDE9IjEyLjUiIHkxPSIyOSIgeDI9IjE5LjUiIHkyPSIyOSIvPjxsaW5lIHgxPSIxMiIgeTE9IjMyIiB4Mj0iMjAiIHkyPSIzMiIvPjxsaW5lIHgxPSIxMSIgeTE9IjM1IiB4Mj0iMjEiIHkyPSIzNSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iMTEiIHkxPSIzNiIgeDI9IjIxIiB5Mj0iMzYiLz48bGluZSB4MT0iMTEiIHkxPSIzNiIgeDI9IjYiIHkyPSI0NiIvPjxsaW5lIHgxPSIyMSIgeTE9IjM2IiB4Mj0iMjYiIHkyPSI0NiIvPjxsaW5lIHgxPSIxNCIgeTE9IjM2IiB4Mj0iMTEiIHkyPSI0NiIvPjxsaW5lIHgxPSIxOCIgeTE9IjM2IiB4Mj0iMjEiIHkyPSI0NiIvPjxwYXRoIGQ9Ik0xMSAzNiBRIDE2IDQ0IDIxIDM2Ii8+PHBhdGggZD0iTTExIDM2IFEgMTIgNDEgMTQgMzYiLz48cGF0aCBkPSJNMTggMzYgUSAyMCA0MSAyMSAzNiIvPjxsaW5lIHgxPSIzIiB5MT0iNDYiIHgyPSIyOSIgeTI9IjQ2IiBzdHJva2Utd2lkdGg9IjEuMyIvPjwvc3ZnPgo=', secondaryIcon: '🥐', file: 'city-paris.js' },
-  london: { id: 'london', name: 'לונדון', nameEn: 'London', country: 'UK', icon: '🚌', secondaryIcon: '🎡', file: 'city-london.js' },
-  new_york: { id: 'new_york', name: 'ניו יורק', nameEn: 'New York', country: 'USA', icon: '🗽', secondaryIcon: '🥯', file: 'city-new_york.js' },
-  jerusalem: { id: 'jerusalem', name: 'ירושלים', nameEn: 'Jerusalem', country: 'Israel', icon: '🕍', secondaryIcon: '🧆', file: 'city-jerusalem.js' }
+  singapore: { id: 'singapore', name: 'סינגפור', nameEn: 'Singapore', country: 'Singapore', icon: '🦁', file: 'city-singapore.js' },
+  malaga: { id: 'malaga', name: 'מלגה', nameEn: 'Malaga', country: 'Spain', icon: '☀️', file: 'city-malaga.js' },
+  rome: { id: 'rome', name: 'רומא', nameEn: 'Rome', country: 'Italy', icon: '🏛️', file: 'city-rome.js' },
+  paris: { id: 'paris', name: 'פריז', nameEn: 'Paris', country: 'France', icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiA0OCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxLjYiIHI9IjAuNiIgZmlsbD0iIzAwMCIvPjxsaW5lIHgxPSIxNiIgeTE9IjIuNCIgeDI9IjE2IiB5Mj0iNSIvPjxwYXRoIGQ9Ik0xNiA1IEwxNCAxMCBMMTggMTAgWiIvPjxwYXRoIGQ9Ik0xNCAxMCBMMTMgMjIgTDE5IDIyIEwxOCAxMCIvPjxsaW5lIHgxPSIxNiIgeTE9IjEwIiB4Mj0iMTYiIHkyPSIyMiIvPjxsaW5lIHgxPSIxMyIgeTE9IjE0IiB4Mj0iMTkiIHkyPSIxNCIvPjxsaW5lIHgxPSIxMyIgeTE9IjE4IiB4Mj0iMTkiIHkyPSIxOCIvPjxsaW5lIHgxPSIxMyIgeTE9IjIyIiB4Mj0iMTkiIHkyPSIyMiIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iMTMiIHkxPSIyMyIgeDI9IjE5IiB5Mj0iMjMiLz48cGF0aCBkPSJNMTMgMjMgTDExIDM1IEwyMSAzNSBMMTkgMjMiLz48bGluZSB4MT0iMTQiIHkxPSIyMyIgeDI9IjEzLjMiIHkyPSIzNSIvPjxsaW5lIHgxPSIxOCIgeTE9IjIzIiB4Mj0iMTguNyIgeTI9IjM1Ii8+PGxpbmUgeDE9IjE2IiB5MT0iMjMiIHgyPSIxNiIgeTI9IjM1Ii8+PGxpbmUgeDE9IjEyLjUiIHkxPSIyOSIgeDI9IjE5LjUiIHkyPSIyOSIvPjxsaW5lIHgxPSIxMiIgeTE9IjMyIiB4Mj0iMjAiIHkyPSIzMiIvPjxsaW5lIHgxPSIxMSIgeTE9IjM1IiB4Mj0iMjEiIHkyPSIzNSIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iMTEiIHkxPSIzNiIgeDI9IjIxIiB5Mj0iMzYiLz48bGluZSB4MT0iMTEiIHkxPSIzNiIgeDI9IjYiIHkyPSI0NiIvPjxsaW5lIHgxPSIyMSIgeTE9IjM2IiB4Mj0iMjYiIHkyPSI0NiIvPjxsaW5lIHgxPSIxNCIgeTE9IjM2IiB4Mj0iMTEiIHkyPSI0NiIvPjxsaW5lIHgxPSIxOCIgeTE9IjM2IiB4Mj0iMjEiIHkyPSI0NiIvPjxwYXRoIGQ9Ik0xMSAzNiBRIDE2IDQ0IDIxIDM2Ii8+PHBhdGggZD0iTTExIDM2IFEgMTIgNDEgMTQgMzYiLz48cGF0aCBkPSJNMTggMzYgUSAyMCA0MSAyMSAzNiIvPjxsaW5lIHgxPSIzIiB5MT0iNDYiIHgyPSIyOSIgeTI9IjQ2IiBzdHJva2Utd2lkdGg9IjEuMyIvPjwvc3ZnPgo=', file: 'city-paris.js' },
+  london: { id: 'london', name: 'לונדון', nameEn: 'London', country: 'UK', icon: '🚌', file: 'city-london.js' },
+  new_york: { id: 'new_york', name: 'ניו יורק', nameEn: 'New York', country: 'USA', icon: '🗽', file: 'city-new_york.js' },
+  jerusalem: { id: 'jerusalem', name: 'ירושלים', nameEn: 'Jerusalem', country: 'Israel', icon: '🕍', file: 'city-jerusalem.js' },
+  budapest: { id: 'budapest', name: 'בודפשט', nameEn: 'Budapest', country: 'Hungary', icon: '🏰', file: 'city-budapest.js' }
 };
 
 window.BKK.cities = {};

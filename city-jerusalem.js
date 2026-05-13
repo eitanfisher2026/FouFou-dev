@@ -6,7 +6,6 @@ window.BKK.cityData.jerusalem = {
   "nameEn": "Jerusalem",
   "country": "Israel",
   "icon": "🕍",
-  "secondaryIcon": "🧆",
   "theme": {
     "color": "#a16207",
     "iconLeft": "🧆",

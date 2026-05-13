@@ -6,7 +6,6 @@ window.BKK.cityData.bangkok = {
   "nameEn": "Bangkok",
   "country": "Thailand",
   "icon": "🛺",
-  "secondaryIcon": "🍜",
   "theme": {
     "color": "#e74c3c",
     "iconLeft": "🏯",

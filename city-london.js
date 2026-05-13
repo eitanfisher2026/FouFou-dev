@@ -6,7 +6,6 @@ window.BKK.cityData.london = {
   "nameEn": "London",
   "country": "UK",
   "icon": "🚌",
-  "secondaryIcon": "🎡",
   "theme": {
     "color": "#c8102e",
     "iconLeft": "🎡",

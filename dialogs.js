@@ -3512,8 +3512,8 @@
                             const newCity = {
                               id: addCityFound.id, name: addCityFound.name, nameEn: addCityFound.name,
                               country: addCityFound.address?.split(',').pop()?.trim() || '',
-                              icon: '📍', secondaryIcon: '🏙️',
-                              theme: { color: '#6366f1', iconLeft: '📍', iconRight: '🗺️' },
+                              icon: '🏙️',
+                              theme: { color: '#6366f1', iconLeft: '', iconRight: '' },
                               active: false, distanceMultiplier: 1.2,
                               dayStartHour: 7, nightStartHour: 18,
                               center: { lat: addCityFound.lat, lng: addCityFound.lng },

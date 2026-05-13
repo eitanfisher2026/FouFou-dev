@@ -6,7 +6,6 @@ window.BKK.cityData.rome = {
   "nameEn": "Rome",
   "country": "Italy",
   "icon": "🏛️",
-  "secondaryIcon": "🍕",
   "theme": {
     "color": "#6366f1",
     "iconLeft": "🛵",

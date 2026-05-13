@@ -246,8 +246,8 @@
               ? <img src={authUser.photoURL} alt="" style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }} />
               : (authUser && !authUser.isAnonymous ? '👤' : '🔑')}
           </button>
-          {(theme.iconLeft || window.BKK.selectedCity?.secondaryIcon) && (() => {
-            const val = theme.iconLeft || window.BKK.selectedCity?.secondaryIcon;
+          {theme.iconLeft && (() => {
+            const val = theme.iconLeft;
             return <span style={{ fontSize: '14px', display: 'flex', alignItems: 'center' }}>
               {val.startsWith('data:') ? <img src={val} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} /> : val}
             </span>;
@@ -3225,7 +3225,7 @@
                           {/* City icon — shows current, upload or emoji */}
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', minWidth: '52px' }}>
                             <div style={{ width: '44px', height: '44px', border: '1px solid #d1d5db', borderRadius: '8px', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', overflow: 'hidden' }}>
-                              {city.icon?.startsWith?.('data:') ? <img src={city.icon} alt="" style={{ width: '38px', height: '38px', objectFit: 'contain' }} /> : (city.icon || '📍')}
+                              {city.icon?.startsWith?.('data:') ? <img src={city.icon} alt="" style={{ width: '38px', height: '38px', objectFit: 'contain' }} /> : (city.icon || '🏙️')}
                             </div>
                             <div style={{ display: 'flex', gap: '3px' }}>
                               <label style={{ fontSize: '9px', padding: '2px 5px', border: '1px solid #d1d5db', borderRadius: '4px', background: '#f9fafb', cursor: 'pointer', color: '#374151', fontWeight: 'bold' }} title={t('settings.uploadFile') || 'Upload file'}>

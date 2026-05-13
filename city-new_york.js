@@ -6,7 +6,6 @@ window.BKK.cityData.new_york = {
   "nameEn": "New York",
   "country": "USA",
   "icon": "🗽",
-  "secondaryIcon": "🥯",
   "theme": {
     "color": "#1e3a8a",
     "iconLeft": "🥯",
