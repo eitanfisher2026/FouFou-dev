@@ -3204,9 +3204,10 @@
                     onChange={(e) => switchCity(e.target.value, true)}
                     style={{ padding: '6px 10px', borderRadius: '8px', border: '2px solid #e11d48', fontSize: '13px', fontWeight: 'bold', color: '#e11d48', background: '#fef2f2', cursor: 'pointer', minWidth: '140px' }}
                   >
-                    {Object.values(window.BKK.cities || {}).map(city => (
-                      <option key={city.id} value={city.id}>{city.icon?.startsWith?.('data:') ? '🏙️' : (city.icon || '🏙️')} {tLabel(city)}</option>
+                    {Object.values(window.BKK.cityRegistry || {}).sort((a, b) => (a.order || 0) - (b.order || 0)).map(reg => (
+                      <option key={reg.id} value={reg.id}>{reg.icon?.startsWith?.('data:') ? '🏙️' : (reg.icon || '🏙️')} {tLabel(reg)}</option>
                     ))}
+                    {registryVersion < 0 && null}
                   </select>
                   <button onClick={() => setShowAddCityDialog(true)}
                     style={{ padding: '5px 10px', borderRadius: '8px', border: '1.5px dashed #d1d5db', background: 'white', cursor: 'pointer', fontSize: '11px', color: '#6b7280' }}
@@ -3286,6 +3287,14 @@
                               });
                             }} style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '6px', border: '1px solid #fecaca', cursor: 'pointer', background: '#fef2f2', color: '#ef4444' }}
                             >🗑️ {t('general.remove')}</button>
+                          )}
+                          {isAdmin && (
+                            <button onClick={() => {
+                              window.BKK.seedAllCitiesToFirebase(database)
+                                .then(() => { showToast('✓ All cities seeded to Firebase', 'success'); setRegistryVersion(v => v + 1); })
+                                .catch(e => showToast('❌ Seed failed: ' + e, 'error'));
+                            }} style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '6px', border: '1px solid #86efac', cursor: 'pointer', background: '#f0fdf4', color: '#16a34a', fontWeight: 'bold' }}
+                            >🌱 Seed Firebase</button>
                           )}
                     </div>
                   );

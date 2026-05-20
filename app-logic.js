@@ -1902,6 +1902,7 @@
   const [googleMaxWaypoints, setGoogleMaxWaypoints] = useState(12);
   const [cityModified, setCityModified] = useState(false);
   const [cityEditCounter, setCityEditCounter] = useState(0); // Force re-render on city object mutation
+  const [registryVersion, setRegistryVersion] = useState(0); // Incremented when Firebase registry loads
   const [showSettingsMap, setShowSettingsMap] = useState(false);
   const [showMapFullscreen, setShowMapFullscreen] = useState(false);
   const [mapEditMode, setMapEditMode] = useState(false);
@@ -1988,6 +1989,7 @@
       const data = snap.val();
       if (data) setHelpOverrides(data);
     }).catch(() => {});
+    window.BKK.loadCityRegistry(database).then(() => setRegistryVersion(v => v + 1));
   }, [isFirebaseAvailable]);
 
   // Save a single field to cities/{cityId}/general in Firebase
@@ -4516,39 +4518,39 @@
   // Switch city function
   const switchCity = (cityId, stayOnView) => {
     if (cityId === selectedCityId) return;
-    if (!window.BKK.cities[cityId]) return;
-    
-    window.BKK.selectCity(cityId);
-    window.BKK.logEvent?.('city_selected', { city: cityId });
-    // day/night hours and icons loaded from cities/{cityId}/general by useEffect on selectedCityId
-    setSelectedCityId(cityId);
-    localStorage.setItem('city_explorer_city', cityId);
-    setCustomLocations([]); // Clear immediately — Firebase listener for new city will repopulate
-    setReviewAverages({}); // Clear ratings — will reload via loadReviewRatings when locations arrive
-    
-    // Reset form data for new city, but preserve user settings
-    // Clear saved interests for all time modes — they belong to the previous city
-    try { ['day','night','all'].forEach(m => localStorage.removeItem(`foufou_interests_${m}`)); } catch(e) {}
-    const firstArea = window.BKK.areaOptions[0]?.id || '';
-    setFormData(prev => ({
-      hours: 3, area: firstArea, interests: [], circular: true, startPoint: '',
-      maxStops: prev.maxStops || 10, fetchMoreCount: prev.fetchMoreCount || 3, searchMode: 'area',
-      radiusMeters: prev.radiusMeters || 500, radiusSource: 'gps', radiusPlaceId: null, radiusPlaceName: '',
-      gpsLat: null, gpsLng: null, currentLat: null, currentLng: null
-    }));
-    setRoute(null);
-    setWizardStep(1);
-    endActiveTrail(); // End any active trail when starting new wizard
-    if (!stayOnView) {
-      setCurrentView('form');
-      window.scrollTo(0, 0);
+    const doSwitch = () => {
+      window.BKK.selectCity(cityId);
+      window.BKK.logEvent?.('city_selected', { city: cityId });
+      setSelectedCityId(cityId);
+      localStorage.setItem('city_explorer_city', cityId);
+      setCustomLocations([]);
+      setReviewAverages({});
+      try { ['day','night','all'].forEach(m => localStorage.removeItem(`foufou_interests_${m}`)); } catch(e) {}
+      const firstArea = window.BKK.areaOptions[0]?.id || '';
+      setFormData(prev => ({
+        hours: 3, area: firstArea, interests: [], circular: true, startPoint: '',
+        maxStops: prev.maxStops || 10, fetchMoreCount: prev.fetchMoreCount || 3, searchMode: 'area',
+        radiusMeters: prev.radiusMeters || 500, radiusSource: 'gps', radiusPlaceId: null, radiusPlaceName: '',
+        gpsLat: null, gpsLng: null, currentLat: null, currentLng: null
+      }));
+      setRoute(null);
+      setWizardStep(1);
+      endActiveTrail();
+      if (!stayOnView) {
+        setCurrentView('form');
+        window.scrollTo(0, 0);
+      }
+      setShowRoutePreview(false);
+      setShowRouteMenu(false);
+      setManualStops([]);
+      setCityModified(false);
+      showToast(window.BKK.selectedCity.icon + ' ' + tLabel(window.BKK.selectedCity), 'success');
+    };
+    if (window.BKK.cities[cityId]) {
+      doSwitch();
+    } else {
+      window.BKK.loadCity(cityId).then(doSwitch).catch(() => showToast('❌ ' + t('general.error'), 'error'));
     }
-    // (skip state used to be cleared here; now it lives on each stop and dies with the route)
-    setShowRoutePreview(false);
-    setShowRouteMenu(false);
-    setManualStops([]);
-    setCityModified(false);
-    showToast(window.BKK.selectedCity.icon + ' ' + tLabel(window.BKK.selectedCity), 'success');
   };
 
   const switchLanguage = (lang) => {

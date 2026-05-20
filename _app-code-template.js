@@ -15,6 +15,7 @@ function initFirebase() {
       if (!cfg || !cfg.apiKey) { console.error('[FIREBASE] Config not found'); return; }
       firebaseApp = firebase.initializeApp(cfg);
       database = firebase.database();
+      window.BKK._database = database;
       if (firebase.auth) { auth = firebase.auth(); }
       window.BKK.firebaseConnected = false;
       var _connTimer = null;

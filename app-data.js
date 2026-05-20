@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.24.10
+// FouFou app-data.js v3.25.0
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -4467,7 +4467,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.24.10';
+window.BKK.VERSION = '3.25.0';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -4517,32 +4517,61 @@ window.BKK.cityData = window.BKK.cityData || {};
 // ============================================================================
 
 /**
- * Load a city's data file dynamically, then register it.
- * Returns a Promise that resolves when the city is ready.
+ * Script-tag fallback loader — used when Firebase config is absent.
+ */
+window.BKK._loadCityFromScript = function(cityId, reg, resolve, reject) {
+  if (!reg || !reg.file) { reject('No source for city: ' + cityId); return; }
+  var script = document.createElement('script');
+  script.src = reg.file + '?v=' + window.BKK.VERSION;
+  script.onload = function() {
+    if (window.BKK.cityData[cityId]) {
+      window.BKK.cities[cityId] = window.BKK.cityData[cityId];
+      resolve(window.BKK.cities[cityId]);
+    } else { reject('City data not found: ' + cityId); }
+  };
+  script.onerror = function() { reject('Failed to load: ' + reg.file); };
+  document.head.appendChild(script);
+};
+
+/**
+ * Load a city's structural data. Tries Firebase cities/{id}/config first,
+ * falls back to the bundled JS file so existing cities always work.
+ * Returns a Promise that resolves with the city object.
  */
 window.BKK.loadCity = function(cityId) {
   return new Promise(function(resolve, reject) {
     var reg = window.BKK.cityRegistry[cityId];
     if (!reg) { reject('Unknown city: ' + cityId); return; }
-    
+
     if (window.BKK.cityData[cityId]) {
       window.BKK.cities[cityId] = window.BKK.cityData[cityId];
       resolve(window.BKK.cities[cityId]);
       return;
     }
-    
-    var script = document.createElement('script');
-    script.src = reg.file + '?v=' + window.BKK.VERSION;
-    script.onload = function() {
-      if (window.BKK.cityData[cityId]) {
-        window.BKK.cities[cityId] = window.BKK.cityData[cityId];
-        resolve(window.BKK.cities[cityId]);
-      } else {
-        reject('City data not found after loading: ' + cityId);
-      }
-    };
-    script.onerror = function() { reject('Failed to load city file: ' + reg.file); };
-    document.head.appendChild(script);
+
+    var db = window.BKK._database;
+    if (db) {
+      db.ref('cities/' + cityId + '/config').once('value').then(function(snap) {
+        var config = snap.val();
+        if (config && config.center && config.areas) {
+          var city = Object.assign({}, reg, config);
+          if (config.areas && !Array.isArray(config.areas)) {
+            city.areas = Object.keys(config.areas)
+              .sort(function(a, b) { return parseInt(a) - parseInt(b); })
+              .map(function(k) { return config.areas[k]; });
+          }
+          window.BKK.cities[cityId] = city;
+          window.BKK.cityData[cityId] = city;
+          resolve(city);
+        } else {
+          window.BKK._loadCityFromScript(cityId, reg, resolve, reject);
+        }
+      }).catch(function() {
+        window.BKK._loadCityFromScript(cityId, reg, resolve, reject);
+      });
+    } else {
+      window.BKK._loadCityFromScript(cityId, reg, resolve, reject);
+    }
   });
 };
 
@@ -4558,6 +4587,86 @@ window.BKK.unloadCity = function(cityId) {
     delete customCities[cityId];
     localStorage.setItem('custom_cities', JSON.stringify(customCities));
   } catch(e) {}
+};
+
+/**
+ * Load the city registry from Firebase settings/cityRegistry.
+ * Merges Firebase entries on top of the JS-bundled registry so:
+ *  - existing cities get their icon/name overridden from Firebase
+ *  - new Firebase-only cities (added via foufou-build) appear in the picker
+ * Call this once after Firebase is ready; pass the setRegistryVersion setter
+ * so React re-renders the city dropdown.
+ */
+window.BKK.loadCityRegistry = function(db) {
+  if (!db) return Promise.resolve();
+  return db.ref('settings/cityRegistry').once('value').then(function(snap) {
+    var fbReg = snap.val();
+    if (!fbReg) return;
+    var order = 0;
+    Object.keys(fbReg).forEach(function(key) {
+      var entry = fbReg[key];
+      if (!entry || !entry.id) return;
+      window.BKK.cityRegistry[key] = Object.assign(
+        { order: order++ },
+        window.BKK.cityRegistry[key] || {},
+        entry
+      );
+      if (!window.BKK.cityRegistry[key].file) window.BKK.cityRegistry[key].file = null;
+    });
+  }).catch(function(e) {
+  });
+};
+
+/**
+ * Push one city's structural data to Firebase (admin only, one-time seed).
+ * Writes:  cities/{cityId}/config  and  settings/cityRegistry/{regKey}
+ */
+window.BKK.seedCityToFirebase = function(cityId, db) {
+  if (!db) return Promise.reject('No database');
+  var city = window.BKK.cities[cityId];
+  if (!city) return Promise.reject('City not loaded: ' + cityId);
+  var regKey = Object.keys(window.BKK.cityRegistry || {}).find(function(k) {
+    return window.BKK.cityRegistry[k].id === cityId;
+  }) || cityId;
+  var reg = window.BKK.cityRegistry[regKey] || {};
+  var config = {
+    center: city.center || null,
+    allCityRadius: city.allCityRadius || 15000,
+    distanceMultiplier: city.distanceMultiplier || 1.2,
+    dayStartHour: city.dayStartHour != null ? city.dayStartHour : 7,
+    nightStartHour: city.nightStartHour != null ? city.nightStartHour : 18,
+    areas: city.areas || [],
+    interestToGooglePlaces: city.interestToGooglePlaces || {},
+    textSearchInterests: city.textSearchInterests || {},
+    interestTooltips: city.interestTooltips || {},
+    systemRoutes: city.systemRoutes || []
+  };
+  var registryEntry = {
+    id: cityId,
+    name: city.name || reg.name || '',
+    nameEn: city.nameEn || reg.nameEn || '',
+    country: city.country || reg.country || '',
+    icon: (city.icon && !city.icon.startsWith('data:')) ? city.icon : (reg.icon || '🏙️'),
+    active: city.active !== false,
+    order: reg.order != null ? reg.order : 0
+  };
+  return Promise.all([
+    db.ref('cities/' + cityId + '/config').set(config),
+    db.ref('settings/cityRegistry/' + regKey).set(registryEntry)
+  ]).then(function() {
+  });
+};
+
+/**
+ * Seed ALL currently-loaded cities to Firebase in one admin operation.
+ */
+window.BKK.seedAllCitiesToFirebase = function(db) {
+  if (!db) return Promise.reject('No database');
+  var cityIds = Object.keys(window.BKK.cities);
+  return Promise.all(cityIds.map(function(id) {
+    return window.BKK.seedCityToFirebase(id, db).catch(function(e) {
+    });
+  }));
 };
 
 /**

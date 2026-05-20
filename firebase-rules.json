@@ -6,6 +6,10 @@
           ".read": true,
           ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2"
         },
+        "config": {
+          ".read": true,
+          ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2"
+        },
         "locations": {
           ".read": true,
           "$locationId": {
@@ -80,6 +84,9 @@
         ".read": true
       },
       "cacheVersion": {
+        ".read": true
+      },
+      "cityRegistry": {
         ".read": true
       }
     },
