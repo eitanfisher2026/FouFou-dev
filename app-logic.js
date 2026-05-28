@@ -1110,7 +1110,6 @@
   }, [settingsTab, userRole, selectedCityId]);
   const [editingParamKey, setEditingParamKey] = useState(null); // key of param being edited inline
   const [editingParamVal, setEditingParamVal] = useState('');
-  const [editingArea, setEditingArea] = useState(null); // area being edited on map
   const [mapMode, setMapMode] = useState('areas'); // 'areas', 'radius', or 'stops'
   const [mapStops, setMapStops] = useState([]); // stops to show when mapMode='stops'
   const [mapUserLocation, setMapUserLocation] = useState(null); // { lat, lng } for blue dot on map
@@ -1900,14 +1899,7 @@
   const [addCityFound, setAddCityFound] = useState(null);
   const [addCityGenerated, setAddCityGenerated] = useState(null);
   const [googleMaxWaypoints, setGoogleMaxWaypoints] = useState(12);
-  const [cityModified, setCityModified] = useState(false);
-  const [cityEditCounter, setCityEditCounter] = useState(0); // Force re-render on city object mutation
   const [registryVersion, setRegistryVersion] = useState(0); // Incremented when Firebase registry loads
-  const [showSettingsMap, setShowSettingsMap] = useState(false);
-  const [showMapFullscreen, setShowMapFullscreen] = useState(false);
-  const [mapEditMode, setMapEditMode] = useState(false);
-  const mapMarkersRef = React.useRef([]);
-  const mapOriginalPositions = React.useRef({});
   
   // Filter Log — per-search breakdown of passed/filtered places (floating debug bubble)
   // Shape: [{ interestId, interestLabel, searchType, query, placeTypes, blacklist, passed: [...], filtered: [...] }]
@@ -1993,57 +1985,6 @@
   }, [isFirebaseAvailable]);
 
   // Save a single field to cities/{cityId}/general in Firebase
-  // Called from views.js city icon/color/name handlers — must live here (before 500KB Babel limit)
-  // Handle city icon file upload — compresses and saves to Firebase
-  // Must live here (app-logic.js, ~115KB) not in views.js (>500KB in bundle)
-  const handleCityIconUpload = async (file, cityId, field, maxSize) => {
-    if (!file) return;
-    try {
-      const compressed = await window.BKK.compressIcon(file, maxSize || 80);
-      if (!compressed) {
-        showToast('❌ Failed to compress icon', 'error');
-        return;
-      }
-      // Update local city object immediately
-      const city = window.BKK.cities?.[cityId];
-      if (city) {
-        if (field === 'icon') city.icon = compressed;
-        else if (field === 'iconLeft') { if (!city.theme) city.theme = {}; city.theme.iconLeft = compressed; }
-        else if (field === 'iconRight') { if (!city.theme) city.theme = {}; city.theme.iconRight = compressed; }
-      }
-      // Update cityRegistry too
-      const regKey = Object.keys(window.BKK.cityRegistry || {}).find(k => window.BKK.cityRegistry[k].id === cityId);
-      if (regKey && field === 'icon') window.BKK.cityRegistry[regKey].icon = compressed;
-      setCityModified(true);
-      setCityEditCounter(c => c + 1);
-      // Save to Firebase
-      saveCityGeneralField(cityId, field, compressed);
-    } catch (e) {
-      showToast('❌ Icon upload error: ' + e.message, 'error');
-    }
-  };
-  // Expose for Console testing
-  window.BKK._handleCityIconUpload = handleCityIconUpload;
-  window.BKK._saveCityGeneralField = (cityId, field, value) => saveCityGeneralField(cityId, field, value);
-
-  const saveCityGeneralField = (cityId, field, value) => {
-    if (!isFirebaseAvailable || !database) {
-      showToast('❌ Firebase not available', 'error');
-      return;
-    }
-    if (!isUnlocked) {
-      showToast('❌ No permission to save', 'error');
-      return;
-    }
-    database.ref(`cities/${cityId}/general/${field}`).set(value)
-      .then(() => {
-        setCityEditCounter(c => c + 1);
-      })
-      .catch(e => {
-        showToast('❌ שגיאת שמירה: ' + e.message, 'error');
-      });
-  };
-
   // Lock/unlock a location
   const saveLocationLocked = (cityId, firebaseId, locked) => {
     if (!isFirebaseAvailable || !database) return;
@@ -3540,66 +3481,6 @@
 
   // Fullscreen map — init when opened, destroy when closed
   // MUST be at component level (not inside JSX) to comply with Rules of Hooks
-  useEffect(() => {
-    if (!showMapFullscreen) return;
-    let timer;
-    timer = setTimeout(() => {
-      const container = document.getElementById('settings-fullscreen-map');
-      if (!container || !window.L) return;
-      try { if (window._settingsMap) { window._settingsMap.off(); window._settingsMap.remove(); window._settingsMap = null; } } catch(e) {}
-      container.innerHTML = '';
-      delete container._leaflet_id;
-      const city = window.BKK.selectedCity;
-      if (!city) return;
-      const coords = window.BKK.areaCoordinates || {};
-      const areas = city.areas || [];
-      const cityCenter = city.center || { lat: 0, lng: 0 };
-      const map = window.L.map(container).setView([cityCenter.lat, cityCenter.lng], 12);
-      window.L.tileLayer(window.BKK.getTileUrl(), { attribution: '© OpenStreetMap contributors', maxZoom: 18 }).addTo(map);
-      const colorPalette = ['#3b82f6', '#f59e0b', '#ef4444', '#10b981', '#ec4899', '#6366f1', '#8b5cf6', '#06b6d4', '#f97316', '#a855f7', '#14b8a6', '#e11d48', '#84cc16', '#0ea5e9', '#d946ef', '#f43f5e'];
-      const allCircles = [];
-      mapMarkersRef.current = [];
-      areas.forEach((area, i) => {
-        const c = coords[area.id];
-        if (!c) return;
-        const color = colorPalette[i % colorPalette.length];
-        const circle = window.L.circle([c.lat, c.lng], { radius: c.radius, color, fillColor: color, fillOpacity: 0.15, weight: 2 }).addTo(map);
-        allCircles.push(circle);
-        const marker = window.L.marker([c.lat, c.lng], { draggable: false, title: area.label || area.id }).addTo(map);
-        marker.bindTooltip(area.label || area.id, { permanent: true, direction: 'top', className: 'area-label-tooltip', offset: [0, -10] });
-        marker._areaId = area.id; marker._circle = circle; marker._area = area; marker._coords = c;
-        marker.on('dragend', () => {
-          const pos = marker.getLatLng();
-          const newLat = Math.round(pos.lat * 10000) / 10000;
-          const newLng = Math.round(pos.lng * 10000) / 10000;
-          area.lat = newLat; area.lng = newLng; c.lat = newLat; c.lng = newLng;
-          circle.setLatLng(pos);
-        });
-        mapMarkersRef.current.push(marker);
-      });
-      if (allCircles.length > 0) {
-        const group = window.L.featureGroup(allCircles);
-        map.fitBounds(group.getBounds().pad(0.1));
-      }
-      window._settingsMap = map;
-      setTimeout(() => {
-        map.invalidateSize();
-        mapOriginalPositions.current = {};
-        mapMarkersRef.current.forEach(m => {
-          const ll = m.getLatLng();
-          mapOriginalPositions.current[m._areaId] = { lat: ll.lat, lng: ll.lng, radius: m._circle?.getRadius() || 0 };
-          m.dragging.enable();
-        });
-        setMapEditMode(true);
-      }, 300);
-    }, 50);
-    return () => {
-      clearTimeout(timer);
-      try { if (window._settingsMap) { window._settingsMap.off(); window._settingsMap.remove(); window._settingsMap = null; } } catch(e) {}
-      mapMarkersRef.current = [];
-    };
-  }, [showMapFullscreen]);
-
   // Load custom locations from Firebase - PER CITY
   useEffect(() => {
     if (!selectedCityId) return;
@@ -3671,7 +3552,6 @@
         if (g.dayStartHour != null) { city.dayStartHour = g.dayStartHour; window.BKK.dayStartHour = g.dayStartHour; }
         if (g.nightStartHour != null) { city.nightStartHour = g.nightStartHour; window.BKK.nightStartHour = g.nightStartHour; }
         if (g.boundaryFactor != null) city.boundaryFactor = g.boundaryFactor;
-        setCityEditCounter(c => c + 1);
       }).catch(() => {});
 
       return () => locationsRef.off('value', onValue);
@@ -4543,7 +4423,6 @@
       setShowRoutePreview(false);
       setShowRouteMenu(false);
       setManualStops([]);
-      setCityModified(false);
       showToast(window.BKK.selectedCity.icon + ' ' + tLabel(window.BKK.selectedCity), 'success');
     };
     if (window.BKK.cities[cityId]) {
@@ -5302,7 +5181,7 @@
       // Filter 4: Distance check - remove places too far from search center
       // Use per-area distanceMultiplier, fallback to city default, fallback to 1.2
       const areaConfig = areaCoordinates[area] || {};
-      const distMultiplier = areaConfig.distanceMultiplier || window.BKK.selectedCity?.distanceMultiplier || 1.2;
+      const distMultiplier = areaConfig.distanceMultiplier || window.BKK.selectedCity?.distanceMultiplier || 1.05;
       const maxDistance = searchRadius * distMultiplier;
       const distanceFiltered = transformed.filter(place => {
         const dist = calcDistance(center.lat, center.lng, place.lat, place.lng);
@@ -8849,7 +8728,7 @@
               Math.cos(lat * Math.PI / 180) * Math.cos(cityData.center.lat * Math.PI / 180) *
               Math.sin(dLng/2) * Math.sin(dLng/2);
     const distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const factor = cityData.boundaryFactor ?? 1.5;
+    const factor = cityData.boundaryFactor ?? 1.2;
     const maxRadius = (cityData.allCityRadius || 15000) * factor;
     if (distance <= maxRadius) return 'ok';
     return isAdmin ? 'warn' : 'block';
