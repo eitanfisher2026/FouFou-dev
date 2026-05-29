@@ -593,8 +593,8 @@
                         {stop.name}
                         {!isSkipped && isFavorite && <img src="icon-32x32.png" alt="FouFou" style={{ width: '12px', height: '12px', flexShrink: 0 }} />}
                       </span>
-                      {/* Add to favorites / Rate button — always visible even for skipped stops */}
-                      {(() => {
+                      {/* Add to favorites / Rate button — hidden in Trail Anywhere mode */}
+                      {!isTrailAnywhere && (() => {
                         if (isFavorite) {
                           // Already a favorite — show rating or invite to rate
                           return (
@@ -1188,9 +1188,9 @@
             {wizardStep === 1 && (<>
               <div className="bg-white rounded-xl shadow-lg p-3">
                 {/* Mode toggle: FouFou Cities / Trail Anywhere */}
-                <div style={{ display: 'flex', gap: '3px', marginBottom: '12px', borderRadius: '10px', background: '#f3f4f6', padding: '3px' }}>
-                  <button onClick={() => toggleTrailAnywhere(false)} style={{ flex: 1, padding: '7px 6px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', transition: 'all 0.15s', background: !isTrailAnywhere ? 'white' : 'transparent', color: !isTrailAnywhere ? '#e11d48' : '#9ca3af', boxShadow: !isTrailAnywhere ? '0 1px 3px rgba(0,0,0,0.10)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}><img src="icon-32x32.png" alt="" style={{ width: '16px', height: '16px', objectFit: 'contain', opacity: !isTrailAnywhere ? 1 : 0.4 }} />{currentLang === 'he' ? 'ערי FouFou' : 'FouFou Cities'}</button>
-                  <button onClick={() => toggleTrailAnywhere(true)} style={{ flex: 1, padding: '7px 6px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', transition: 'all 0.15s', background: isTrailAnywhere ? 'white' : 'transparent', color: isTrailAnywhere ? '#059669' : '#9ca3af', boxShadow: isTrailAnywhere ? '0 1px 3px rgba(0,0,0,0.10)' : 'none' }}>🌍 {currentLang === 'he' ? 'מסלול בכל מקום' : 'Trail Anywhere'}</button>
+                <div style={{ display: 'flex', gap: '3px', marginBottom: '12px', borderRadius: '10px', background: '#e5e7eb', padding: '3px' }}>
+                  <button onClick={() => toggleTrailAnywhere(false)} style={{ flex: 1, padding: '8px 6px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', transition: 'all 0.15s', background: !isTrailAnywhere ? 'white' : 'transparent', color: !isTrailAnywhere ? '#e11d48' : '#6b7280', boxShadow: !isTrailAnywhere ? '0 1px 4px rgba(0,0,0,0.12)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}><img src="icon-32x32.png" alt="" style={{ width: '16px', height: '16px', objectFit: 'contain', opacity: !isTrailAnywhere ? 1 : 0.6 }} />{currentLang === 'he' ? 'ערי FouFou' : 'FouFou Cities'}</button>
+                  <button onClick={() => toggleTrailAnywhere(true)} style={{ flex: 1, padding: '8px 6px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', transition: 'all 0.15s', background: isTrailAnywhere ? 'white' : 'transparent', color: isTrailAnywhere ? '#059669' : '#6b7280', boxShadow: isTrailAnywhere ? '0 1px 4px rgba(0,0,0,0.12)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>🌍 {currentLang === 'he' ? 'מסלול בכל מקום' : 'Trail Anywhere'}</button>
                 </div>
                 {/* City Selector — custom dropdown, consistent across all Android devices */}
                 {!isTrailAnywhere && (() => {
