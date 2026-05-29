@@ -5142,17 +5142,20 @@
           return (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               onClick={() => setCityVisibilityInterest(null)}>
-              <div style={{ background: 'white', borderRadius: '12px', padding: '20px', minWidth: '260px', maxWidth: '340px', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
+              <div style={{ background: 'white', borderRadius: '12px', minWidth: '260px', maxWidth: '340px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
                 onClick={e => e.stopPropagation()}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
-                    <span style={{ marginLeft: '6px' }}>{i.icon?.startsWith?.('data:') ? '' : (i.icon || '📍')}</span>
-                    {tLabel(i) || i.label}
+                <div style={{ padding: '20px 20px 0 20px', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                      <span style={{ marginLeft: '6px' }}>{i.icon?.startsWith?.('data:') ? '' : (i.icon || '📍')}</span>
+                      {tLabel(i) || i.label}
+                    </div>
+                    <button onClick={() => setCityVisibilityInterest(null)}
+                      style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#6b7280' }}>✕</button>
                   </div>
-                  <button onClick={() => setCityVisibilityInterest(null)}
-                    style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#6b7280' }}>✕</button>
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '12px' }}>ניראות לפי עיר</div>
                 </div>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '12px' }}>ניראות לפי עיר</div>
+                <div style={{ overflowY: 'auto', flex: 1, padding: '0 20px 20px 20px' }}>
                 {allCities.map(city => {
                   const isHidden = (cityHiddenInterests[city.id] || new Set()).has(i.id);
                   return (
@@ -5166,6 +5169,7 @@
                     </label>
                   );
                 })}
+                </div>
               </div>
             </div>
           );
