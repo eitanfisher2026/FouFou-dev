@@ -358,9 +358,12 @@
   const [cityActiveStates, setCityActiveStates] = useState({});
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
-  const [isTrailAnywhere, setIsTrailAnywhere] = useState(false);
+  const [isTrailAnywhere, setIsTrailAnywhere] = useState(() => {
+    try { return localStorage.getItem('foufou_mode') === 'anywhere'; } catch(e) { return false; }
+  });
   const toggleTrailAnywhere = (val) => {
     setIsTrailAnywhere(val);
+    try { localStorage.setItem('foufou_mode', val ? 'anywhere' : 'cities'); } catch(e) {}
     if (val) setFormData(prev => ({ ...prev, searchMode: 'radius', radiusSource: 'gps', area: null }));
   };
   const [formData, setFormData] = useState(loadPreferences());
@@ -1075,7 +1078,12 @@
   const [googlePlaceInfo, setGooglePlaceInfo] = useState(null);
   const [locationSearchResults, setLocationSearchResults] = useState(null); // null=hidden, []=no results, [...]= results
   const [pointSearchResults, setPointSearchResults] = useState(null); // null=hidden, []=loading, [...]= results for step-2 point mode
-  const [pointSearchQuery, setPointSearchQuery] = useState(''); // tracks input value for button enable/disable
+  const [pointSearchQuery, setPointSearchQuery] = useState(() => {
+    try {
+      const prefs = JSON.parse(localStorage.getItem('foufou_preferences') || '{}');
+      return (prefs.radiusSource === 'point' && prefs.radiusPlaceName) ? prefs.radiusPlaceName : '';
+    } catch(e) { return ''; }
+  });
   const [manualSearchResults, setManualSearchResults] = useState(null); // null=hidden, []=loading, {favorites,google}=results for manual-add dialog
   const [editingCustomInterest, setEditingCustomInterest] = useState(null);
   const [showAddInterestDialog, setShowAddInterestDialog] = useState(false);

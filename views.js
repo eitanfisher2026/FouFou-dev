@@ -177,7 +177,7 @@
       )}
 
       {(() => {
-        const theme = isTrailAnywhere ? { color: '#059669', iconLeft: '🌍' } : (window.BKK.selectedCity?.theme || { color: '#e11d48', iconLeft: '🏙️' });
+        const theme = isTrailAnywhere ? { color: '#059669' } : (window.BKK.selectedCity?.theme || { color: '#e11d48' });
         const c = theme.color || '#e11d48';
         return (
       <div style={{
@@ -245,10 +245,11 @@
               ? <img src={authUser.photoURL} alt="" style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }} />
               : (authUser && !authUser.isAnonymous ? '👤' : '🔑')}
           </button>
-          {theme.iconLeft && (() => {
-            const val = theme.iconLeft;
+          {(() => {
+            const icon = isTrailAnywhere ? '🌍' : window.BKK.selectedCity?.icon;
+            if (!icon) return null;
             return <span style={{ fontSize: '14px', display: 'flex', alignItems: 'center' }}>
-              {val.startsWith('data:') ? <img src={val} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} /> : val}
+              {icon.startsWith('data:') ? <img src={icon} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} /> : icon}
             </span>;
           })()}
           <h1 style={{ 
@@ -1187,7 +1188,7 @@
               <div className="bg-white rounded-xl shadow-lg p-3">
                 {/* Mode toggle: FouFou Cities / Trail Anywhere */}
                 <div style={{ display: 'flex', gap: '3px', marginBottom: '12px', borderRadius: '10px', background: '#f3f4f6', padding: '3px' }}>
-                  <button onClick={() => toggleTrailAnywhere(false)} style={{ flex: 1, padding: '7px 6px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', transition: 'all 0.15s', background: !isTrailAnywhere ? 'white' : 'transparent', color: !isTrailAnywhere ? '#e11d48' : '#9ca3af', boxShadow: !isTrailAnywhere ? '0 1px 3px rgba(0,0,0,0.10)' : 'none' }}>🏙️ {currentLang === 'he' ? 'ערי FouFou' : 'FouFou Cities'}</button>
+                  <button onClick={() => toggleTrailAnywhere(false)} style={{ flex: 1, padding: '7px 6px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', transition: 'all 0.15s', background: !isTrailAnywhere ? 'white' : 'transparent', color: !isTrailAnywhere ? '#e11d48' : '#9ca3af', boxShadow: !isTrailAnywhere ? '0 1px 3px rgba(0,0,0,0.10)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}><img src="icon-32x32.png" alt="" style={{ width: '16px', height: '16px', objectFit: 'contain', opacity: !isTrailAnywhere ? 1 : 0.4 }} />{currentLang === 'he' ? 'ערי FouFou' : 'FouFou Cities'}</button>
                   <button onClick={() => toggleTrailAnywhere(true)} style={{ flex: 1, padding: '7px 6px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', transition: 'all 0.15s', background: isTrailAnywhere ? 'white' : 'transparent', color: isTrailAnywhere ? '#059669' : '#9ca3af', boxShadow: isTrailAnywhere ? '0 1px 3px rgba(0,0,0,0.10)' : 'none' }}>🌍 {currentLang === 'he' ? 'מסלול בכל מקום' : 'Trail Anywhere'}</button>
                 </div>
                 {/* City Selector — custom dropdown, consistent across all Android devices */}
@@ -1428,8 +1429,8 @@
           />
         )}
 
-        {/* FAB: Quick Capture — draggable, available when no active trail */}
-        {!showQuickCapture && !showAddLocationDialog && !showEditLocationDialog && (() => {
+        {/* FAB: Quick Capture — draggable, available when no active trail, hidden in Trail Anywhere */}
+        {!isTrailAnywhere && !showQuickCapture && !showAddLocationDialog && !showEditLocationDialog && (() => {
           const pos = fabPos || { right: 16, bottom: 80 };
           const style = fabPos 
             ? { position: 'fixed', left: pos.left + 'px', top: pos.top + 'px', zIndex: 1000 }
