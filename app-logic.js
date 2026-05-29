@@ -4398,7 +4398,7 @@
       setFormData(prev => ({
         hours: 3, area: firstArea, interests: [], circular: true, startPoint: '',
         maxStops: prev.maxStops || 10, fetchMoreCount: prev.fetchMoreCount || 3, searchMode: 'area',
-        radiusMeters: prev.radiusMeters || 500, radiusSource: 'gps', radiusPlaceId: null, radiusPlaceName: '',
+        radiusMeters: prev.radiusMeters || window.BKK._defaultRadius || 1500, radiusSource: 'gps', radiusPlaceId: null, radiusPlaceName: '',
         gpsLat: null, gpsLng: null, currentLat: null, currentLng: null
       }));
       setRoute(null);
@@ -8707,6 +8707,7 @@
   
   // Boundary check before any location save. Returns 'ok', 'warn' (admin), or 'block'.
   const checkLocationBoundary = (lat, lng) => {
+    if (isTrailAnywhere) return 'ok';
     if (!lat || !lng) return 'ok';
     const cityData = window.BKK.activeCityData;
     if (!cityData?.center) return 'ok';
