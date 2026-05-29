@@ -422,7 +422,7 @@
 
             {/* Camera Button row — doc button on left (after camera in DOM = left in RTL, closes naturally (ok) */}
             <div style={{ display: 'flex', gap: '6px', marginBottom: '8px', alignItems: 'stretch' }}>
-            <button
+            {!isTrailAnywhere && <button
               onClick={() => {
                 if (!authUser || authUser.isAnonymous) { setShowLoginDialog(true); showToast(t('auth.signInRequired'), 'info', 'sticky'); return; }
                 // Interest priority: user's manual selection this session > trail interests > wizard selection
@@ -483,7 +483,7 @@
             >
               <span style={{ fontSize: '18px' }}>📸</span>
               <span>{t('trail.capturePlace')}</span>
-            </button>
+            </button>}
               {(() => {
                 const s = getHelpSection('activeTrail');
                 const txt = (s && s.content && s.content.trim()) || '';
