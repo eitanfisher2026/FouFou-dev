@@ -834,7 +834,7 @@
                       // Start GPS silently in background — ready by the time user hits "Find Places"
                       if (navigator.geolocation) {
                         window.BKK.getValidatedGps(
-                          (pos) => { setFormData(prev => ({...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, radiusPlaceName: t('wizard.myLocation')})); },
+                          (pos) => { setFormData(prev => ({...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, gpsTimestamp: Date.now(), radiusPlaceName: t('wizard.myLocation')})); },
                           () => {} // silent — error handled at search time
                         );
                       }
@@ -1154,12 +1154,14 @@
                             manuallyAdded: true, isRadiusCenter: true, googlePlace: false, rating: 0, ratingCount: 0
                           };
                         };
-                        // GPS mode: check if coords are ready; if not, try one more time then error
-                        if (formData.searchMode === 'radius' && formData.radiusSource === 'gps' && !formData.currentLat && navigator.geolocation) {
+                        // GPS mode: fetch fresh coords if missing or older than 5 minutes
+                        const gpsStale = formData.radiusSource === 'gps' &&
+                          (!formData.currentLat || (Date.now() - (formData.gpsTimestamp || 0) > 5 * 60 * 1000));
+                        if (formData.searchMode === 'radius' && gpsStale && navigator.geolocation) {
                           window.BKK.getValidatedGps(
                             (pos) => {
                               const lat = pos.coords.latitude, lng = pos.coords.longitude;
-                              setFormData(prev => ({...prev, currentLat: lat, currentLng: lng, radiusPlaceName: t('wizard.myLocation')}));
+                              setFormData(prev => ({...prev, currentLat: lat, currentLng: lng, gpsTimestamp: Date.now(), radiusPlaceName: t('wizard.myLocation')}));
                               const radiusStop = buildRadiusStop(lat, lng, t('wizard.myLocation'), null);
                               generateRoute(radiusStop); setRouteChoiceMade(null); setWizardStep(3); window.scrollTo(0, 0);
                             },
