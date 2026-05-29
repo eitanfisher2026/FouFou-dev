@@ -975,6 +975,7 @@
       fetchMoreCount: 3,
       googleMaxWaypoints: 12,
       defaultRadius: 500,
+      maxSearchRadius: 5000,
       // Dedup
       dedupRadiusMeters: 100,
       dedupGoogleEnabled: 1,

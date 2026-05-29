@@ -804,7 +804,8 @@
                 {(() => {
                   const activeTab = formData.searchMode !== 'radius' ? 'area'
                     : (formData.radiusSource || 'gps') === 'point' ? 'point' : 'gps';
-                  const STEPS = [100, 150, 200, 250, 300, 400, 500, 600, 750, 1000, 1250, 1500];
+                  const _maxR = window.BKK.systemParams?.maxSearchRadius || 5000;
+                  const STEPS = [100, 150, 200, 250, 300, 400, 500, 600, 750, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000, 15000, 20000].filter(v => v <= _maxR);
                   const curR = formData.radiusMeters || 500;
                   const curIdx = STEPS.indexOf(curR) !== -1 ? STEPS.indexOf(curR) : STEPS.reduce((best, v, i) => Math.abs(v - curR) < Math.abs(STEPS[best] - curR) ? i : best, 0);
                   const setR = (r) => { setFormData(prev => ({...prev, radiusMeters: r})); window.BKK.logEvent?.('radius_changed', { radius_meters: r }); };
@@ -3891,6 +3892,7 @@
                   { key: 'fetchMoreCount', label: t('sysParams.fetchMore'), desc: t('sysParams.fetchMoreDesc'), min: 1, max: 10, step: 1, type: 'int' },
                   { key: 'googleMaxWaypoints', label: t('sysParams.maxWaypoints'), desc: t('sysParams.maxWaypointsDesc'), min: 5, max: 25, step: 1, type: 'int' },
                   { key: 'defaultRadius', label: t('sysParams.defaultRadius'), desc: t('sysParams.defaultRadiusDesc'), min: 100, max: 5000, step: 100, type: 'int' },
+                  { key: 'maxSearchRadius', label: currentLang === 'he' ? 'רדיוס חיפוש מקסימלי' : 'Max search radius (m)', desc: currentLang === 'he' ? 'הרדיוס המקסימלי שניתן לבחור בחיפוש מסביב למקום. ברירת מחדל: 5000' : 'Maximum selectable radius in Around a place search. Default: 5000', min: 500, max: 20000, step: 500, type: 'int' },
                   { key: 'toastDuration', label: t('sysParams.toastDurationLabel'), desc: t('sysParams.toastDurationDesc'), min: 1000, max: 10000, step: 500, type: 'int' },
                   { key: 'systemAlertIntervalHours', label: 'System Alert Interval (hours)', desc: 'How often to send automated system feedback alerts (e.g. corrupted cacheVersion). Default: 1', min: 1, max: 72, step: 1, type: 'int' },
                   { key: 'maxRoutesPerUserPerCity', label: t('sysParams.maxRoutesPerUserPerCity') || 'Max saved trails per user (per city)', desc: t('sysParams.maxRoutesPerUserPerCityDesc') || 'Cap on total saved trails a non-admin user can store in a single city. Admins bypass. Default: 50', min: 5, max: 500, step: 5, type: 'int' },
