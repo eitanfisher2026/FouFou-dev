@@ -177,7 +177,7 @@
       )}
 
       {(() => {
-        const theme = window.BKK.selectedCity?.theme || { color: '#e11d48', iconLeft: '🏙️' };
+        const theme = isTrailAnywhere ? { color: '#059669', iconLeft: '🌍' } : (window.BKK.selectedCity?.theme || { color: '#e11d48', iconLeft: '🏙️' });
         const c = theme.color || '#e11d48';
         return (
       <div style={{
@@ -258,7 +258,7 @@
             letterSpacing: '0.5px',
             margin: 0,
             textShadow: '0 1px 3px rgba(0,0,0,0.2)'
-          }}>{tLabel(window.BKK.selectedCity) || 'FouFou'}</h1>
+          }}>{isTrailAnywhere ? (currentLang === 'he' ? 'מסלול בכל מקום' : 'Trail Anywhere') : (tLabel(window.BKK.selectedCity) || 'FouFou')}</h1>
           <span style={{
             fontSize: '8px', 
             color: 'rgba(255,255,255,0.5)',
@@ -810,10 +810,10 @@
                   const rLabel = curR >= 1000 ? `${curR/1000}km` : `${curR}m`;
 
                   const tabs = [
-                    { id: 'area',  icon: '🗺️', he: 'בחר אזור',       en: 'Area' },
+                    !isTrailAnywhere && { id: 'area',  icon: '🗺️', he: 'בחר אזור',       en: 'Area' },
                     { id: 'point', icon: '🎯', he: 'מסביב למקום',    en: 'Around a place' },
                     { id: 'gps',   icon: '📍', he: 'קרוב אליי',      en: 'Near me' },
-                  ];
+                  ].filter(Boolean);
 
                   const onTab = (id) => {
                     setPointSearchResults(null);
@@ -1114,7 +1114,7 @@
                 padding: '16px 0 env(safe-area-inset-bottom, 8px)',
                 background: 'linear-gradient(to top, rgba(255,251,235,1) 80%, rgba(255,251,235,0))'
               }}>
-                <button
+                {!isTrailAnywhere && <button
                   onClick={() => {
                     setMapMode('favorites');
                     setMapFavArea(formData.searchMode === 'area' && formData.area ? formData.area : null);
@@ -1128,7 +1128,7 @@
                     cursor: 'pointer', background: 'linear-gradient(135deg, #faf5ff, #ede9fe)',
                     color: '#6d28d9', fontSize: '13px', fontWeight: 'bold',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                >⭐ 🗺️ {t('form.favoritesMap')}</button>
+                >⭐ 🗺️ {t('form.favoritesMap')}</button>}
                 {(() => {
                   const canSearch = isDataLoaded && formData.interests.length > 0 && (formData.searchMode === 'radius' ? (formData.radiusSource === 'gps' || formData.currentLat) : (formData.searchMode === 'area' ? formData.area : true));
                   return (
@@ -1185,8 +1185,13 @@
             {/* Step 1: Choose Interests (was step 2) */}
             {wizardStep === 1 && (<>
               <div className="bg-white rounded-xl shadow-lg p-3">
+                {/* Mode toggle: FouFou Cities / Trail Anywhere */}
+                <div style={{ display: 'flex', gap: '3px', marginBottom: '12px', borderRadius: '10px', background: '#f3f4f6', padding: '3px' }}>
+                  <button onClick={() => toggleTrailAnywhere(false)} style={{ flex: 1, padding: '7px 6px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', transition: 'all 0.15s', background: !isTrailAnywhere ? 'white' : 'transparent', color: !isTrailAnywhere ? '#e11d48' : '#9ca3af', boxShadow: !isTrailAnywhere ? '0 1px 3px rgba(0,0,0,0.10)' : 'none' }}>🏙️ {currentLang === 'he' ? 'ערי FouFou' : 'FouFou Cities'}</button>
+                  <button onClick={() => toggleTrailAnywhere(true)} style={{ flex: 1, padding: '7px 6px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', transition: 'all 0.15s', background: isTrailAnywhere ? 'white' : 'transparent', color: isTrailAnywhere ? '#059669' : '#9ca3af', boxShadow: isTrailAnywhere ? '0 1px 3px rgba(0,0,0,0.10)' : 'none' }}>🌍 {currentLang === 'he' ? 'מסלול בכל מקום' : 'Trail Anywhere'}</button>
+                </div>
                 {/* City Selector — custom dropdown, consistent across all Android devices */}
-                {(() => {
+                {!isTrailAnywhere && (() => {
                   const activeCities = Object.values(window.BKK.cityRegistry || {}).filter(c => { const fbState = cityActiveStates[c.id]; return fbState !== false && (Object.keys(cityActiveStates).length === 0 ? c.active !== false : true); });
                   const selectedCity = window.BKK.cityRegistry ? Object.values(window.BKK.cityRegistry).find(r => r.id === selectedCityId) : null;
                   // v3.23.67: per-city tips popup. Reuses the existing help-popup component.
@@ -1244,7 +1249,7 @@
                     {renderContextHint(cityHintId)}
                   </>);
                 })()}
-                {renderStepHeader('⭐', t('wizard.step2Title'), t('wizard.step2Subtitle'), 'hint_interests')}
+                {renderStepHeader('⭐', t('wizard.step2Title'), isTrailAnywhere ? (currentLang === 'he' ? 'בחר תחום אחד או יותר' : 'Select one or more interests') : t('wizard.step2Subtitle'), 'hint_interests')}
                 {renderContextHint('hint_interests')}
 
                 {/* Time filter toggle — ☀️ day / 🌙 night / ☯ all */}
@@ -1274,11 +1279,17 @@
                     Fix: one grid per group, separators are divs OUTSIDE the grids. */}
                 <div style={{ marginBottom: '12px' }}>
                   {(() => {
+                    const googleMappings = window.BKK.interestToGooglePlaces || {};
                     const filtered = allInterestOptions.filter(option => {
                       // v3.23.8: draft visibility handled by interestOptions memo (creator+admin only). adminStatus retired.
                       if (option.scope === 'local' && option.cityId && option.cityId !== selectedCityId) return false;
+                      // Trail Anywhere: hide interests with no Google Places mapping
+                      if (isTrailAnywhere) {
+                        const cfg = interestConfig[option.id];
+                        const hasTypes = (Array.isArray(cfg?.types) && cfg.types.length > 0) || (typeof cfg?.types === 'string' && cfg.types.trim()) || cfg?.textSearch;
+                        if (!hasTypes && !googleMappings[option.id]) return false;
+                      }
                       // Time filter: show only interests matching selected time filter
-                      // Check option.bestTime first (stored on the interest object), then interestConfig override
                       if (interestTimeFilter !== 'all') {
                         const cfg = interestConfig[option.id];
                         const bt = cfg?.bestTime || option.bestTime || 'anytime';
@@ -1379,7 +1390,7 @@
                 padding: '8px 0 env(safe-area-inset-bottom, 8px)',
                 background: 'linear-gradient(to top, rgba(255,251,235,1) 80%, rgba(255,251,235,0))'
               }}>
-                <button
+                {!isTrailAnywhere && <button
                   onClick={() => {
                     setMapMode('favorites');
                     setMapFavArea(null); setMapFavRadius(null); setMapFocusPlace(null);
@@ -1391,7 +1402,7 @@
                     cursor: 'pointer', background: 'linear-gradient(135deg, #faf5ff, #ede9fe)',
                     color: '#6d28d9', fontSize: '13px', fontWeight: 'bold',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                >⭐ 🗺️ {t('form.favoritesMap')}</button>
+                >⭐ 🗺️ {t('form.favoritesMap')}</button>}
                 {formData.interests.length > 0 && (
                   <button
                     onClick={() => { setWizardStep(2); window.scrollTo(0, 0); }}
@@ -2115,10 +2126,9 @@
                           if (navigator.share) { navigator.share({ title: routeName, text: shareText }); }
                           else { navigator.clipboard.writeText(shareText); showToast(t('route.routeCopied'), 'success'); }
                         }, disabled: !route?.optimized },
-                        (() => {
+                        !isTrailAnywhere && (() => {
                           const isOthersRoute = route?.savedBy && authUser?.uid && route.savedBy !== authUser.uid;
                           const isOwnSaved = !!route?.firebaseId && route?.savedBy && authUser?.uid && route.savedBy === authUser.uid;
-                          // v3.23.24: own saved route → "Update route" (enabled); fresh route → "Save route"; others' → viewing shared
                           if (isOwnSaved) {
                             return {
                               icon: '🔄',
@@ -2138,8 +2148,8 @@
                             },
                             disabled: !route?.optimized || isOthersRoute };
                         })(),
-                        // v3.23.23: Save as new — signed-in users only, always available for any loaded route
-                        (authUser && !authUser.isAnonymous && route?.optimized) ? {
+                        // Save as new — hidden in Trail Anywhere mode
+                        !isTrailAnywhere && (authUser && !authUser.isAnonymous && route?.optimized) ? {
                           icon: '📋',
                           label: t('route.saveAsNew') || 'Save as new',
                           action: () => {

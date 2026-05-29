@@ -358,6 +358,11 @@
   const [cityActiveStates, setCityActiveStates] = useState({});
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
+  const [isTrailAnywhere, setIsTrailAnywhere] = useState(false);
+  const toggleTrailAnywhere = (val) => {
+    setIsTrailAnywhere(val);
+    if (val) setFormData(prev => ({ ...prev, searchMode: 'radius', radiusSource: 'gps', area: null }));
+  };
   const [formData, setFormData] = useState(loadPreferences());
   const [route, setRoute] = useState(null);
   const [routeListKey, setRouteListKey] = useState(0); // incremented to force re-render of route stop list after favorites change
@@ -5790,6 +5795,7 @@
   // Button styles - loaded from utils.js
 
   const getStopsForInterests = () => {
+    if (isTrailAnywhere) return [];
     // Now we only collect CUSTOM locations - Google Places will be fetched in generateRoute
     const isRadiusMode = formData.searchMode === 'radius';
     
