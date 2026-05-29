@@ -359,7 +359,12 @@
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [isTrailAnywhere, setIsTrailAnywhere] = useState(() => {
-    try { return localStorage.getItem('foufou_mode') === 'anywhere'; } catch(e) { return false; }
+    try {
+      const urlMode = new URLSearchParams(location.search).get('mode');
+      if (urlMode === 'anywhere') { localStorage.setItem('foufou_mode', 'anywhere'); return true; }
+      if (urlMode === 'cities') { localStorage.setItem('foufou_mode', 'cities'); return false; }
+      return localStorage.getItem('foufou_mode') === 'anywhere';
+    } catch(e) { return false; }
   });
   const toggleTrailAnywhere = (val) => {
     setIsTrailAnywhere(val);
