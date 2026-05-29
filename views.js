@@ -5138,7 +5138,7 @@
           const i = (customInterests || []).find(x => x.id === cityVisibilityInterest) 
                  || allInterestOptions?.find(x => x.id === cityVisibilityInterest)
                  || { id: cityVisibilityInterest, label: cityVisibilityInterest };
-          const allCities = Object.values(window.BKK.cities || {});
+          const allCities = Object.values(window.BKK.cityRegistry || {}).filter(r => r && r.id);
           return (
             <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               onClick={() => setCityVisibilityInterest(null)}>
