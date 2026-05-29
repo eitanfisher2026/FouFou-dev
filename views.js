@@ -177,7 +177,7 @@
       )}
 
       {(() => {
-        const theme = window.BKK.selectedCity?.theme || { color: '#e11d48', iconLeft: '🏙️', iconRight: '🗺️' };
+        const theme = window.BKK.selectedCity?.theme || { color: '#e11d48', iconLeft: '🏙️' };
         const c = theme.color || '#e11d48';
         return (
       <div style={{
@@ -259,13 +259,7 @@
             margin: 0,
             textShadow: '0 1px 3px rgba(0,0,0,0.2)'
           }}>{tLabel(window.BKK.selectedCity) || 'FouFou'}</h1>
-          {theme.iconRight && (() => {
-            const val = theme.iconRight;
-            return <span style={{ fontSize: '14px', display: 'flex', alignItems: 'center' }}>
-              {val.startsWith('data:') ? <img src={val} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} /> : val}
-            </span>;
-          })()}
-          <span style={{ 
+          <span style={{
             fontSize: '8px', 
             color: 'rgba(255,255,255,0.5)',
             alignSelf: 'flex-end',

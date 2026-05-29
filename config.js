@@ -57,7 +57,7 @@ window.BKK.mapConfig = {
 })();
 
 // App Version
-window.BKK.VERSION = '3.26.1';
+window.BKK.VERSION = '3.27.0';
 // Convert stop index (0-based) to letter label: 0→A, 1→B, ..., 25→Z, 26→AA
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
@@ -96,16 +96,16 @@ window.BKK.GOOGLE_PLACES_TEXT_SEARCH_URL = 'https://places.googleapis.com/v1/pla
 // ============================================================================
 
 window.BKK.cityRegistry = {
-  bangkok: { id: 'bangkok', name: 'בנגקוק', nameEn: 'Bangkok', country: 'Thailand', icon: '🛺', file: 'city-bangkok.js' },
-  telaviv: { id: 'gushdan', name: 'תל אביב', nameEn: 'Tel Aviv', country: 'Israel', icon: '🏖️', file: 'city-telaviv.js' },
-  singapore: { id: 'singapore', name: 'סינגפור', nameEn: 'Singapore', country: 'Singapore', icon: '🦁', file: 'city-singapore.js' },
-  malaga: { id: 'malaga', name: 'מלגה', nameEn: 'Malaga', country: 'Spain', icon: '☀️', file: 'city-malaga.js' },
-  rome: { id: 'rome', name: 'רומא', nameEn: 'Rome', country: 'Italy', icon: '🏛️', file: 'city-rome.js' },
-  paris: { id: 'paris', name: 'פריז', nameEn: 'Paris', country: 'France', icon: '🗼', file: 'city-paris.js' },
-  london: { id: 'london', name: 'לונדון', nameEn: 'London', country: 'UK', icon: '🚌', file: 'city-london.js' },
-  new_york: { id: 'new_york', name: 'ניו יורק', nameEn: 'New York', country: 'USA', icon: '🗽', file: 'city-new_york.js' },
-  jerusalem: { id: 'jerusalem', name: 'ירושלים', nameEn: 'Jerusalem', country: 'Israel', icon: '🕍', file: 'city-jerusalem.js' },
-  budapest: { id: 'budapest', name: 'בודפשט', nameEn: 'Budapest', country: 'Hungary', icon: '🏰', file: 'city-budapest.js' }
+  bangkok: { id: 'bangkok', name: 'בנגקוק', nameEn: 'Bangkok', country: 'Thailand', icon: '🛺' },
+  telaviv: { id: 'gushdan', name: 'תל אביב', nameEn: 'Tel Aviv', country: 'Israel', icon: '🏖️' },
+  singapore: { id: 'singapore', name: 'סינגפור', nameEn: 'Singapore', country: 'Singapore', icon: '🦁' },
+  malaga: { id: 'malaga', name: 'מלגה', nameEn: 'Malaga', country: 'Spain', icon: '☀️' },
+  rome: { id: 'rome', name: 'רומא', nameEn: 'Rome', country: 'Italy', icon: '🏛️' },
+  paris: { id: 'paris', name: 'פריז', nameEn: 'Paris', country: 'France', icon: '🗼' },
+  london: { id: 'london', name: 'לונדון', nameEn: 'London', country: 'UK', icon: '🚌' },
+  new_york: { id: 'new_york', name: 'ניו יורק', nameEn: 'New York', country: 'USA', icon: '🗽' },
+  jerusalem: { id: 'jerusalem', name: 'ירושלים', nameEn: 'Jerusalem', country: 'Israel', icon: '🕍' },
+  budapest: { id: 'budapest', name: 'בודפשט', nameEn: 'Budapest', country: 'Hungary', icon: '🏰' }
 };
 
 // Active cities (loaded from localStorage or defaults)
@@ -117,25 +117,7 @@ window.BKK.cityData = window.BKK.cityData || {};
 // ============================================================================
 
 /**
- * Script-tag fallback loader — used when Firebase config is absent.
- */
-window.BKK._loadCityFromScript = function(cityId, reg, resolve, reject) {
-  if (!reg || !reg.file) { reject('No source for city: ' + cityId); return; }
-  var script = document.createElement('script');
-  script.src = reg.file + '?v=' + window.BKK.VERSION;
-  script.onload = function() {
-    if (window.BKK.cityData[cityId]) {
-      window.BKK.cities[cityId] = window.BKK.cityData[cityId];
-      resolve(window.BKK.cities[cityId]);
-    } else { reject('City data not found: ' + cityId); }
-  };
-  script.onerror = function() { reject('Failed to load: ' + reg.file); };
-  document.head.appendChild(script);
-};
-
-/**
- * Load a city's structural data. Tries Firebase cities/{id}/config first,
- * falls back to the bundled JS file so existing cities always work.
+ * Load a city's structural data from Firebase cities/{id}/config.
  * Returns a Promise that resolves with the city object.
  */
 window.BKK.loadCity = function(cityId) {
@@ -143,31 +125,26 @@ window.BKK.loadCity = function(cityId) {
     var reg = window.BKK.cityRegistry[cityId] ||
       Object.values(window.BKK.cityRegistry).find(function(r) { return r.id === cityId; });
     if (!reg) { reject('Unknown city: ' + cityId); return; }
-
     var db = window.BKK._database;
-    if (db) {
-      db.ref('cities/' + cityId + '/config').once('value').then(function(snap) {
-        var config = snap.val();
-        if (config && config.center && config.areas) {
-          var city = Object.assign({}, reg, config);
-          // Firebase may return arrays as objects with numeric keys — normalise
-          if (config.areas && !Array.isArray(config.areas)) {
-            city.areas = Object.keys(config.areas)
-              .sort(function(a, b) { return parseInt(a) - parseInt(b); })
-              .map(function(k) { return config.areas[k]; });
-          }
-          window.BKK.cities[cityId] = city;
-          window.BKK.cityData[cityId] = city;
-          resolve(city);
-        } else {
-          window.BKK._loadCityFromScript(cityId, reg, resolve, reject);
+    if (!db) { reject('No database for city: ' + cityId); return; }
+    db.ref('cities/' + cityId + '/config').once('value').then(function(snap) {
+      var config = snap.val();
+      if (config && config.center && config.areas) {
+        var city = Object.assign({}, reg, config);
+        if (config.areas && !Array.isArray(config.areas)) {
+          city.areas = Object.keys(config.areas)
+            .sort(function(a, b) { return parseInt(a) - parseInt(b); })
+            .map(function(k) { return config.areas[k]; });
         }
-      }).catch(function() {
-        window.BKK._loadCityFromScript(cityId, reg, resolve, reject);
-      });
-    } else {
-      window.BKK._loadCityFromScript(cityId, reg, resolve, reject);
-    }
+        window.BKK.cities[cityId] = city;
+        window.BKK.cityData[cityId] = city;
+        resolve(city);
+      } else {
+        reject('No config in Firebase for city: ' + cityId);
+      }
+    }).catch(function(e) {
+      reject('Firebase error for city ' + cityId + ': ' + (e.message || e));
+    });
   });
 };
 
@@ -209,7 +186,6 @@ window.BKK.loadCityRegistry = function(db) {
         window.BKK.cityRegistry[key] || {},
         entry
       );
-      if (!window.BKK.cityRegistry[key].file) window.BKK.cityRegistry[key].file = null;
     });
     console.log('[CONFIG] Registry from Firebase: ' + Object.keys(fbReg).length + ' cities');
   }).catch(function(e) {
@@ -258,18 +234,6 @@ window.BKK.seedCityToFirebase = function(cityId, db) {
   });
 };
 
-/**
- * Seed ALL currently-loaded cities to Firebase in one admin operation.
- */
-window.BKK.seedAllCitiesToFirebase = function(db) {
-  if (!db) return Promise.reject('No database');
-  var cityIds = Object.keys(window.BKK.cities);
-  return Promise.all(cityIds.map(function(id) {
-    return window.BKK.seedCityToFirebase(id, db).catch(function(e) {
-      console.warn('[CONFIG] Seed failed for ' + id + ':', e);
-    });
-  }));
-};
 
 /**
  * Export a city as a downloadable JS file (for GitHub upload).
@@ -288,10 +252,7 @@ window.BKK.exportCityFile = function(city) {
   // Data URLs make city files huge and cause display bugs
   var cleanCity = JSON.parse(JSON.stringify(city));
   if (cleanCity.icon && cleanCity.icon.startsWith('data:')) cleanCity.icon = '📍';
-  if (cleanCity.theme) {
-    if (cleanCity.theme.iconLeft && cleanCity.theme.iconLeft.startsWith('data:')) cleanCity.theme.iconLeft = '';
-    if (cleanCity.theme.iconRight && cleanCity.theme.iconRight.startsWith('data:')) cleanCity.theme.iconRight = '';
-  }
+  if (cleanCity.theme && cleanCity.theme.iconLeft && cleanCity.theme.iconLeft.startsWith('data:')) cleanCity.theme.iconLeft = '';
   var lines = [];
   lines.push('// City data: ' + city.nameEn);
   lines.push('window.BKK.cityData = window.BKK.cityData || {};');
@@ -311,12 +272,6 @@ window.BKK.exportCityFile = function(city) {
   console.log('[CONFIG] Exported city file: city-' + registryKey + '.js');
 };
 
-/**
- * Export config registry snippet for a city (to add to config.js cityRegistry).
- */
-window.BKK.getCityRegistryEntry = function(city) {
-  return '  ' + city.id + ": { id: '" + city.id + "', name: '" + city.name + "', nameEn: '" + city.nameEn + "', country: '" + (city.country || '') + "', icon: '" + city.icon + "', file: 'city-" + city.id + ".js' }";
-};
 
 /**
  * One-time cleanup: remove inProgress field from all Firebase records.

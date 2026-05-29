@@ -3559,7 +3559,7 @@
                           window.BKK.cityData[addCityGenerated.id] = addCityGenerated;
                           window.BKK.cityRegistry[addCityGenerated.id] = {
                             id: addCityGenerated.id, name: addCityGenerated.name, nameEn: addCityGenerated.nameEn,
-                            country: addCityGenerated.country, icon: addCityGenerated.icon, file: `city-${addCityGenerated.id}.js`
+                            country: addCityGenerated.country, icon: addCityGenerated.icon
                           };
                           try {
                             const customCities = JSON.parse(localStorage.getItem('custom_cities') || '{}');

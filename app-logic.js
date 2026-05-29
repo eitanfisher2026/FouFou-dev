@@ -3083,54 +3083,6 @@
         });
       }
 
-      // ONE-TIME MIGRATION: Move cityOverrides/theme icons → cities/{cityId}/icon|iconLeft|iconRight (v3.12.21)
-      if (localStorage.getItem('city_icons_migrated_v1221') !== 'true') {
-        database.ref('settings/cityOverrides').once('value').then(snap => {
-          const data = snap.val() || {};
-          const writes = {};
-          Object.entries(data).forEach(([cityId, co]) => {
-            if (co.theme) {
-              if (co.theme.icon) writes[`cities/${cityId}/general/icon`] = co.theme.icon;
-              if (co.theme.iconLeft) writes[`cities/${cityId}/general/iconLeft`] = co.theme.iconLeft;
-              if (co.theme.iconRight) writes[`cities/${cityId}/general/iconRight`] = co.theme.iconRight;
-              writes[`settings/cityOverrides/${cityId}/theme`] = null;
-            }
-          });
-          if (Object.keys(writes).length > 0) {
-            database.ref().update(writes)
-              .then(() => localStorage.setItem('city_icons_migrated_v1221', 'true'))
-              .catch(e => console.error('[MIGRATION] city icons failed:', e));
-          } else {
-            localStorage.setItem('city_icons_migrated_v1221', 'true');
-          }
-        });
-      }
-
-      // ONE-TIME MIGRATION: Move cities/{cityId}/icon|iconLeft|iconRight → cities/{cityId}/general/ (v3.12.23)
-      if (localStorage.getItem('city_icons_to_general_v1223') !== 'true') {
-        const cityIds = Object.values(window.BKK.cityRegistry || {}).map(r => r.id);
-        Promise.all(cityIds.flatMap(cid => [
-          database.ref(`cities/${cid}/icon`).once('value').then(s => ({ cid, field: 'icon', val: s.val() })),
-          database.ref(`cities/${cid}/iconLeft`).once('value').then(s => ({ cid, field: 'iconLeft', val: s.val() })),
-          database.ref(`cities/${cid}/iconRight`).once('value').then(s => ({ cid, field: 'iconRight', val: s.val() })),
-        ])).then(results => {
-          const writes = {};
-          results.forEach(({ cid, field, val }) => {
-            if (val) {
-              writes[`cities/${cid}/general/${field}`] = val;
-              writes[`cities/${cid}/${field}`] = null;
-            }
-          });
-          if (Object.keys(writes).length > 0) {
-            database.ref().update(writes)
-              .then(() => localStorage.setItem('city_icons_to_general_v1223', 'true'))
-              .catch(e => console.error('[MIGRATION] city icons to general failed:', e));
-          } else {
-            localStorage.setItem('city_icons_to_general_v1223', 'true');
-          }
-        }).catch(() => localStorage.setItem('city_icons_to_general_v1223', 'true'));
-      }
-
       // ONE-TIME MIGRATION: Move dayStartHour/nightStartHour/color → cities/{cityId}/general (v3.12.25)
       if (localStorage.getItem('city_general_migrated_v1225') !== 'true') {
         const cityIds = Object.values(window.BKK.cityRegistry || {}).map(r => r.id);
