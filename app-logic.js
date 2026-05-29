@@ -1981,7 +1981,19 @@
       const data = snap.val();
       if (data) setHelpOverrides(data);
     }).catch(() => {});
-    window.BKK.loadCityRegistry(database).then(() => setRegistryVersion(v => v + 1));
+    window.BKK.loadCityRegistry(database).then(() => {
+      setRegistryVersion(v => v + 1);
+      const savedId = (() => { try { return localStorage.getItem('city_explorer_city') || 'bangkok'; } catch(e) { return 'bangkok'; } })();
+      const reg = Object.values(window.BKK.cityRegistry).find(r => r.id === savedId) ||
+        Object.values(window.BKK.cityRegistry).find(r => r.active !== false) ||
+        Object.values(window.BKK.cityRegistry)[0];
+      if (!reg) return;
+      return window.BKK.loadCity(reg.id).then(() => {
+        window.BKK.selectCity(reg.id);
+        setSelectedCityId(reg.id);
+        setRegistryVersion(v => v + 1);
+      });
+    }).catch(() => {});
   }, [isFirebaseAvailable]);
 
   // Save a single field to cities/{cityId}/general in Firebase
@@ -4398,7 +4410,10 @@
   // Switch city function
   const switchCity = (cityId, stayOnView) => {
     if (cityId === selectedCityId) return;
+    const prevId = selectedCityId;
     const doSwitch = () => {
+      delete window.BKK.cities[prevId];
+      delete window.BKK.cityData[prevId];
       window.BKK.selectCity(cityId);
       window.BKK.logEvent?.('city_selected', { city: cityId });
       setSelectedCityId(cityId);

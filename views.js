@@ -1193,8 +1193,8 @@
               <div className="bg-white rounded-xl shadow-lg p-3">
                 {/* City Selector — custom dropdown, consistent across all Android devices */}
                 {(() => {
-                  const activeCities = Object.values(window.BKK.cities || {}).filter(c => { const fbState = cityActiveStates[c.id]; return fbState !== false && (Object.keys(cityActiveStates).length === 0 ? c.active !== false : true); });
-                  const selectedCity = window.BKK.cities?.[selectedCityId];
+                  const activeCities = Object.values(window.BKK.cityRegistry || {}).filter(c => { const fbState = cityActiveStates[c.id]; return fbState !== false && (Object.keys(cityActiveStates).length === 0 ? c.active !== false : true); });
+                  const selectedCity = window.BKK.cityRegistry ? Object.values(window.BKK.cityRegistry).find(r => r.id === selectedCityId) : null;
                   // v3.23.67: per-city tips popup. Reuses the existing help-popup component.
                   // Hint id is keyed on selectedCityId so each city has independent tips.
                   // Lightbulb sits next to the dropdown — flex naturally flips so it

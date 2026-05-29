@@ -57,7 +57,7 @@ window.BKK.mapConfig = {
 })();
 
 // App Version
-window.BKK.VERSION = '3.25.1';
+window.BKK.VERSION = '3.26.0';
 // Convert stop index (0-based) to letter label: 0→A, 1→B, ..., 25→Z, 26→AA
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
@@ -140,14 +140,9 @@ window.BKK._loadCityFromScript = function(cityId, reg, resolve, reject) {
  */
 window.BKK.loadCity = function(cityId) {
   return new Promise(function(resolve, reject) {
-    var reg = window.BKK.cityRegistry[cityId];
+    var reg = window.BKK.cityRegistry[cityId] ||
+      Object.values(window.BKK.cityRegistry).find(function(r) { return r.id === cityId; });
     if (!reg) { reject('Unknown city: ' + cityId); return; }
-
-    if (window.BKK.cityData[cityId]) {
-      window.BKK.cities[cityId] = window.BKK.cityData[cityId];
-      resolve(window.BKK.cities[cityId]);
-      return;
-    }
 
     var db = window.BKK._database;
     if (db) {
@@ -416,15 +411,9 @@ window.BKK.selectCity = function(cityId) {
   return true;
 };
 
-// Default: load saved city (synchronous for initial page load - city files are in HTML)
+// City data is loaded on-demand from Firebase. Initial city load happens in React after Firebase is ready.
 (function() {
-
-  // On initial load, city data files are embedded in HTML (via build.py)
-  Object.keys(window.BKK.cityData).forEach(function(cityId) {
-    window.BKK.cities[cityId] = window.BKK.cityData[cityId];
-  });
-  
-  // Load custom cities from localStorage
+  // Load custom cities from localStorage (legacy support)
   try {
     var customCities = JSON.parse(localStorage.getItem('custom_cities') || '{}');
     Object.keys(customCities).forEach(function(cityId) {
@@ -436,31 +425,8 @@ window.BKK.selectCity = function(cityId) {
           country: customCities[cityId].country, icon: customCities[cityId].icon, file: null
         };
       }
-      console.log('[CONFIG] Loaded custom city: ' + cityId);
-    });
-  } catch(e) { console.error('[CONFIG] Error loading custom cities:', e); }
-  
-  // Apply saved active/inactive states from localStorage
-  try {
-    var states = JSON.parse(localStorage.getItem('city_active_states') || '{}');
-    Object.keys(states).forEach(function(cityId) {
-      if (window.BKK.cities[cityId]) {
-        window.BKK.cities[cityId].active = states[cityId];
-      }
     });
   } catch(e) {}
-
-  // Apply interests overrides for built-in cities (saved after "copy interests" operation)
-  // city_interests_overrides localStorage removed — interests now live in Firebase customInterests
-  
-  var savedCity = 'bangkok';
-  try { savedCity = localStorage.getItem('city_explorer_city') || 'bangkok'; } catch(e) {}
-  // If saved city doesn't exist or is not active, pick first active city
-  if (!window.BKK.cities[savedCity] || window.BKK.cities[savedCity].active === false) {
-    var activeCities = Object.keys(window.BKK.cities).filter(function(id) { return window.BKK.cities[id].active !== false; });
-    savedCity = activeCities[0] || Object.keys(window.BKK.cities)[0] || 'bangkok';
-  }
-  window.BKK.selectCity(savedCity);
 })();
 
 // ============================================================================

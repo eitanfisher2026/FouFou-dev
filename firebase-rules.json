@@ -119,24 +119,24 @@
       ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 1"
     },
     "users": {
-      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2",
+      ".read": "auth != null",
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() >= 2)",
         ".write": "auth != null && (auth.uid === $uid || root.child('users').child(auth.uid).child('role').val() >= 2)",
         "name": {
-          ".validate": "newData.isString() && newData.val().length <= 100"
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 100)"
         },
         "email": {
-          ".validate": "newData.isString() && newData.val().length <= 200"
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)"
         },
         "photo": {
-          ".validate": "newData.isString() && newData.val().length <= 500"
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 1000)"
         },
         "role": {
-          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 2 && (root.child('users').child(auth.uid).child('role').val() >= 2 || (!data.exists() && newData.val() <= 1) || (!data.exists() && newData.val() == 2 && !root.child('users').exists()) || (data.exists() && data.val() == newData.val()))"
+          ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 0 && newData.val() <= 2 && (newData.val() <= 1 || root.child('users').child(auth.uid).child('role').val() >= 2 || (!data.exists() && !root.child('users').exists())))"
         },
         "$other": {
-          ".validate": "true"
+          ".validate": true
         }
       }
     },
