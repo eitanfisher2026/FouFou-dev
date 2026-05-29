@@ -3321,7 +3321,8 @@
       if (data) {
         const map = {};
         for (const [uid, profile] of Object.entries(data)) {
-          map[uid] = profile.name || profile.email?.split('@')[0] || uid.slice(0, 8);
+          const rawName = profile.name || profile.email || '';
+          map[uid] = rawName.includes('@') ? rawName.split('@')[0] : (rawName || uid.slice(0, 8));
         }
         setUserNamesMap(map);
       }

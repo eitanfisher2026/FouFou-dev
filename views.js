@@ -3193,7 +3193,7 @@
 
             <div className="mb-3">
               <div className="bg-gradient-to-r from-rose-50 to-orange-50 border-2 border-rose-400 rounded-lg p-2">
-                <h3 className="text-sm font-bold text-gray-800 mb-2">{`🌍 ${t("settings.title")}`}</h3>
+                <h3 className="text-sm font-bold text-gray-800 mb-2">{`🌍 ${t("settings.title")}`}<span style={{ fontSize: '11px', fontWeight: 'normal', color: '#6b7280', marginInlineStart: '6px' }}>{(() => { const all = Object.values(window.BKK.cityRegistry || {}).filter(r => r && r.id); const active = all.filter(r => r.active !== false); return `${active.length} / ${all.length}`; })()}</span></h3>
                 <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", overflow: "hidden" }}>
                   {Object.entries(window.BKK.cityRegistry || {})
                     .filter(([, reg]) => reg && reg.id)
@@ -4222,7 +4222,8 @@
                       {t('general.loading') || 'Loading…'}
                     </div>
                   ) : sortedUsers.map(user => {
-                    const displayName = user.name || user.email || user.uid.slice(0, 12);
+                    const rawName = user.name || user.email || '';
+                    const displayName = rawName.includes('@') ? rawName.split('@')[0] : (rawName || user.uid.slice(0, 12));
                     const isSelf = user.uid === authUser?.uid;
                     return (
                       <div key={user.uid} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 6px', borderBottom: '1px solid #f3f4f6' }}>

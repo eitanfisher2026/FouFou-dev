@@ -1426,7 +1426,7 @@
                 {/* City exposure — admin only, uses <details> to avoid useState in IIFE */}
                 {isAdmin && editingCustomInterest && (() => {
                   const interestId = editingCustomInterest.id;
-                  const allCities = Object.values(window.BKK.cities || {});
+                  const allCities = Object.values(window.BKK.cityRegistry || {}).filter(r => r && r.id);
                   const allVisible = allCities.every(city => !(cityHiddenInterests[city.id] || new Set()).has(interestId));
                   const visibleCount = allCities.filter(city => !(cityHiddenInterests[city.id] || new Set()).has(interestId)).length;
                   const toggleCity = (cityId) => {
