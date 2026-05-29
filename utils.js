@@ -160,7 +160,7 @@ window.BKK.isGpsWithinCity = (lat, lng) => {
  * @param {function} onSuccess - (pos) => {} — only called if within city
  * @param {function} onError - (reason) => {} — 'outside_city', 'denied', 'unavailable', 'timeout'
  */
-window.BKK.getValidatedGps = (onSuccess, onError) => {
+window.BKK.getValidatedGps = (onSuccess, onError, options) => {
   if (!navigator.geolocation) { if (onError) onError('unavailable'); return; }
   navigator.geolocation.getCurrentPosition(
     (pos) => {
@@ -168,6 +168,7 @@ window.BKK.getValidatedGps = (onSuccess, onError) => {
       // user is outside the city, we still know where they are, and that information
       // is useful for downstream decisions (e.g. buildGoogleMapsUrls avoiding a 17-day-walk).
       window.BKK.setUserGPS(pos.coords.latitude, pos.coords.longitude);
+      if (options && options.skipCityCheck) { if (onSuccess) onSuccess(pos); return; }
       const check = window.BKK.isGpsWithinCity(pos.coords.latitude, pos.coords.longitude);
       if (check.withinCity) {
         if (onSuccess) onSuccess(pos);

@@ -9972,7 +9972,8 @@
       (reason) => {
         if (reason === 'outside_city') showToast(t('toast.outsideCity'), 'warning', 'sticky');
         else showToast(reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'), 'error', 'sticky');
-      }
+      },
+      { skipCityCheck: isTrailAnywhere }
     );
   };
 

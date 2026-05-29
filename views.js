@@ -295,16 +295,16 @@
           }}>
             {[
               { icon: '🗺️', label: t('nav.route'), view: 'form' },
-              { icon: '⭐', label: t('nav.favorites'), view: 'myPlaces', count: groupedPlaces.activeCount },
+              !isTrailAnywhere && { icon: '⭐', label: t('nav.favorites'), view: 'myPlaces', count: groupedPlaces.activeCount },
               // v3.23.15: Interests nav hidden from regular/anon users — editor+ only
               ...(isUnlocked ? [{ icon: '🏷️', label: t('nav.myInterests'), view: 'myInterests', count: allInterestOptions.filter(o => {
                 if (o.scope === 'local' && o.cityId && o.cityId !== selectedCityId) return false;
                 return true;
               }).length }] : []),
-              { icon: '🛤️', label: t('nav.savedTrails'), view: 'saved', count: citySavedRoutes.length },
+              !isTrailAnywhere && { icon: '🛤️', label: t('nav.savedTrails'), view: 'saved', count: citySavedRoutes.length },
               // Settings — admin only (hidden from regular users, not just blocked)
               ...(isAdmin ? [{ icon: '⚙️', label: t('settings.title'), view: 'settings' }] : []),
-            ].map(item => (
+            ].filter(Boolean).map(item => (
               <button
                 key={item.view}
                 onClick={() => {
