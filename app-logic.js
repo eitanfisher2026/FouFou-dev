@@ -344,7 +344,14 @@
     try { return (window.BKK && window.BKK.i18n && window.BKK.i18n.currentLang) || 'he'; } catch(e) { return 'he'; }
   });
   const [selectedCityId, setSelectedCityId] = useState(() => {
-    try { return localStorage.getItem('city_explorer_city') || 'bangkok'; } catch(e) { return 'bangkok'; }
+    try {
+      const urlCity = new URLSearchParams(location.search).get('city');
+      if (urlCity) {
+        localStorage.setItem('city_explorer_city', urlCity);
+        return urlCity;
+      }
+      return localStorage.getItem('city_explorer_city') || 'bangkok';
+    } catch(e) { return 'bangkok'; }
   });
   // City active/inactive states — React state so UI re-renders when admin changes cities
   // Do NOT initialize from localStorage — always wait for Firebase to avoid stale cache
