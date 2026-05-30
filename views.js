@@ -2077,6 +2077,19 @@
                   })()}
 
                   <button
+                    onClick={() => { setManualSearchQuery(''); setManualSearchResults(null); setShowManualAddDialog(true); }}
+                    title={t('route.addManualStop')}
+                    style={{
+                      height: '42px', borderRadius: '12px', padding: '0 12px',
+                      border: '1px solid #e5e7eb', background: 'rgba(255,255,255,0.9)',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '18px', color: '#6b7280', flexShrink: 0, gap: '4px'
+                    }}
+                  >
+                    <span style={{ fontSize: '16px', fontWeight: 'bold' }}>+</span>
+                  </button>
+
+                  <button
                     onClick={() => setShowRouteMenu(!showRouteMenu)}
                     style={{
                       width: '42px', height: '42px', borderRadius: '12px',
