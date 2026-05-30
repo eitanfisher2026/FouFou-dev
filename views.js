@@ -2241,7 +2241,9 @@
                           // in-flight OR permission hasn't been granted yet will we await here.
                           // getUserGPS is a cached-first, never-throws helper with an 8 s timeout.
                           let liveUserLoc = userLoc;
-                          if (!liveUserLoc && !window.BKK.lastKnownGPS) {
+                          const _cachedGps = window.BKK.lastKnownGPS;
+                          const _gpsFresh = _cachedGps && (Date.now() - (_cachedGps.timestamp || 0) < 5 * 60 * 1000);
+                          if (!liveUserLoc && !_gpsFresh) {
                             setWaitingForGps(true);
                             const timeoutMs = window.BKK.systemParams?.gpsTimeoutMs || 8000;
                             liveUserLoc = await window.BKK.getUserGPS(timeoutMs);

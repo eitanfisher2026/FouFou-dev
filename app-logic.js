@@ -385,7 +385,8 @@
   // Silent: no spinner, no errors surfaced — it's a best-effort prime-the-cache.
   React.useEffect(() => {
     if (wizardStep !== 3) return;
-    if (window.BKK.lastKnownGPS) return; // already cached
+    const _c = window.BKK.lastKnownGPS;
+    if (_c && (Date.now() - (_c.timestamp || 0) < 5 * 60 * 1000)) return; // fresh cache hit
     if (typeof window.BKK.getUserGPS !== 'function') return;
     // Fire and forget — never throws, resolves to null on failure.
     const timeoutMs = window.BKK.systemParams?.gpsTimeoutMs || 8000;
