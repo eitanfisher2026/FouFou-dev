@@ -1609,8 +1609,12 @@
                   </div>
                 )}
                 <div className="flex items-center gap-2 mb-2">
-                  {/* v3.23.50: omit the dash + areaName when there is no area (manually-created trails have no areaName) */}
-                  <h3 className="font-bold text-blue-900 text-sm">{`${t("route.places")}${route.areaName ? ' - ' + route.areaName : ''} (${route.stops.filter(s => !isStopDisabled(s)).length}):`}</h3>
+                  <h3 className="font-bold text-blue-900 text-sm" style={{ flex: 1 }}>{`${t("route.places")}${route.areaName ? ' - ' + route.areaName : ''} (${route.stops.filter(s => !isStopDisabled(s)).length}):`}</h3>
+                  <button
+                    onClick={() => { setManualSearchQuery(''); setManualSearchResults(null); setShowManualAddDialog(true); }}
+                    style={{ padding: '3px 10px', fontSize: '12px', fontWeight: '600', borderRadius: '8px',
+                      border: '1px solid #93c5fd', background: '#eff6ff', color: '#1d4ed8', cursor: 'pointer', flexShrink: 0 }}
+                  >{currentLang === 'he' ? 'הוסף מקום' : 'Add Place'}</button>
                 </div>
                 {renderContextHint('hint_route')}
                 {/* Normal stop list grouped by interest */}
@@ -2077,19 +2081,6 @@
                   })()}
 
                   <button
-                    onClick={() => { setManualSearchQuery(''); setManualSearchResults(null); setShowManualAddDialog(true); }}
-                    title={t('route.addManualStop')}
-                    style={{
-                      height: '42px', borderRadius: '12px', padding: '0 12px',
-                      border: '1px solid #e5e7eb', background: 'rgba(255,255,255,0.9)',
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '18px', color: '#6b7280', flexShrink: 0, gap: '4px'
-                    }}
-                  >
-                    <span style={{ fontSize: '16px', fontWeight: 'bold' }}>+</span>
-                  </button>
-
-                  <button
                     onClick={() => setShowRouteMenu(!showRouteMenu)}
                     style={{
                       width: '42px', height: '42px', borderRadius: '12px',
@@ -2116,7 +2107,6 @@
                         <button onClick={() => setShowRouteMenu(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#9ca3af', padding: '0 2px', lineHeight: 1 }}>✕</button>
                       </div>
                       {[
-                        { icon: '+', label: t('route.addManualStop').replace('➕ ', ''), action: () => { setShowRouteMenu(false); setManualSearchQuery(''); setManualSearchResults(null); setShowManualAddDialog(true); } },
                         { icon: '≡', label: t('route.reorderStops'), action: () => { setShowRouteMenu(false); reorderOriginalStopsRef.current = route?.stops ? [...route.stops] : null; setShowRoutePreview(true); }, disabled: !route?.optimized },
                         { icon: '↗', label: (!authUser || authUser.isAnonymous) ? (t('auth.loginToShare') || 'Sign in to share') : t('general.shareRoute'), action: () => {
                           if (!authUser || authUser.isAnonymous) { setShowLoginDialog(true); return; }
