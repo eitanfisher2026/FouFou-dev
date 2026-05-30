@@ -1965,7 +1965,7 @@
                                   })()}
                                   </a>
                                   {/* Add to favorites — compact inline star, editors/admins only (regular users add during active trail) */}
-                                  {!isCustom && !isDisabled && isEditor && (() => {
+                                  {!isCustom && !isDisabled && isEditor && !isTrailAnywhere && (() => {
                                     const existingLoc = customLocations.find(loc => loc.name.toLowerCase().trim() === stop.name.toLowerCase().trim());
                                     if (existingLoc) return null; // already in favorites, stop has ✅ elsewhere
                                     const placeId = stop.id || stop.name;
