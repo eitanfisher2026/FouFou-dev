@@ -3329,31 +3329,43 @@
             {/* v3.23.41: Refresh Google saved information — editor/admin only. Panel text is English-only by design. */}
             {isUnlocked && (() => {
               const REFRESH_INTERVAL_MS = 30 * 24 * 3600 * 1000;
-              const eligible = customLocations.filter(loc => loc.status !== 'blacklist' && loc.lat && loc.lng && loc.name);
-              const dueNow = eligible.filter(loc => !loc.googleRatingUpdated || (Date.now() - loc.googleRatingUpdated) > REFRESH_INTERVAL_MS).length;
-              const recent = eligible.length - dueNow;
+              const [refreshScope, setRefreshScope] = React.useState('all');
+              const scopeLocations = refreshScope === 'all'
+                ? customLocations.filter(loc => loc.status !== 'blacklist' && loc.lat && loc.lng && loc.name)
+                : customLocations.filter(loc => loc.status !== 'blacklist' && loc.lat && loc.lng && loc.name && (loc.cityId || 'bangkok') === refreshScope);
+              const dueNow = scopeLocations.filter(loc => !loc.googleRatingUpdated || (Date.now() - loc.googleRatingUpdated) > REFRESH_INTERVAL_MS).length;
+              const recent = scopeLocations.length - dueNow;
               const lr = googleDataRefreshMeta?.lastRunStats;
               const lrAt = googleDataRefreshMeta?.lastRunAt;
               const lrAtStr = lrAt ? new Date(lrAt).toLocaleString('en-GB', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : null;
+              const cities = Object.values(window.BKK.cityRegistry || {}).filter(r => r && r.id).sort((a, b) => (a.nameEn || a.name || '').localeCompare(b.nameEn || b.name || ''));
               return (
               <div className="mb-3">
                 <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-400 rounded-xl p-3" style={{ direction: 'ltr', textAlign: 'left' }}>
                   <h3 className="text-base font-bold text-gray-800 mb-1">🌐 Refresh Google saved information</h3>
                   <p className="text-xs text-gray-600 mb-2">
-                    Refreshes ratings, address, types, business status, and coordinates for favorites across all cities. Skips entries refreshed within the last 30 days. Place names are NOT refreshed (preserves user edits).
+                    Refreshes ratings, address, types, business status, and coordinates for favorites. Skips entries refreshed within the last 30 days. Place names are NOT refreshed (preserves user edits).
                   </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#374151', flexShrink: 0 }}>City:</span>
+                    <select value={refreshScope} onChange={e => setRefreshScope(e.target.value)}
+                      style={{ flex: 1, fontSize: '12px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #d1d5db', background: 'white', cursor: 'pointer' }}>
+                      <option value="all">🌍 All cities</option>
+                      {cities.map(c => <option key={c.id} value={c.id}>{c.icon && !c.icon.startsWith('data:') ? c.icon + ' ' : ''}{c.nameEn || c.name}</option>)}
+                    </select>
+                  </div>
                   <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '8px', lineHeight: '1.6' }}>
-                    <div>📊 Status: <span style={{ fontWeight: 'bold', color: dueNow > 0 ? '#b45309' : '#059669' }}>{dueNow} due now</span> · {recent} refreshed within 30 days</div>
+                    <div>📊 Status: <span style={{ fontWeight: 'bold', color: dueNow > 0 ? '#b45309' : '#059669' }}>{dueNow} due now</span> · {recent} refreshed within 30 days {refreshScope !== 'all' ? '(in-memory — run to get full count)' : ''}</div>
                     {lrAt && lr && (
                       <div>📅 Last run: {lrAtStr} · {lr.updated}/{lr.total} updated, {lr.notFound || 0} not in Google, {lr.errors} error{lr.errors === 1 ? '' : 's'} · ${(lr.costUSD ?? 0).toFixed(3)}</div>
                     )}
                     {!lrAt && <div style={{ fontStyle: 'italic' }}>📅 Last run: never</div>}
                   </div>
                   <button
-                    onClick={refreshAllGoogleRatings}
-                    disabled={!!ratingsRefreshProgress || dueNow === 0}
+                    onClick={() => refreshAllGoogleRatings(refreshScope)}
+                    disabled={!!ratingsRefreshProgress}
                     className={`w-full py-2 px-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition ${
-                      ratingsRefreshProgress || dueNow === 0
+                      ratingsRefreshProgress
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-amber-500 text-white hover:bg-amber-600 active:bg-amber-700'
                     }`}
@@ -3366,7 +3378,7 @@
                     ) : (
                       <>
                         <span>🌐</span>
-                        <span>Refresh Google saved information{dueNow > 0 ? ` (${dueNow})` : ''}</span>
+                        <span>Refresh {refreshScope === 'all' ? 'all cities' : (cities.find(c => c.id === refreshScope)?.nameEn || refreshScope)}</span>
                       </>
                     )}
                   </button>

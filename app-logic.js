@@ -5334,18 +5334,36 @@
     }
   };
 
-  const refreshAllGoogleRatings = async () => {
+  const refreshAllGoogleRatings = async (scopeCityId) => {
+    // scopeCityId: undefined/'all' = all cities, or a specific cityId
     if (!GOOGLE_PLACES_API_KEY || !isFirebaseAvailable || !database) {
       showToast('Google API or Firebase not available', 'error');
       return;
     }
 
-    // v3.23.41: refresh ALL Google-cached fields (not just rating) across ALL cities (not just selected),
-    // for Google Maps Platform ToS compliance with the 30-day caching rule.
-    // Skipped fields: name (preserves user edits — there's no way to detect them yet).
-    const allPlaces = customLocations.filter(loc =>
-      loc.status !== 'blacklist' && loc.lat && loc.lng && loc.name && (loc.cityId || 'bangkok')
-    );
+    // Determine which locations to process
+    let allPlaces;
+    if (!scopeCityId || scopeCityId === 'all') {
+      // Fetch all cities from Firebase
+      const cityIds = Object.values(window.BKK.cityRegistry || {}).map(r => r.id).filter(Boolean);
+      const snaps = await Promise.all(cityIds.map(cid => database.ref(`cities/${cid}/locations`).once('value').then(s => ({ cid, val: s.val() }))));
+      const allLocs = [];
+      snaps.forEach(({ cid, val }) => {
+        if (!val) return;
+        Object.entries(val).forEach(([fbKey, loc]) => {
+          if (loc && loc.status !== 'blacklist' && loc.lat && loc.lng && loc.name) {
+            allLocs.push({ ...loc, firebaseId: fbKey, cityId: cid });
+          }
+        });
+      });
+      allPlaces = allLocs;
+    } else {
+      // Fetch specific city from Firebase (always fresh, not just in-memory)
+      const snap = await database.ref(`cities/${scopeCityId}/locations`).once('value');
+      const val = snap.val() || {};
+      allPlaces = Object.entries(val).filter(([, loc]) => loc && loc.status !== 'blacklist' && loc.lat && loc.lng && loc.name)
+        .map(([fbKey, loc]) => ({ ...loc, firebaseId: fbKey, cityId: scopeCityId }));
+    }
 
     const REFRESH_INTERVAL = 30 * 24 * 3600 * 1000; // 30 days — matches Google's caching limit
     const candidates = allPlaces.filter(loc => !loc.googleRatingUpdated || (Date.now() - loc.googleRatingUpdated) > REFRESH_INTERVAL);

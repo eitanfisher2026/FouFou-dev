@@ -10,6 +10,10 @@
           ".read": true,
           ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2"
         },
+        "tips": {
+          ".read": true,
+          ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() >= 2"
+        },
         "locations": {
           ".read": true,
           "$locationId": {
