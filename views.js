@@ -3329,7 +3329,6 @@
             {/* v3.23.41: Refresh Google saved information — editor/admin only. Panel text is English-only by design. */}
             {isUnlocked && (() => {
               const REFRESH_INTERVAL_MS = 30 * 24 * 3600 * 1000;
-              const [refreshScope, setRefreshScope] = React.useState('all');
               const scopeLocations = refreshScope === 'all'
                 ? customLocations.filter(loc => loc.status !== 'blacklist' && loc.lat && loc.lng && loc.name)
                 : customLocations.filter(loc => loc.status !== 'blacklist' && loc.lat && loc.lng && loc.name && (loc.cityId || 'bangkok') === refreshScope);

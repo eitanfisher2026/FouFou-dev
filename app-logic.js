@@ -1825,6 +1825,7 @@
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [ratingsRefreshProgress, setRatingsRefreshProgress] = useState(null); // { current, total, updated }
+  const [refreshScope, setRefreshScope] = useState('all'); // 'all' or a specific cityId
   // v3.23.41: persisted metadata about the last Google data refresh run
   const [googleDataRefreshMeta, setGoogleDataRefreshMeta] = useState(null); // { lastRunAt, lastRunStats }
   const [isDataLoaded, setIsDataLoaded] = useState(false); // Tracks initial Firebase/localStorage load
