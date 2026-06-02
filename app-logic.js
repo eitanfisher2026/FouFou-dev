@@ -360,9 +360,11 @@
   const [wizardStep, setWizardStep] = useState(1);
   const [isTrailAnywhere, setIsTrailAnywhere] = useState(() => {
     try {
-      const urlMode = new URLSearchParams(location.search).get('mode');
+      const params = new URLSearchParams(location.search);
+      const urlMode = params.get('mode');
+      const urlCity = params.get('city');
       if (urlMode === 'anywhere') { localStorage.setItem('foufou_mode', 'anywhere'); return true; }
-      if (urlMode === 'cities') { localStorage.setItem('foufou_mode', 'cities'); return false; }
+      if (urlMode === 'cities' || urlCity) { localStorage.setItem('foufou_mode', 'cities'); return false; }
       return localStorage.getItem('foufou_mode') === 'anywhere';
     } catch(e) { return false; }
   });
