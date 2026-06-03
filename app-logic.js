@@ -18,6 +18,12 @@
           prefs.currentLat = null;
           prefs.currentLng = null;
         }
+        // Expire GPS coords after 1 hour — prevents stale location from a previous city/country
+        if (prefs.currentLat && (!prefs.gpsTimestamp || Date.now() - prefs.gpsTimestamp > 60 * 60 * 1000)) {
+          prefs.currentLat = null;
+          prefs.currentLng = null;
+          prefs.gpsTimestamp = null;
+        }
         if (!prefs.radiusMeters) prefs.radiusMeters = 500;
         if (!prefs.radiusSource) prefs.radiusSource = 'gps';
         if (!prefs.radiusPlaceName) prefs.radiusPlaceName = '';
@@ -378,6 +384,7 @@
   const [routeListKey, setRouteListKey] = useState(0); // incremented to force re-render of route stop list after favorites change
   const [isGenerating, setIsGenerating] = useState(false);
   const [waitingForGps, setWaitingForGps] = useState(false); // true while "open in Google Maps" is waiting on GPS
+  const [gpsRefreshStatus, setGpsRefreshStatus] = useState(null); // null | 'loading' | 'ok' | 'error'
 
   // Proactive GPS prefetch: when the user reaches wizard step 3 (the route preview
   // screen where "Open in Google Maps" lives), kick off a background GPS fetch if
