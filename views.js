@@ -1366,7 +1366,7 @@
                               }}
                             >
                               {isDraft && <span style={{ position: 'absolute', top: '2px', right: '4px', fontSize: '8px' }}>🟡</span>}
-                              <div style={{ fontSize: '22px', marginBottom: '2px' }}>{(() => { const lp = window.BKK.interestIconPaths?.[option.id]; return lp ? <img src={lp} alt="" style={{ width: '36px', height: '36px', objectFit: 'contain', display: 'inline' }} /> : option.icon?.startsWith?.('data:') ? <img src={option.icon} alt="" style={{ width: '36px', height: '36px', objectFit: 'contain', display: 'inline' }} /> : option.icon; })()}</div>
+                              <div style={{ marginBottom: '4px' }}>{(() => { const lp = window.BKK.interestIconPaths?.[option.id]; return lp ? <img src={lp} alt="" style={{ width: '52px', height: '52px', objectFit: 'contain', display: 'inline' }} /> : option.icon?.startsWith?.('data:') ? <img src={option.icon} alt="" style={{ width: '52px', height: '52px', objectFit: 'contain', display: 'inline' }} /> : <span style={{ fontSize: '28px', lineHeight: 1 }}>{option.icon}</span>; })()}</div>
                               <div style={{ fontWeight: '700', fontSize: '11px', color: isSelected ? '#1e40af' : '#374151', wordBreak: 'break-word' }}>{tLabel(option)}</div>
                             </button>
                           );
