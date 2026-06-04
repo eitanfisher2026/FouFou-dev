@@ -43,10 +43,12 @@
     );
   };
 
-  const renderIcon = (icon, size = '14px') => {
+  const renderIcon = (icon, size = '14px', interestId = null) => {
+    const localPath = interestId ? window.BKK.interestIconPaths?.[interestId] : null;
+    if (localPath) return <img src={localPath} alt="" style={{ width: size, height: size, objectFit: 'contain', display: 'inline', verticalAlign: 'middle' }} />;
     if (!icon) return null;
     const isUrl = typeof icon === 'string' && (icon.startsWith('data:') || icon.startsWith('http'));
-    return isUrl 
+    return isUrl
       ? <img src={icon} alt="" style={{ width: size, height: size, objectFit: 'contain', display: 'inline', verticalAlign: 'middle' }} />
       : icon;
   };
@@ -909,10 +911,7 @@
                                   const int = allInterestOptions.find(o => (fav.interests || []).includes(o.id));
                                   const iconRaw = int?.icon || '';
                                   return (<>
-                                    {iconRaw ? (iconRaw.startsWith('data:')
-                                      ? <img src={iconRaw} alt="" style={{ width: '13px', height: '13px', objectFit: 'contain', opacity: 0.75, flexShrink: 0 }} />
-                                      : <span style={{ fontSize: '13px', lineHeight: 1, opacity: 0.75 }}>{iconRaw}</span>
-                                    ) : null}
+                                    {int ? <span style={{ opacity: 0.75, flexShrink: 0 }}>{renderIcon(iconRaw, '13px', int?.id)}</span> : null}
                                     <img src="icon-32x32.png" alt="FouFou" style={{ width: '16px', height: '16px', flexShrink: 0, opacity: 0.85 }} />
                                   </>);
                                 })()}
@@ -1040,8 +1039,7 @@
                                             const firstInt = allInterestOptions.find(o => intIds.includes(o.id));
                                             if (!firstInt) return null;
                                             const iconRaw = firstInt.icon || '';
-                                            if (iconRaw.startsWith('data:')) return <img src={iconRaw} alt="" style={{ width: '13px', height: '13px', objectFit: 'contain', flexShrink: 0, opacity: 0.7 }} />;
-                                            return <span style={{ fontSize: '12px', lineHeight: 1, opacity: 0.7 }}>{iconRaw}</span>;
+                                            return <span style={{ opacity: 0.7 }}>{renderIcon(iconRaw, '13px', firstInt.id)}</span>;
                                           })()}
                                         </div>
                                         <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '1px' }}>{result.address}{result.rating ? ` · ⭐ ${result.rating}` : ''}</div>
@@ -2596,7 +2594,7 @@
                               {routeInterestIds.slice(0, 5).map((intId, idx) => {
                                 const obj = interestMap[intId];
                                 if (!obj?.icon) return null;
-                                return <span key={idx} title={obj.label} style={{ fontSize: '12px' }}>{renderIcon(obj.icon, '14px')}</span>;
+                                return <span key={idx} title={obj.label} style={{ fontSize: '12px' }}>{renderIcon(obj.icon, '14px', obj.id)}</span>;
                               })}
                               <span className="text-[10px] text-gray-400 flex-shrink-0">{savedRoute.stops?.length || 0} stops</span>
                             </div>
@@ -2878,7 +2876,7 @@
                     return (
                       <div key={key} className="border border-gray-200 rounded-lg overflow-hidden mb-1.5">
                         <div className="bg-gray-100 px-2 py-1 flex items-center gap-1 text-xs font-bold text-gray-700">
-                          <span>{groupIcon?.startsWith?.('data:') ? <img src={groupIcon} alt="" className="w-4 h-4 object-contain inline" /> : groupIcon}</span>
+                          <span>{renderIcon(groupIcon, '16px', placesGroupBy === 'interest' ? obj?.id : null)}</span>
                           <span>{groupLabel}</span>
                           <span className="text-gray-400 font-normal">({locs.length})</span>
                         </div>
@@ -2911,7 +2909,7 @@
                                     {!isLocationValid(loc) && <span className="text-red-500 text-[9px]" title={t("places.missingDetailsLong")}>❌</span>}
                                     {placesGroupBy === 'area' && loc.interests?.map((int, idx) => {
                                       const obj2 = interestMap[int];
-                                      return obj2?.icon ? <span key={idx} title={obj2.label} style={{ fontSize: '13px' }}>{renderIcon(obj2.icon, '14px')}</span> : null;
+                                      return obj2?.icon ? <span key={idx} title={obj2.label} style={{ fontSize: '13px' }}>{renderIcon(obj2.icon, '14px', obj2.id)}</span> : null;
                                     })}
                                     {placesGroupBy === 'interest' && (loc.areas || [loc.area]).filter(Boolean).map((aId, idx) => (
                                       <span key={idx} className="text-[9px] bg-gray-200 text-gray-600 px-1 rounded">{tLabel(areaMap[aId]) || aId}</span>
@@ -3694,7 +3692,7 @@
             {/* ===== INTERESTS TAB ===== */}
             {settingsTab === 'interests' && (() => {
                             const renderInterestSettingsRow = (i, allCities, getAStatus, openFn) => {
-                const icon = i.icon?.startsWith?.('data:') ? <img src={i.icon} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain' }} /> : <span style={{ fontSize: '18px' }}>{i.icon || '📍'}</span>;
+                const icon = renderIcon(i.icon || '📍', '20px', i.id);
                 const isDraft = getAStatus(i) === 'draft';
                 const isHidden = getAStatus(i) === 'hidden';
                 const visibleCities = allCities.filter(city => !(cityHiddenInterests[city.id] || new Set()).has(i.id));
