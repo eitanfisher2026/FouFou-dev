@@ -4594,7 +4594,7 @@
                                   }}
                                   style={{ padding: '8px 4px', borderRadius: '10px', border: isOn ? `2px solid ${color}` : '1.5px solid #e5e7eb', background: isOn ? color + '18' : 'white', cursor: 'pointer', textAlign: 'center', opacity: isOn ? 1 : 0.45 }}>
                                   <div style={{ fontSize: '16px', marginBottom: '2px', lineHeight: 1 }}>
-                                    {isImgIcon ? <img src={iconRaw} alt="" style={{ width: '16px', height: '16px', objectFit: 'contain', display: 'inline' }} /> : iconRaw}
+                                    {renderIcon(iconRaw, '20px', int.id)}
                                   </div>
                                   <div style={{ fontWeight: '700', fontSize: '9px', color: isOn ? color : '#374151', wordBreak: 'break-word', lineHeight: 1.2 }}>{tLabel(int)}</div>
                                 </button>
@@ -4611,7 +4611,7 @@
                               return (
                                 <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px' }}>
                                   <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, display: 'inline-block', border: '1px solid ' + color }}></span>
-                                  <span style={{ color: '#6b7280' }}>{renderIcon(int.icon, '14px')} {tLabel(int)}</span>
+                                  <span style={{ color: '#6b7280' }}>{renderIcon(int.icon, '14px', int.id)} {tLabel(int)}</span>
                                 </div>
                               );
                             })}
@@ -4785,14 +4785,10 @@
                         {legendItems.map(int => {
                           const color = window.BKK.getInterestColor(int.id, allInterestOptions);
                           const iconRaw = int.icon || '';
-                          const isImg = iconRaw.startsWith('data:');
                           return (
                             <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#374151', padding: '2px 7px', background: '#f8fafc', borderRadius: '20px', border: '1px solid #e5e7eb' }}>
                               <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }}></span>
-                              {isImg
-                                ? <img src={iconRaw} alt="" style={{ width: '13px', height: '13px', objectFit: 'contain' }} />
-                                : <span style={{ fontSize: '12px', lineHeight: 1 }}>{iconRaw}</span>
-                              }
+                              {renderIcon(iconRaw, '13px', int.id)}
                               <span style={{ fontWeight: '500' }}>{tLabel(int)}</span>
                             </div>
                           );
