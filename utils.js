@@ -6,6 +6,44 @@
 
 window.BKK = window.BKK || {};
 
+// Illustrated PNG icons for built-in interests
+window.BKK.interestIconPaths = {
+  'i_all_restaurants':         'interest-icons/i_all_restaurants.png',
+  'i_architecture_and_museums':'interest-icons/i_architecture_and_museums.png',
+  'i_asian_food':              'interest-icons/i_asian_food.png',
+  'i_brunch_coffee':           'interest-icons/i_brunch_coffee.png',
+  'i_cat_dog_coffee':          'interest-icons/i_cat_dog_coffee.png',
+  'i_churches':                'interest-icons/i_churches.png',
+  'i_coffee':                  'interest-icons/i_coffee.png',
+  'i_crafts':                  'interest-icons/i_crafts.png',
+  'i_day_markets':             'interest-icons/i_day_markets.png',
+  'i_day_street':              'interest-icons/i_day_street.png',
+  'i_entertainment':           'interest-icons/i_entertainment.png',
+  'i_fountain_and_statues':    'interest-icons/i_fountain_and_statues.png',
+  'i_galleries':               'interest-icons/i_galleries.png',
+  'i_kids':                    'interest-icons/i_kids.png',
+  'i_mediterranean_food':      'interest-icons/i_mediterranean_food.png',
+  'i_mosque':                  'interest-icons/i_mosque.png',
+  'i_nature':                  'interest-icons/i_nature.png',
+  'i_night_markets':           'interest-icons/i_night_markets.png',
+  'i_night_street':            'interest-icons/i_night_street.png',
+  'i_nightlife':               'interest-icons/i_nightlife.png',
+  'i_parks_and_gardens':       'interest-icons/i_parks_and_gardens.png',
+  'i_places_with_water':       'interest-icons/i_places_with_water.png',
+  'i_shopping_malls':          'interest-icons/i_shopping_malls.png',
+  'i_specialty_stores':        'interest-icons/i_specialty_stores.png',
+  'i_street_art':              'interest-icons/i_street_art.png',
+  'i_street_food_day':         'interest-icons/i_street_food_day.png',
+  'i_street_food_night':       'interest-icons/i_street_food_night.png',
+  'i_sweets':                  'interest-icons/i_sweets.png',
+  'i_synagogue':               'interest-icons/i_synagogue.png',
+  'i_temples':                 'interest-icons/i_temples.png',
+  'i_tourist_attraction':      'interest-icons/i_tourist_attraction.png',
+  'i_vegetarian_food':         'interest-icons/i_vegetarian_food.png',
+  'i_vintage':                 'interest-icons/i_vintage.png',
+  'i_wine_rooftop_bar':        'interest-icons/i_wine_rooftop_bar.png',
+};
+
 // ============================================================================
 // GEOLOCATION & COORDINATES
 // ============================================================================
