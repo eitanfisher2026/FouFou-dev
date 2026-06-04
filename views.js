@@ -43,12 +43,10 @@
     );
   };
 
-  const renderIcon = (icon, size = '14px', interestId = null) => {
-    const localPath = interestId ? window.BKK.interestIconPaths?.[interestId] : null;
-    if (localPath) return <img src={localPath} alt="" style={{ width: size, height: size, objectFit: 'contain', display: 'inline', verticalAlign: 'middle' }} />;
+  const renderIcon = (icon, size = '14px') => {
     if (!icon) return null;
-    const isUrl = typeof icon === 'string' && (icon.startsWith('data:') || icon.startsWith('http'));
-    return isUrl
+    const isImg = typeof icon === 'string' && (icon.startsWith('data:') || icon.startsWith('http') || icon.startsWith('interest-icons/'));
+    return isImg
       ? <img src={icon} alt="" style={{ width: size, height: size, objectFit: 'contain', display: 'inline', verticalAlign: 'middle' }} />
       : icon;
   };
@@ -522,16 +520,10 @@
                       {legendInterests.map(int => {
                         const color = window.BKK.getInterestColor(int.id, allInterestOptions);
                         const iconRaw = int.icon || '';
-                        const localIconPath = window.BKK.interestIconPaths?.[int.id];
-                        const isImg = localIconPath || iconRaw.startsWith('data:');
-                        const imgSrc = localIconPath || iconRaw;
                         return (
                           <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: '#4b5563' }}>
                             <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }}></span>
-                            {isImg
-                              ? <img src={imgSrc} alt="" style={{ width: '12px', height: '12px', objectFit: 'contain' }} />
-                              : <span style={{ fontSize: '11px', lineHeight: 1 }}>{iconRaw}</span>
-                            }
+                            {renderIcon(iconRaw, '12px')}
                             <span>{tLabel(int)}</span>
                           </div>
                         );
@@ -911,7 +903,7 @@
                                   const int = allInterestOptions.find(o => (fav.interests || []).includes(o.id));
                                   const iconRaw = int?.icon || '';
                                   return (<>
-                                    {int ? <span style={{ opacity: 0.75, flexShrink: 0 }}>{renderIcon(iconRaw, '13px', int?.id)}</span> : null}
+                                    {int ? <span style={{ opacity: 0.75, flexShrink: 0 }}>{renderIcon(iconRaw, '13px')}</span> : null}
                                     <img src="icon-32x32.png" alt="FouFou" style={{ width: '16px', height: '16px', flexShrink: 0, opacity: 0.85 }} />
                                   </>);
                                 })()}
@@ -1039,7 +1031,7 @@
                                             const firstInt = allInterestOptions.find(o => intIds.includes(o.id));
                                             if (!firstInt) return null;
                                             const iconRaw = firstInt.icon || '';
-                                            return <span style={{ opacity: 0.7 }}>{renderIcon(iconRaw, '13px', firstInt.id)}</span>;
+                                            return <span style={{ opacity: 0.7 }}>{renderIcon(iconRaw, '13px')}</span>;
                                           })()}
                                         </div>
                                         <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '1px' }}>{result.address}{result.rating ? ` · ⭐ ${result.rating}` : ''}</div>
@@ -1364,7 +1356,7 @@
                               }}
                             >
                               {isDraft && <span style={{ position: 'absolute', top: '2px', right: '4px', fontSize: '8px' }}>🟡</span>}
-                              <div style={{ marginBottom: '4px' }}>{(() => { const lp = window.BKK.interestIconPaths?.[option.id]; return lp ? <img src={lp} alt="" style={{ width: '52px', height: '52px', objectFit: 'contain', display: 'inline' }} /> : option.icon?.startsWith?.('data:') ? <img src={option.icon} alt="" style={{ width: '52px', height: '52px', objectFit: 'contain', display: 'inline' }} /> : <span style={{ fontSize: '28px', lineHeight: 1 }}>{option.icon}</span>; })()}</div>
+                              <div style={{ marginBottom: '4px' }}>{renderIcon(option.icon, '52px') || <span style={{ fontSize: '28px', lineHeight: 1 }}>{option.icon}</span>}</div>
                               <div style={{ fontWeight: '700', fontSize: '11px', color: isSelected ? '#1e40af' : '#374151', wordBreak: 'break-word' }}>{tLabel(option)}</div>
                             </button>
                           );
@@ -1753,7 +1745,7 @@
                           {/* Interest header with fetch-more button */}
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="font-bold text-xs text-gray-700 flex items-center gap-1">
-                              <span style={{ fontSize: '14px' }}>{(() => { const lp = window.BKK.interestIconPaths?.[interestObj.id]; const ic = interestObj.icon || ''; return lp ? <img src={lp} alt="" style={{ width: '16px', height: '16px', objectFit: 'contain', display: 'inline' }} /> : ic.startsWith('data:') ? <img src={ic} alt="" style={{ width: '16px', height: '16px', objectFit: 'contain', display: 'inline' }} /> : ic; })()}</span>
+                              <span style={{ fontSize: '14px' }}>{renderIcon(interestObj.icon || '', '16px')}</span>
                               <span>{tLabel(interestObj)} ({filteredStops.length})</span>
                             </div>
                             {!isManualGroup && (
@@ -2434,7 +2426,7 @@
                           const interest = interestMap[intId];
                           return interest ? (
                             <span key={intId} className="bg-green-600 text-white text-xs px-2 py-1 rounded-full">
-                              {(() => { const lp = window.BKK.interestIconPaths?.[interest.id]; const ic = interest.icon || ''; return lp ? <img src={lp} alt="" className="w-3.5 h-3.5 object-contain inline" /> : ic.startsWith('data:') ? <img src={ic} alt="" className="w-3.5 h-3.5 object-contain inline" /> : ic; })()} {tLabel(interest)}
+                              {renderIcon(interest.icon || '', '14px')} {tLabel(interest)}
                             </span>
                           ) : null;
                         })}
@@ -2594,7 +2586,7 @@
                               {routeInterestIds.slice(0, 5).map((intId, idx) => {
                                 const obj = interestMap[intId];
                                 if (!obj?.icon) return null;
-                                return <span key={idx} title={obj.label} style={{ fontSize: '12px' }}>{renderIcon(obj.icon, '14px', obj.id)}</span>;
+                                return <span key={idx} title={obj.label} style={{ fontSize: '12px' }}>{renderIcon(obj.icon, '14px')}</span>;
                               })}
                               <span className="text-[10px] text-gray-400 flex-shrink-0">{savedRoute.stops?.length || 0} stops</span>
                             </div>
@@ -2876,7 +2868,7 @@
                     return (
                       <div key={key} className="border border-gray-200 rounded-lg overflow-hidden mb-1.5">
                         <div className="bg-gray-100 px-2 py-1 flex items-center gap-1 text-xs font-bold text-gray-700">
-                          <span>{renderIcon(groupIcon, '16px', placesGroupBy === 'interest' ? obj?.id : null)}</span>
+                          <span>{renderIcon(groupIcon, '16px')}</span>
                           <span>{groupLabel}</span>
                           <span className="text-gray-400 font-normal">({locs.length})</span>
                         </div>
@@ -2909,7 +2901,7 @@
                                     {!isLocationValid(loc) && <span className="text-red-500 text-[9px]" title={t("places.missingDetailsLong")}>❌</span>}
                                     {placesGroupBy === 'area' && loc.interests?.map((int, idx) => {
                                       const obj2 = interestMap[int];
-                                      return obj2?.icon ? <span key={idx} title={obj2.label} style={{ fontSize: '13px' }}>{renderIcon(obj2.icon, '14px', obj2.id)}</span> : null;
+                                      return obj2?.icon ? <span key={idx} title={obj2.label} style={{ fontSize: '13px' }}>{renderIcon(obj2.icon, '14px')}</span> : null;
                                     })}
                                     {placesGroupBy === 'interest' && (loc.areas || [loc.area]).filter(Boolean).map((aId, idx) => (
                                       <span key={idx} className="text-[9px] bg-gray-200 text-gray-600 px-1 rounded">{tLabel(areaMap[aId]) || aId}</span>
@@ -3095,7 +3087,7 @@
                     {/* Color bar */}
                     <div style={{ width: '4px', alignSelf: 'stretch', borderRadius: '2px', background: effectiveActive ? interestColor : '#d1d5db', flexShrink: 0 }}></div>
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-lg flex-shrink-0">{(() => { const lp = window.BKK.interestIconPaths?.[interest.id]; const ic = interest.icon || ''; return lp ? <img src={lp} alt="" className="w-5 h-5 object-contain" /> : ic.startsWith('data:') ? <img src={ic} alt="" className="w-5 h-5 object-contain" /> : ic; })()}</span>
+                      <span className="text-lg flex-shrink-0">{renderIcon(interest.icon || '', '20px')}</span>
                       <span className={`font-medium text-sm truncate ${isDraft ? 'text-amber-700' : !effectiveActive ? 'text-gray-500' : ''}`}>{tLabel(interest)}</span>
                       {isDraft && <span title={t('interests.draftStatus')} style={{ fontSize: '11px', flexShrink: 0 }}>✏️</span>}
                       {favCount > 0 && <span style={{ fontSize: '10px', color: '#9ca3af', flexShrink: 0 }}>({favCount})</span>}
@@ -3407,6 +3399,31 @@
               );
             })()}
 
+            {/* One-time migration: set interest icons to illustrated PNG paths in Firebase */}
+            {isAdmin && database && (() => {
+              const iconPaths = window.BKK.interestIconPaths || {};
+              const run = async () => {
+                const snap = await database.ref('customInterests').once('value');
+                const data = snap.val() || {};
+                const updates = {};
+                Object.entries(data).forEach(([key, val]) => {
+                  if (val && val.id && iconPaths[val.id]) updates[`customInterests/${key}/icon`] = iconPaths[val.id];
+                });
+                if (Object.keys(updates).length === 0) { showToast('All icons already updated', 'info'); return; }
+                await database.ref().update(updates);
+                showToast(`✅ Updated ${Object.keys(updates).length} interest icons in Firebase`, 'success');
+              };
+              return (
+                <div className="mb-3">
+                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-400 rounded-xl p-3" style={{ direction: 'ltr', textAlign: 'left' }}>
+                    <h3 className="text-base font-bold text-gray-800 mb-1">🖼️ Migrate interest icons to illustrated PNGs</h3>
+                    <p className="text-xs text-gray-600 mb-2">Updates the icon field for all 34 built-in interests in Firebase to use the new illustrated PNG files. Run once — after this the dialog will show the correct icons.</p>
+                    <button onClick={run} className="w-full py-2 px-3 rounded-lg font-bold text-sm bg-purple-500 text-white hover:bg-purple-600">🖼️ Run icon migration</button>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Bulk Approve Drafts — per-city scrollable list, editor/admin only */}
             {isUnlocked && (() => {
               const allCities = Object.values(window.BKK.cities || {});
@@ -3692,7 +3709,7 @@
             {/* ===== INTERESTS TAB ===== */}
             {settingsTab === 'interests' && (() => {
                             const renderInterestSettingsRow = (i, allCities, getAStatus, openFn) => {
-                const icon = renderIcon(i.icon || '📍', '20px', i.id);
+                const icon = renderIcon(i.icon || '📍', '20px');
                 const isDraft = getAStatus(i) === 'draft';
                 const isHidden = getAStatus(i) === 'hidden';
                 const visibleCities = allCities.filter(city => !(cityHiddenInterests[city.id] || new Set()).has(i.id));
@@ -4594,7 +4611,7 @@
                                   }}
                                   style={{ padding: '8px 4px', borderRadius: '10px', border: isOn ? `2px solid ${color}` : '1.5px solid #e5e7eb', background: isOn ? color + '18' : 'white', cursor: 'pointer', textAlign: 'center', opacity: isOn ? 1 : 0.45 }}>
                                   <div style={{ fontSize: '16px', marginBottom: '2px', lineHeight: 1 }}>
-                                    {renderIcon(iconRaw, '20px', int.id)}
+                                    {renderIcon(iconRaw, '20px')}
                                   </div>
                                   <div style={{ fontWeight: '700', fontSize: '9px', color: isOn ? color : '#374151', wordBreak: 'break-word', lineHeight: 1.2 }}>{tLabel(int)}</div>
                                 </button>
@@ -4611,7 +4628,7 @@
                               return (
                                 <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px' }}>
                                   <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, display: 'inline-block', border: '1px solid ' + color }}></span>
-                                  <span style={{ color: '#6b7280' }}>{renderIcon(int.icon, '14px', int.id)} {tLabel(int)}</span>
+                                  <span style={{ color: '#6b7280' }}>{renderIcon(int.icon, '14px')} {tLabel(int)}</span>
                                 </div>
                               );
                             })}
@@ -4788,7 +4805,7 @@
                           return (
                             <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#374151', padding: '2px 7px', background: '#f8fafc', borderRadius: '20px', border: '1px solid #e5e7eb' }}>
                               <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }}></span>
-                              {renderIcon(iconRaw, '13px', int.id)}
+                              {renderIcon(iconRaw, '13px')}
                               <span style={{ fontWeight: '500' }}>{tLabel(int)}</span>
                             </div>
                           );
