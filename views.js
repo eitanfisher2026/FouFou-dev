@@ -3399,31 +3399,6 @@
               );
             })()}
 
-            {/* One-time migration: set interest icons to illustrated PNG paths in Firebase */}
-            {isAdmin && database && (() => {
-              const iconPaths = window.BKK.interestIconPaths || {};
-              const run = async () => {
-                const snap = await database.ref('customInterests').once('value');
-                const data = snap.val() || {};
-                const updates = {};
-                Object.entries(data).forEach(([key, val]) => {
-                  if (val && val.id && iconPaths[val.id]) updates[`customInterests/${key}/icon`] = iconPaths[val.id];
-                });
-                if (Object.keys(updates).length === 0) { showToast('All icons already updated', 'info'); return; }
-                await database.ref().update(updates);
-                showToast(`✅ Updated ${Object.keys(updates).length} interest icons in Firebase`, 'success');
-              };
-              return (
-                <div className="mb-3">
-                  <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-400 rounded-xl p-3" style={{ direction: 'ltr', textAlign: 'left' }}>
-                    <h3 className="text-base font-bold text-gray-800 mb-1">🖼️ Migrate interest icons to illustrated PNGs</h3>
-                    <p className="text-xs text-gray-600 mb-2">Updates the icon field for all 34 built-in interests in Firebase to use the new illustrated PNG files. Run once — after this the dialog will show the correct icons.</p>
-                    <button onClick={run} className="w-full py-2 px-3 rounded-lg font-bold text-sm bg-purple-500 text-white hover:bg-purple-600">🖼️ Run icon migration</button>
-                  </div>
-                </div>
-              );
-            })()}
-
             {/* Bulk Approve Drafts — per-city scrollable list, editor/admin only */}
             {isUnlocked && (() => {
               const allCities = Object.values(window.BKK.cities || {});
