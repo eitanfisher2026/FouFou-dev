@@ -1,4 +1,4 @@
-// FouFou app-data.js v3.28.18
+// FouFou app-data.js v3.28.19
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -2625,7 +2625,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '3.28.18';
+window.BKK.VERSION = '3.28.19';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -2932,41 +2932,42 @@ Object.defineProperty(window.BKK, 'helpContent', {
 
 window.BKK = window.BKK || {};
 
+const _tw = 'https://twemoji.maxcdn.com/v/latest/72x72/';
 window.BKK.interestIconPaths = {
-  'i_all_restaurants':         'interest-icons/i_all_restaurants.png',
-  'i_architecture_and_museums':'interest-icons/i_architecture_and_museums.png',
-  'i_asian_food':              'interest-icons/i_asian_food.png',
-  'i_brunch_coffee':           'interest-icons/i_brunch_coffee.png',
-  'i_cat_dog_coffee':          'interest-icons/i_cat_dog_coffee.png',
-  'i_churches':                'interest-icons/i_churches.png',
-  'i_coffee':                  'interest-icons/i_coffee.png',
-  'i_crafts':                  'interest-icons/i_crafts.png',
-  'i_day_markets':             'interest-icons/i_day_markets.png',
-  'i_day_street':              'interest-icons/i_day_street.png',
-  'i_entertainment':           'interest-icons/i_entertainment.png',
-  'i_fountain_and_statues':    'interest-icons/i_fountain_and_statues.png',
-  'i_galleries':               'interest-icons/i_galleries.png',
-  'i_kids':                    'interest-icons/i_kids.png',
-  'i_mediterranean_food':      'interest-icons/i_mediterranean_food.png',
-  'i_mosque':                  'interest-icons/i_mosque.png',
-  'i_nature':                  'interest-icons/i_nature.png',
-  'i_night_markets':           'interest-icons/i_night_markets.png',
-  'i_night_street':            'interest-icons/i_night_street.png',
-  'i_nightlife':               'interest-icons/i_nightlife.png',
-  'i_parks_and_gardens':       'interest-icons/i_parks_and_gardens.png',
-  'i_places_with_water':       'interest-icons/i_places_with_water.png',
-  'i_shopping_malls':          'interest-icons/i_shopping_malls.png',
-  'i_specialty_stores':        'interest-icons/i_specialty_stores.png',
-  'i_street_art':              'interest-icons/i_street_art.png',
-  'i_street_food_day':         'interest-icons/i_street_food_day.png',
-  'i_street_food_night':       'interest-icons/i_street_food_night.png',
-  'i_sweets':                  'interest-icons/i_sweets.png',
-  'i_synagogue':               'interest-icons/i_synagogue.png',
-  'i_temples':                 'interest-icons/i_temples.png',
-  'i_tourist_attraction':      'interest-icons/i_tourist_attraction.png',
-  'i_vegetarian_food':         'interest-icons/i_vegetarian_food.png',
-  'i_vintage':                 'interest-icons/i_vintage.png',
-  'i_wine_rooftop_bar':        'interest-icons/i_wine_rooftop_bar.png',
+  'i_all_restaurants':          _tw+'1f37d.png',
+  'i_architecture_and_museums': _tw+'1f3db.png',
+  'i_asian_food':               _tw+'1f35c.png',
+  'i_brunch_coffee':            _tw+'1f950.png',
+  'i_cat_dog_coffee':           _tw+'1f431.png',
+  'i_churches':                 _tw+'26ea.png',
+  'i_coffee':                   _tw+'2615.png',
+  'i_crafts':                   _tw+'1f9f5.png',
+  'i_day_markets':              _tw+'1f9fa.png',
+  'i_day_street':               _tw+'1f6e3.png',
+  'i_entertainment':            _tw+'1f3ad.png',
+  'i_fountain_and_statues':     _tw+'26f2.png',
+  'i_galleries':                _tw+'1f5bc.png',
+  'i_kids':                     _tw+'1f3a1.png',
+  'i_mediterranean_food':       _tw+'1f959.png',
+  'i_mosque':                   _tw+'1f54c.png',
+  'i_nature':                   _tw+'1f33f.png',
+  'i_nightlife':                _tw+'1faa9.png',
+  'i_night_markets':            _tw+'1f3ee.png',
+  'i_night_street':             _tw+'1f303.png',
+  'i_parks_and_gardens':        _tw+'1f333.png',
+  'i_places_with_water':        _tw+'1f3d6.png',
+  'i_shopping_malls':           _tw+'1f3ea.png',
+  'i_specialty_stores':         _tw+'1f6cd.png',
+  'i_street_art':               _tw+'1f3a8.png',
+  'i_street_food_day':          _tw+'1f362.png',
+  'i_street_food_night':        _tw+'1f371.png',
+  'i_sweets':                   _tw+'1f9c1.png',
+  'i_synagogue':                _tw+'1f54d.png',
+  'i_temples':                  _tw+'1f6d5.png',
+  'i_tourist_attraction':       _tw+'1f4f8.png',
+  'i_vegetarian_food':          _tw+'1f957.png',
+  'i_vintage':                  _tw+'1f570.png',
+  'i_wine_rooftop_bar':         _tw+'1f377.png',
 };
 
 // ============================================================================
