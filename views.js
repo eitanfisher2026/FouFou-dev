@@ -4586,7 +4586,7 @@
                                   }}
                                   style={{ padding: '8px 4px', borderRadius: '10px', border: isOn ? `2px solid ${color}` : '1.5px solid #e5e7eb', background: isOn ? color + '18' : 'white', cursor: 'pointer', textAlign: 'center', opacity: isOn ? 1 : 0.45 }}>
                                   <div style={{ fontSize: '16px', marginBottom: '2px', lineHeight: 1 }}>
-                                    {renderIcon(iconRaw, '20px')}
+                                    {(() => { const lp = window.BKK.interestIconPaths?.[int.id]; return lp ? <img src={lp} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'inline' }} /> : renderIcon(iconRaw, '20px'); })()}
                                   </div>
                                   <div style={{ fontWeight: '700', fontSize: '9px', color: isOn ? color : '#374151', wordBreak: 'break-word', lineHeight: 1.2 }}>{tLabel(int)}</div>
                                 </button>
@@ -4603,7 +4603,7 @@
                               return (
                                 <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px' }}>
                                   <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, display: 'inline-block', border: '1px solid ' + color }}></span>
-                                  <span style={{ color: '#6b7280' }}>{renderIcon(int.icon, '14px')} {tLabel(int)}</span>
+                                  <span style={{ color: '#6b7280' }}>{tLabel(int)}</span>
                                 </div>
                               );
                             })}
@@ -4780,7 +4780,6 @@
                           return (
                             <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#374151', padding: '2px 7px', background: '#f8fafc', borderRadius: '20px', border: '1px solid #e5e7eb' }}>
                               <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }}></span>
-                              {renderIcon(iconRaw, '13px')}
                               <span style={{ fontWeight: '500' }}>{tLabel(int)}</span>
                             </div>
                           );
