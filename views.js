@@ -46,9 +46,9 @@
   const renderIcon = (icon, size = '14px') => {
     if (!icon) return null;
     const isImg = typeof icon === 'string' && (icon.startsWith('data:') || icon.startsWith('http') || icon.startsWith('interest-icons/'));
-    return isImg
-      ? <img src={icon} alt="" style={{ width: size, height: size, objectFit: 'contain', display: 'inline', verticalAlign: 'middle' }} />
-      : icon;
+    if (!isImg) return icon;
+    const src = icon.startsWith('interest-icons/') ? `${icon}?v=${window.BKK.VERSION}` : icon;
+    return <img src={src} alt="" style={{ width: size, height: size, objectFit: 'contain', display: 'inline', verticalAlign: 'middle' }} />;
   };
 
   // Shared import file parser — used from settings and favorites screen
