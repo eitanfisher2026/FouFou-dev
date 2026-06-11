@@ -1007,52 +1007,35 @@
                   </div>
                   <div style={{ overflow: 'hidden' }}>
                     <label className="block text-xs font-bold mb-1">{t("general.icon")}</label>
-                    {newInterest.icon && newInterest.icon.startsWith('data:') ? (
-                      <div className="relative">
-                        <img src={newInterest.icon} alt="icon" className="w-full h-10 object-contain rounded-lg border-2 border-gray-300 bg-white" />
-                        <button
-                          onClick={() => setNewInterest({...newInterest, icon: '📍'})}
-                          className="absolute -top-1 -right-1 bg-gray-600 text-white rounded-full w-3.5 h-3.5 text-[8px] font-bold flex items-center justify-center leading-none"
-                        >✕</button>
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        value={newInterest.icon}
-                        onChange={(e) => {
-                          const firstEmoji = [...e.target.value][0] || '';
-                          setNewInterest({...newInterest, icon: firstEmoji});
-                        }}
-                        placeholder="📍"
-                        className="w-full p-2 text-xl border-2 border-gray-300 rounded-lg text-center"
-                        
-                      />
-                    )}
-                    {isEditor && (
-                      <label className="block w-full mt-1 p-1 border border-dashed border-gray-300 rounded text-center cursor-pointer hover:bg-gray-50 text-[9px] text-gray-500">
-                        📁 File
+                    {(() => {
+                      const twemojiUrl = window.BKK.interestIconPaths?.[newInterest.id];
+                      if (twemojiUrl) {
+                        return <img src={twemojiUrl} alt="icon" style={{ width: '48px', height: '48px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />;
+                      }
+                      if (newInterest.icon && newInterest.icon.startsWith('data:')) {
+                        return (
+                          <div className="relative">
+                            <img src={newInterest.icon} alt="icon" className="w-full h-10 object-contain rounded-lg border-2 border-gray-300 bg-white" />
+                            <button
+                              onClick={() => setNewInterest({...newInterest, icon: '📍'})}
+                              className="absolute -top-1 -right-1 bg-gray-600 text-white rounded-full w-3.5 h-3.5 text-[8px] font-bold flex items-center justify-center leading-none"
+                            >✕</button>
+                          </div>
+                        );
+                      }
+                      return (
                         <input
-                          type="file"
-                          accept="image/*"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const compressed = await window.BKK.compressIcon(file, 128, 40);
-                              if (compressed) {
-                                setNewInterest({...newInterest, icon: compressed});
-                              }
-                            }
+                          type="text"
+                          value={newInterest.icon}
+                          onChange={(e) => {
+                            const firstEmoji = [...e.target.value][0] || '';
+                            setNewInterest({...newInterest, icon: firstEmoji});
                           }}
-                          className="hidden"
+                          placeholder="📍"
+                          className="w-full p-2 text-xl border-2 border-gray-300 rounded-lg text-center"
                         />
-                      </label>
-                    )}
-                    {isEditor && (
-                      <button
-                        onClick={() => setIconPickerConfig({ description: newInterest.label || '', callback: (emoji) => setNewInterest(prev => ({...prev, icon: emoji})), suggestions: [], loading: false })}
-                        className="block w-full mt-1 p-1 border border-dashed border-orange-300 rounded text-center cursor-pointer hover:bg-orange-50 text-[9px] text-orange-600 font-bold"
-                      >✨ {t('emoji.suggest')}</button>
-                    )}
+                      );
+                    })()}
                   </div>
                 </div>
                 {/* Color override for map markers + delete — admin/editor only */}
@@ -1505,9 +1488,16 @@
                     </div>
                   );
                 })()}
-                {/* Creator info footer (v3.23.8) — shown when addedBy is present */}
-                {editingCustomInterest && isUnlocked && editingCustomInterest.addedBy && (
+                {/* ID + Creator info footer */}
+                {editingCustomInterest && isUnlocked && (
                   <div style={{ padding: '6px 14px', fontSize: '10px', color: '#9ca3af', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontFamily: 'monospace', color: '#6b7280' }}>🔑 {editingCustomInterest.id}</span>
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(editingCustomInterest.id); showToast('✅ ID copied', 'success'); }}
+                        style={{ fontSize: '9px', padding: '1px 6px', borderRadius: '4px', border: '1px solid #d1d5db', background: '#f9fafb', cursor: 'pointer', color: '#6b7280', flexShrink: 0 }}
+                      >Copy</button>
+                    </div>
                     {editingCustomInterest.addedByName && (
                       <div>👤 {t('interests.addedBy')} {editingCustomInterest.addedByName}</div>
                     )}
