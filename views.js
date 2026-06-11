@@ -3087,7 +3087,7 @@
                     {/* Color bar */}
                     <div style={{ width: '4px', alignSelf: 'stretch', borderRadius: '2px', background: effectiveActive ? interestColor : '#d1d5db', flexShrink: 0 }}></div>
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-lg flex-shrink-0">{renderIcon(interest.icon || '', '20px')}</span>
+                      <span className="text-lg flex-shrink-0">{(() => { const lp = window.BKK.interestIconPaths?.[interest.id]; return lp ? <img src={lp} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'inline' }} /> : renderIcon(interest.icon || '', '20px'); })()}</span>
                       <span className={`font-medium text-sm truncate ${isDraft ? 'text-amber-700' : !effectiveActive ? 'text-gray-500' : ''}`}>{tLabel(interest)}</span>
                       {isDraft && <span title={t('interests.draftStatus')} style={{ fontSize: '11px', flexShrink: 0 }}>✏️</span>}
                       {favCount > 0 && <span style={{ fontSize: '10px', color: '#9ca3af', flexShrink: 0 }}>({favCount})</span>}
@@ -3684,7 +3684,7 @@
             {/* ===== INTERESTS TAB ===== */}
             {settingsTab === 'interests' && (() => {
                             const renderInterestSettingsRow = (i, allCities, getAStatus, openFn) => {
-                const icon = renderIcon(i.icon || '📍', '20px');
+                const iconEl = (() => { const lp = window.BKK.interestIconPaths?.[i.id]; return lp ? <img src={lp} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'inline' }} /> : renderIcon(i.icon || '📍', '20px'); })();
                 const isDraft = getAStatus(i) === 'draft';
                 const isHidden = getAStatus(i) === 'hidden';
                 const visibleCities = allCities.filter(city => !(cityHiddenInterests[city.id] || new Set()).has(i.id));
@@ -3692,7 +3692,7 @@
                 const cityLabel = allVisible ? '🌍' : `🏙️ ${visibleCities.length}/${allCities.length}`;
                 return (
                   <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', borderRadius: '8px', border: '1px solid', borderColor: isHidden ? '#fca5a5' : isDraft ? '#fde68a' : '#e5e7eb', background: isHidden ? '#fef2f2' : isDraft ? '#fffbeb' : 'white', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', marginBottom: '3px' }}>
-                    <span style={{ flexShrink: 0 }}>{renderIcon(icon, '20px')}</span>
+                    <span style={{ flexShrink: 0 }}>{iconEl}</span>
                     <span style={{ flex: 1, fontSize: '13px', fontWeight: '600', color: isHidden ? '#ef4444' : 'inherit' }}>{tLabel(i) || i.label}</span>
                     {interestConfig[i.id]?.noGoogleSearch && <span style={{ fontSize: '9px', background: '#f3f4f6', color: '#6b7280', padding: '1px 4px', borderRadius: '3px', flexShrink: 0 }}>{t('interests.internalBadge')}</span>}
                     {isDraft && <span style={{ fontSize: '9px', background: '#fef3c7', color: '#92400e', padding: '1px 4px', borderRadius: '3px' }}>{t('places.draft')}</span>}
