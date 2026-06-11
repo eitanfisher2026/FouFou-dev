@@ -265,7 +265,7 @@ const QuickAddPlaceDialog = ({
                       onClick={() => handleInterestToggle(option.id)}
                       className={`p-1.5 rounded-lg text-[10px] font-bold transition-all ${sel ? "bg-green-500 text-white shadow-md" : "bg-white border border-gray-300"}`}>
                       <span className="text-lg block">
-                        {option.icon?.startsWith?.("data:") ? <img src={option.icon} alt="" className="w-5 h-5 object-contain mx-auto" /> : option.icon}
+                        {(() => { const lp = window.BKK.interestIconPaths?.[option.id]; return lp ? <img src={lp} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'block', margin: '0 auto' }} /> : (option.icon?.startsWith?.("data:") ? <img src={option.icon} alt="" className="w-5 h-5 object-contain mx-auto" /> : option.icon); })()}
                       </span>
                       <span className="text-[7px] block truncate leading-tight mt-0.5">{tLabel(option)}</span>
                     </button>
@@ -281,7 +281,7 @@ const QuickAddPlaceDialog = ({
                       onClick={() => handleInterestToggle(option.id)}
                       className={`p-1.5 rounded-lg text-[10px] font-bold transition-all ${sel ? "bg-purple-500 text-white shadow-md" : "bg-white border border-gray-300"}`}>
                       <span className="text-lg block">
-                        {option.icon?.startsWith?.("data:") ? <img src={option.icon} alt="" className="w-5 h-5 object-contain mx-auto" /> : option.icon}
+                        {(() => { const lp = window.BKK.interestIconPaths?.[option.id]; return lp ? <img src={lp} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'block', margin: '0 auto' }} /> : (option.icon?.startsWith?.("data:") ? <img src={option.icon} alt="" className="w-5 h-5 object-contain mx-auto" /> : option.icon); })()}
                       </span>
                       <span className="text-[7px] block truncate leading-tight mt-0.5">{tLabel(option)}</span>
                     </button>

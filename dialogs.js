@@ -459,7 +459,7 @@
                         }`}
                         title={tLabel(option)}
                       >
-                        <span className="text-2xl block" style={{ lineHeight: 1.2 }}>{option.icon?.startsWith?.('data:') ? <img src={option.icon} alt="" className="w-7 h-7 object-contain mx-auto" /> : option.icon}</span>
+                        <span className="text-2xl block" style={{ lineHeight: 1.2 }}>{(() => { const lp = window.BKK.interestIconPaths?.[option.id]; return lp ? <img src={lp} alt="" style={{ width: '28px', height: '28px', objectFit: 'contain', display: 'block', margin: '0 auto' }} /> : (option.icon?.startsWith?.('data:') ? <img src={option.icon} alt="" className="w-7 h-7 object-contain mx-auto" /> : option.icon); })()}</span>
                         <span className="text-[8px] block truncate leading-tight mt-0.5">{tLabel(option)}</span>
                       </button>
                     ))}
