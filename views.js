@@ -3712,7 +3712,7 @@
                   </div>
                 );
               };
-              const allCities = Object.values(window.BKK.cities || {});
+              const allCities = Object.values(window.BKK.cityRegistry || {}).filter(r => r && r.id);
               // Collect interests from ALL cities + customInterests — no city filter
               const seenIds = new Set();
               const allCityInterestIds = allCities.flatMap(c => (c.interests || []).map(i => i.id));
