@@ -47,6 +47,7 @@ window.BKK.interestIconPaths = {
   'i_sports_stadiums':          _tw+'26bd.png',
   'i_scenic_viewpoints':        _tw+'1f52d.png',
   'i_spa_wellness':             _tw+'1f9d8.png',
+  'i_cooking_food_tours':       _tw+'1f9d1-200d-1f373.png',
 };
 
 // ============================================================================

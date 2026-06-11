@@ -41,6 +41,7 @@ const mapping = {
   'i_sports_stadiums':          '⚽',
   'i_scenic_viewpoints':        '🔭',
   'i_spa_wellness':             '🧘',
+  'i_cooking_food_tours':       '🧑‍🍳',
 };
 
 function emojiToCp(emoji, keepFe0f = false) {
