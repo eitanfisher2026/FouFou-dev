@@ -1,4 +1,4 @@
-// FouFou app-data.js v4.0.4
+// FouFou app-data.js v4.0.5
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -2625,7 +2625,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '4.0.4';
+window.BKK.VERSION = '4.0.5';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -2964,10 +2964,11 @@ window.BKK.interestIconPaths = {
   'i_sweets':                   _tw+'1f9c1.png',
   'i_synagogue':                _tw+'1f54d.png',
   'i_temples':                  _tw+'1f6d5.png',
-  'i_tourist_attraction':       _tw+'1f4f8.png',
   'i_vegetarian_food':          _tw+'1f957.png',
   'i_vintage':                  _tw+'1f570.png',
-  'i_wine_rooftop_bar':         _tw+'1f377.png',
+  'i_wine_cocktail_bars':       _tw+'1f377.png',
+  'i_wine_rooftop_bar':         _tw+'1f942.png',
+  'i_craft_beer_pubs':          _tw+'1f37a.png',
   'i_sports_stadiums':          _tw+'26bd.png',
   'i_scenic_viewpoints':        _tw+'1f52d.png',
   'i_spa_wellness':             _tw+'1f9d8.png',

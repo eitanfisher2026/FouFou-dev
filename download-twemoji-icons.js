@@ -33,10 +33,14 @@ const mapping = {
   'i_sweets':                   '🧁',
   'i_synagogue':                '🕍',
   'i_temples':                  '🛕',
-  'i_tourist_attraction':       '📸',
   'i_vegetarian_food':          '🥗',
   'i_vintage':                  '🕰️',
-  'i_wine_rooftop_bar':         '🍷',
+  'i_wine_cocktail_bars':       '🍷',
+  'i_wine_rooftop_bar':         '🥂',
+  'i_craft_beer_pubs':          '🍺',
+  'i_sports_stadiums':          '⚽',
+  'i_scenic_viewpoints':        '🔭',
+  'i_spa_wellness':             '🧘',
 };
 
 function emojiToCp(emoji, keepFe0f = false) {
