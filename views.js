@@ -3548,39 +3548,7 @@
             </div>
             )}
             
-            {/* Interest ID Migration — admin only */}
-            {isCurrentUserAdmin && (
-            <div className="mb-4">
-              <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-400 rounded-xl p-3" style={{ direction: 'ltr', textAlign: 'left' }}>
-                <h3 className="text-base font-bold text-gray-800 mb-1">🔀 Interest ID Migration</h3>
-                <p className="text-xs text-gray-600 mb-2">
-                  Fixes places whose interests array still uses old IDs (i_street_art, i_wine_rooftop_bar, i_places_with_water, i_crafts). Run dry-run first to preview, then Apply.
-                </p>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                  <button
-                    onClick={() => runInterestIdMigration(false)}
-                    style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: '#f59e0b', color: 'white', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}
-                  >🔍 Dry-run</button>
-                  <button
-                    onClick={() => { if (interestIdMigration && !interestIdMigration.applied) runInterestIdMigration(true); }}
-                    disabled={!interestIdMigration || interestIdMigration.applied}
-                    style={{ flex: 1, padding: '8px', borderRadius: '8px', border: 'none', background: (!interestIdMigration || interestIdMigration.applied) ? '#d1d5db' : '#ef4444', color: 'white', fontWeight: 'bold', fontSize: '12px', cursor: (!interestIdMigration || interestIdMigration.applied) ? 'default' : 'pointer' }}
-                  >⚡ Apply</button>
-                  {interestIdMigration && <button
-                    onClick={() => setInterestIdMigration(null)}
-                    style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', background: 'white', fontSize: '12px', cursor: 'pointer' }}
-                  >✕</button>}
-                </div>
-                {interestIdMigration && (
-                  <div style={{ background: '#1f2937', borderRadius: '6px', padding: '8px', maxHeight: '160px', overflowY: 'auto', fontFamily: 'monospace', fontSize: '11px', color: '#d1fae5', lineHeight: 1.6 }}>
-                    {interestIdMigration.log.map((line, i) => <div key={i}>{line}</div>)}
-                  </div>
-                )}
-              </div>
-            </div>
-            )}
-
-            <div className="mb-4">
+<div className="mb-4">
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-400 rounded-xl p-3">
                 <h3 className="text-base font-bold text-gray-800 mb-1">{t("general.importExport")}</h3>
                 <p className="text-xs text-gray-600 mb-2">

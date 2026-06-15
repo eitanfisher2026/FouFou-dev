@@ -1835,7 +1835,6 @@
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [ratingsRefreshProgress, setRatingsRefreshProgress] = useState(null); // { current, total, updated }
   const [refreshScope, setRefreshScope] = useState('all'); // 'all' or a specific cityId
-  const [interestIdMigration, setInterestIdMigration] = useState(null); // null | { log: [], applied: bool }
   // v3.23.41: persisted metadata about the last Google data refresh run
   const [googleDataRefreshMeta, setGoogleDataRefreshMeta] = useState(null); // { lastRunAt, lastRunStats }
   const [isDataLoaded, setIsDataLoaded] = useState(false); // Tracks initial Firebase/localStorage load
@@ -5343,40 +5342,6 @@
       console.error('[RATING] Single refresh error:', e.message);
       showToast(t('toast.updateError') || 'שגיאה', 'error');
     }
-  };
-
-  const runInterestIdMigration = async (apply) => {
-    if (!isFirebaseAvailable || !database) return;
-    const RENAMES = {
-      'i_street_art':        'i_street_art_murals',
-      'i_places_with_water': 'i_beaches_waterfront',
-      'i_wine_rooftop_bar':  'i_rooftop',
-      'i_crafts':            'i_crafts_artisans',
-    };
-    const cities = Object.values(window.BKK.cityRegistry || {}).filter(r => r && r.id).map(r => r.id);
-    const log = [];
-    let totalChanged = 0;
-    for (const cityId of cities) {
-      const snap = await database.ref(`cities/${cityId}/locations`).once('value');
-      const locs = snap.val();
-      if (!locs) continue;
-      for (const [locId, loc] of Object.entries(locs)) {
-        if (!loc || !Array.isArray(loc.interests) || loc.interests.length === 0) continue;
-        const oldIds = loc.interests;
-        const newIds = oldIds.map(id => RENAMES[id] || id);
-        if (!newIds.some((id, i) => id !== oldIds[i])) continue;
-        const diffs = oldIds.filter((id, i) => newIds[i] !== id).map(id => `${id} → ${RENAMES[id]}`).join(', ');
-        log.push(`${cityId} / ${loc.name || locId}: ${diffs}`);
-        totalChanged++;
-        if (apply) {
-          await database.ref(`cities/${cityId}/locations/${locId}/interests`).set(newIds);
-        }
-      }
-    }
-    if (totalChanged === 0) log.push('✅ No old IDs found — nothing to migrate.');
-    else if (apply) log.push(`✅ Done — ${totalChanged} place(s) updated.`);
-    else log.push(`ℹ️ ${totalChanged} place(s) would be updated. Click Apply to commit.`);
-    setInterestIdMigration({ log, applied: apply });
   };
 
   const refreshAllGoogleRatings = async (scopeCityId) => {
