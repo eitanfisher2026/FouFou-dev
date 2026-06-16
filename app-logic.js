@@ -387,24 +387,6 @@
   const [waitingForGps, setWaitingForGps] = useState(false); // true while "open in Google Maps" is waiting on GPS
   const [gpsRefreshStatus, setGpsRefreshStatus] = useState(null); // null | 'loading' | 'ok' | 'error'
 
-  // Auto-fetch GPS when Trail Anywhere is active and location is missing/stale
-  React.useEffect(() => {
-    if (!isTrailAnywhere) return;
-    const gpsStale = !formData.currentLat || (Date.now() - (formData.gpsTimestamp || 0) > 5 * 60 * 1000);
-    if (!gpsStale) return;
-    if (typeof window.BKK.getUserGPS !== 'function') return;
-    setGpsRefreshStatus('loading');
-    window.BKK.getUserGPS(window.BKK.systemParams?.gpsTimeoutMs || 8000)
-      .then(pos => {
-        setGpsRefreshStatus(pos ? 'ok' : null);
-        if (pos) {
-          setFormData(prev => ({ ...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, gpsTimestamp: Date.now(), radiusPlaceName: 'My location' }));
-          setTimeout(() => setGpsRefreshStatus(null), 3000);
-        }
-      })
-      .catch(() => setGpsRefreshStatus(null));
-  }, [isTrailAnywhere]);
-
   // Proactive GPS prefetch: when the user reaches wizard step 3 (the route preview
   // screen where "Open in Google Maps" lives), kick off a background GPS fetch if
   // we don't already have one cached. This fills `window.BKK.lastKnownGPS` while
