@@ -380,6 +380,13 @@
     if (val) setFormData(prev => ({ ...prev, searchMode: 'radius', radiusSource: 'gps', area: null }));
   };
 
+  const [formData, setFormData] = useState(loadPreferences());
+  const [route, setRoute] = useState(null);
+  const [routeListKey, setRouteListKey] = useState(0); // incremented to force re-render of route stop list after favorites change
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [waitingForGps, setWaitingForGps] = useState(false); // true while "open in Google Maps" is waiting on GPS
+  const [gpsRefreshStatus, setGpsRefreshStatus] = useState(null); // null | 'loading' | 'ok' | 'error'
+
   // Auto-fetch GPS when Trail Anywhere is active and location is missing/stale
   React.useEffect(() => {
     if (!isTrailAnywhere) return;
@@ -391,18 +398,12 @@
       .then(pos => {
         setGpsRefreshStatus(pos ? 'ok' : null);
         if (pos) {
-          setFormData(prev => ({ ...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, gpsTimestamp: Date.now(), radiusPlaceName: prev.currentLang === 'he' ? 'המיקום שלי' : 'My location' }));
+          setFormData(prev => ({ ...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, gpsTimestamp: Date.now(), radiusPlaceName: 'My location' }));
           setTimeout(() => setGpsRefreshStatus(null), 3000);
         }
       })
       .catch(() => setGpsRefreshStatus(null));
   }, [isTrailAnywhere]);
-  const [formData, setFormData] = useState(loadPreferences());
-  const [route, setRoute] = useState(null);
-  const [routeListKey, setRouteListKey] = useState(0); // incremented to force re-render of route stop list after favorites change
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [waitingForGps, setWaitingForGps] = useState(false); // true while "open in Google Maps" is waiting on GPS
-  const [gpsRefreshStatus, setGpsRefreshStatus] = useState(null); // null | 'loading' | 'ok' | 'error'
 
   // Proactive GPS prefetch: when the user reaches wizard step 3 (the route preview
   // screen where "Open in Google Maps" lives), kick off a background GPS fetch if
