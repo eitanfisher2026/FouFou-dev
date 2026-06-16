@@ -45,10 +45,16 @@
 
   const renderIcon = (icon, size = '14px') => {
     if (!icon) return null;
-    const isImg = typeof icon === 'string' && (icon.startsWith('data:') || icon.startsWith('http') || icon.startsWith('interest-icons/'));
-    if (!isImg) return icon;
-    const src = icon.startsWith('interest-icons/') ? `${icon}?v=${window.BKK.VERSION}` : icon;
-    return <img src={src} alt="" style={{ width: size, height: size, objectFit: 'contain', display: 'inline', verticalAlign: 'middle' }} />;
+    if (icon.startsWith('data:') || icon.startsWith('http') || icon.startsWith('interest-icons/')) {
+      const src = icon.startsWith('interest-icons/') ? `${icon}?v=${window.BKK.VERSION}` : icon;
+      return <img src={src} alt="" style={{ width: size, height: size, objectFit: 'contain', display: 'inline', verticalAlign: 'middle' }} />;
+    }
+    const cp = [...icon][0]?.codePointAt(0);
+    if (cp && cp > 127) {
+      const src = `https://twemoji.maxcdn.com/v/latest/72x72/${cp.toString(16)}.png`;
+      return <img src={src} alt="" style={{ width: size, height: size, objectFit: 'contain', display: 'inline', verticalAlign: 'middle' }} />;
+    }
+    return icon;
   };
 
   // Shared import file parser — used from settings and favorites screen

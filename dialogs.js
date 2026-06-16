@@ -459,7 +459,7 @@
                         }`}
                         title={tLabel(option)}
                       >
-                        <span className="text-2xl block" style={{ lineHeight: 1.2 }}>{(option.icon?.startsWith?.('http') || option.icon?.startsWith?.('data:')) ? <img src={option.icon} alt="" style={{ width: '28px', height: '28px', objectFit: 'contain', display: 'block', margin: '0 auto' }} /> : option.icon}</span>
+                        <span className="text-2xl block" style={{ lineHeight: 1.2 }}>{(() => { const ic = option.icon; if (!ic) return '📍'; if (ic.startsWith('http') || ic.startsWith('data:')) return <img src={ic} alt="" style={{ width: '28px', height: '28px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />; const cp = [...ic][0]?.codePointAt(0); if (cp && cp > 127) return <img src={`https://twemoji.maxcdn.com/v/latest/72x72/${cp.toString(16)}.png`} alt="" style={{ width: '28px', height: '28px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />; return ic; })()}</span>
                         <span className="text-[8px] block truncate leading-tight mt-0.5">{tLabel(option)}</span>
                       </button>
                     ))}
@@ -1011,6 +1011,10 @@
                       const iconVal = newInterest.icon;
                       if (iconVal && (iconVal.startsWith('http') || iconVal.startsWith('data:'))) {
                         return <img src={iconVal} alt="icon" style={{ width: '48px', height: '48px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />;
+                      }
+                      const cp = iconVal ? [...iconVal][0]?.codePointAt(0) : null;
+                      if (cp && cp > 127) {
+                        return <img src={`https://twemoji.maxcdn.com/v/latest/72x72/${cp.toString(16)}.png`} alt="icon" style={{ width: '48px', height: '48px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />;
                       }
                       return (
                         <input
