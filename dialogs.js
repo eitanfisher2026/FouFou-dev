@@ -459,7 +459,7 @@
                         }`}
                         title={tLabel(option)}
                       >
-                        <span className="text-2xl block" style={{ lineHeight: 1.2 }}>{(() => { const lp = window.BKK.interestIconPaths?.[option.id]; return lp ? <img src={lp} alt="" style={{ width: '28px', height: '28px', objectFit: 'contain', display: 'block', margin: '0 auto' }} /> : (option.icon?.startsWith?.('data:') ? <img src={option.icon} alt="" className="w-7 h-7 object-contain mx-auto" /> : option.icon); })()}</span>
+                        <span className="text-2xl block" style={{ lineHeight: 1.2 }}>{(option.icon?.startsWith?.('http') || option.icon?.startsWith?.('data:')) ? <img src={option.icon} alt="" style={{ width: '28px', height: '28px', objectFit: 'contain', display: 'block', margin: '0 auto' }} /> : option.icon}</span>
                         <span className="text-[8px] block truncate leading-tight mt-0.5">{tLabel(option)}</span>
                       </button>
                     ))}
@@ -1008,25 +1008,14 @@
                   <div style={{ overflow: 'hidden' }}>
                     <label className="block text-xs font-bold mb-1">{t("general.icon")}</label>
                     {(() => {
-                      const twemojiUrl = window.BKK.interestIconPaths?.[newInterest.id];
-                      if (twemojiUrl) {
-                        return <img src={twemojiUrl} alt="icon" style={{ width: '48px', height: '48px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />;
-                      }
-                      if (newInterest.icon && newInterest.icon.startsWith('data:')) {
-                        return (
-                          <div className="relative">
-                            <img src={newInterest.icon} alt="icon" className="w-full h-10 object-contain rounded-lg border-2 border-gray-300 bg-white" />
-                            <button
-                              onClick={() => setNewInterest({...newInterest, icon: '📍'})}
-                              className="absolute -top-1 -right-1 bg-gray-600 text-white rounded-full w-3.5 h-3.5 text-[8px] font-bold flex items-center justify-center leading-none"
-                            >✕</button>
-                          </div>
-                        );
+                      const iconVal = newInterest.icon;
+                      if (iconVal && (iconVal.startsWith('http') || iconVal.startsWith('data:'))) {
+                        return <img src={iconVal} alt="icon" style={{ width: '48px', height: '48px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />;
                       }
                       return (
                         <input
                           type="text"
-                          value={newInterest.icon}
+                          value={iconVal}
                           onChange={(e) => {
                             const firstEmoji = [...e.target.value][0] || '';
                             setNewInterest({...newInterest, icon: firstEmoji});

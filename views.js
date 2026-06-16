@@ -523,7 +523,7 @@
                         return (
                           <div key={int.id} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: '#4b5563' }}>
                             <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }}></span>
-                            {(() => { const lp = window.BKK.interestIconPaths?.[int.id]; return lp ? <img src={lp} alt="" style={{ width: '12px', height: '12px', objectFit: 'contain', display: 'inline' }} /> : renderIcon(iconRaw, '12px'); })()}
+                            {renderIcon(iconRaw, '12px')}
                             <span>{tLabel(int)}</span>
                           </div>
                         );
@@ -1356,7 +1356,7 @@
                               }}
                             >
                               {isDraft && <span style={{ position: 'absolute', top: '2px', right: '4px', fontSize: '8px' }}>🟡</span>}
-                              <div style={{ marginBottom: '4px' }}>{(() => { const lp = window.BKK.interestIconPaths?.[option.id]; return lp ? <img src={lp} alt="" style={{ width: '52px', height: '52px', objectFit: 'contain', display: 'inline' }} /> : renderIcon(option.icon, '52px') || <span style={{ fontSize: '28px', lineHeight: 1 }}>{option.icon}</span>; })()}</div>
+                              <div style={{ marginBottom: '4px' }}>{renderIcon(option.icon, '52px') || <span style={{ fontSize: '28px', lineHeight: 1 }}>{option.icon}</span>}</div>
                               <div style={{ fontWeight: '700', fontSize: '11px', color: isSelected ? '#1e40af' : '#374151', wordBreak: 'break-word' }}>{tLabel(option)}</div>
                             </button>
                           );
@@ -1745,7 +1745,7 @@
                           {/* Interest header with fetch-more button */}
                           <div className="flex items-center justify-between mb-1.5">
                             <div className="font-bold text-xs text-gray-700 flex items-center gap-1">
-                              <span style={{ fontSize: '14px' }}>{(() => { const lp = window.BKK.interestIconPaths?.[interest]; return lp ? <img src={lp} alt="" style={{ width: '16px', height: '16px', objectFit: 'contain', display: 'inline' }} /> : renderIcon(interestObj.icon || '', '16px'); })()}</span>
+                              <span style={{ fontSize: '14px' }}>{renderIcon(interestObj.icon || '', '16px')}</span>
                               <span>{tLabel(interestObj)} ({filteredStops.length})</span>
                             </div>
                             {!isManualGroup && (
@@ -2426,7 +2426,7 @@
                           const interest = interestMap[intId];
                           return interest ? (
                             <span key={intId} className="bg-green-600 text-white text-xs px-2 py-1 rounded-full">
-                              {(() => { const lp = window.BKK.interestIconPaths?.[intId]; return lp ? <img src={lp} alt="" style={{ width: '14px', height: '14px', objectFit: 'contain', display: 'inline', verticalAlign: 'middle' }} /> : renderIcon(interest.icon || '', '14px'); })()} {tLabel(interest)}
+                              {renderIcon(interest.icon || '', '14px')} {tLabel(interest)}
                             </span>
                           ) : null;
                         })}
@@ -3087,7 +3087,7 @@
                     {/* Color bar */}
                     <div style={{ width: '4px', alignSelf: 'stretch', borderRadius: '2px', background: effectiveActive ? interestColor : '#d1d5db', flexShrink: 0 }}></div>
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-lg flex-shrink-0">{(() => { const lp = window.BKK.interestIconPaths?.[interest.id]; return lp ? <img src={lp} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'inline' }} /> : renderIcon(interest.icon || '', '20px'); })()}</span>
+                      <span className="text-lg flex-shrink-0">{renderIcon(interest.icon || '', '20px')}</span>
                       <span className={`font-medium text-sm truncate ${isDraft ? 'text-amber-700' : !effectiveActive ? 'text-gray-500' : ''}`}>{tLabel(interest)}</span>
                       {isDraft && <span title={t('interests.draftStatus')} style={{ fontSize: '11px', flexShrink: 0 }}>✏️</span>}
                       {favCount > 0 && <span style={{ fontSize: '10px', color: '#9ca3af', flexShrink: 0 }}>({favCount})</span>}
@@ -3684,7 +3684,7 @@
             {/* ===== INTERESTS TAB ===== */}
             {settingsTab === 'interests' && (() => {
                             const renderInterestSettingsRow = (i, allCities, getAStatus, openFn) => {
-                const iconEl = (() => { const lp = window.BKK.interestIconPaths?.[i.id]; return lp ? <img src={lp} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'inline' }} /> : renderIcon(i.icon || '📍', '20px'); })();
+                const iconEl = renderIcon(i.icon || '📍', '20px');
                 const isDraft = getAStatus(i) === 'draft';
                 const isHidden = getAStatus(i) === 'hidden';
                 const visibleCities = allCities.filter(city => !(cityHiddenInterests[city.id] || new Set()).has(i.id));
@@ -4586,7 +4586,7 @@
                                   }}
                                   style={{ padding: '8px 4px', borderRadius: '10px', border: isOn ? `2px solid ${color}` : '1.5px solid #e5e7eb', background: isOn ? color + '18' : 'white', cursor: 'pointer', textAlign: 'center', opacity: isOn ? 1 : 0.45 }}>
                                   <div style={{ fontSize: '16px', marginBottom: '2px', lineHeight: 1 }}>
-                                    {(() => { const lp = window.BKK.interestIconPaths?.[int.id]; return lp ? <img src={lp} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'inline' }} /> : renderIcon(iconRaw, '20px'); })()}
+                                    {renderIcon(iconRaw, '20px')}
                                   </div>
                                   <div style={{ fontWeight: '700', fontSize: '9px', color: isOn ? color : '#374151', wordBreak: 'break-word', lineHeight: 1.2 }}>{tLabel(int)}</div>
                                 </button>
@@ -5180,7 +5180,7 @@
                 <div style={{ padding: '20px 20px 0 20px', flexShrink: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
-                      <span style={{ marginLeft: '6px' }}>{(() => { const lp = window.BKK.interestIconPaths?.[i.id]; return lp ? <img src={lp} alt="" style={{ width: '16px', height: '16px', objectFit: 'contain', display: 'inline', verticalAlign: 'middle' }} /> : (i.icon?.startsWith?.('data:') ? '' : (i.icon || '📍')); })()}</span>
+                      <span style={{ marginLeft: '6px' }}>{renderIcon(i.icon || '📍', '16px')}</span>
                       {tLabel(i) || i.label}
                     </div>
                     <button onClick={() => setCityVisibilityInterest(null)}
