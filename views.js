@@ -1184,7 +1184,13 @@
                               const radiusStop = buildRadiusStop(lat, lng, t('wizard.myLocation'), null);
                               generateRoute(radiusStop); setRouteChoiceMade(null); setWizardStep(3); window.scrollTo(0, 0);
                             },
-                            (reason) => { showToast(reason === 'outside_city' ? t('toast.outsideCity') : reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'), 'warning', 'sticky'); }
+                            (reason) => {
+                              const msg = isTrailAnywhere
+                                ? (reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'))
+                                : (reason === 'outside_city' ? t('toast.outsideCity') : reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'));
+                              showToast(msg, 'warning', 'sticky');
+                            },
+                            { skipCityCheck: isTrailAnywhere }
                           );
                         } else {
                           const radiusStop = (formData.searchMode === 'radius' && formData.currentLat)

@@ -379,6 +379,24 @@
     try { localStorage.setItem('foufou_mode', val ? 'anywhere' : 'cities'); } catch(e) {}
     if (val) setFormData(prev => ({ ...prev, searchMode: 'radius', radiusSource: 'gps', area: null }));
   };
+
+  // Auto-fetch GPS when Trail Anywhere is active and location is missing/stale
+  React.useEffect(() => {
+    if (!isTrailAnywhere) return;
+    const gpsStale = !formData.currentLat || (Date.now() - (formData.gpsTimestamp || 0) > 5 * 60 * 1000);
+    if (!gpsStale) return;
+    if (typeof window.BKK.getUserGPS !== 'function') return;
+    setGpsRefreshStatus('loading');
+    window.BKK.getUserGPS(window.BKK.systemParams?.gpsTimeoutMs || 8000)
+      .then(pos => {
+        setGpsRefreshStatus(pos ? 'ok' : null);
+        if (pos) {
+          setFormData(prev => ({ ...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, gpsTimestamp: Date.now(), radiusPlaceName: prev.currentLang === 'he' ? 'המיקום שלי' : 'My location' }));
+          setTimeout(() => setGpsRefreshStatus(null), 3000);
+        }
+      })
+      .catch(() => setGpsRefreshStatus(null));
+  }, [isTrailAnywhere]);
   const [formData, setFormData] = useState(loadPreferences());
   const [route, setRoute] = useState(null);
   const [routeListKey, setRouteListKey] = useState(0); // incremented to force re-render of route stop list after favorites change
