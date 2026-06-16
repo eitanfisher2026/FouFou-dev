@@ -1176,6 +1176,10 @@
                         // GPS mode: fetch fresh coords if missing or older than 5 minutes
                         const gpsStale = formData.radiusSource === 'gps' &&
                           (!formData.currentLat || (Date.now() - (formData.gpsTimestamp || 0) > 5 * 60 * 1000));
+                        const _updateBtn = currentLang === 'he' ? 'עדכן את המיקום שלי' : 'Update my location';
+                        const _noGpsMsg = currentLang === 'he'
+                          ? `לא ניתן לאתר מיקום — אנא לחץ על "${_updateBtn}" לפני החיפוש`
+                          : `Location not found — please tap "${_updateBtn}" before searching`;
                         if (formData.searchMode === 'radius' && gpsStale && navigator.geolocation) {
                           window.BKK.getValidatedGps(
                             (pos) => {
@@ -1185,14 +1189,16 @@
                               generateRoute(radiusStop); setRouteChoiceMade(null); setWizardStep(3); window.scrollTo(0, 0);
                             },
                             (reason) => {
-                              const msg = isTrailAnywhere
-                                ? (reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'))
-                                : (reason === 'outside_city' ? t('toast.outsideCity') : reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'));
+                              const msg = reason === 'denied' ? t('toast.locationNoPermission') : _noGpsMsg;
                               showToast(msg, 'warning', 'sticky');
                             },
                             { skipCityCheck: isTrailAnywhere }
                           );
                         } else {
+                          if (formData.searchMode === 'radius' && formData.radiusSource === 'gps' && !formData.currentLat) {
+                            showToast(_noGpsMsg, 'warning', 'sticky');
+                            return;
+                          }
                           const radiusStop = (formData.searchMode === 'radius' && formData.currentLat)
                             ? buildRadiusStop(formData.currentLat, formData.currentLng, formData.radiusPlaceName || t('wizard.myLocation'), formData.radiusPlaceId || null)
                             : null;
