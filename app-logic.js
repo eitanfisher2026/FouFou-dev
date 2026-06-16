@@ -4458,7 +4458,7 @@
   // happened with Turtle House (Nearby Search path missed businessStatus
   // in its field mask, so Google never returned the field, so the filter
   // had nothing to act on).
-  const PLACES_SEARCH_FIELDS = 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType,places.primaryTypeDisplayName,places.businessStatus,places.currentOpeningHours,places.googleMapsUri';
+  const PLACES_SEARCH_FIELDS = 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType,places.businessStatus,places.currentOpeningHours';
   const passesBusinessFilter = (place) => {
     const sp = window.BKK.systemParams || {};
     const bStatus = place.businessStatus || 'OPERATIONAL';
@@ -4548,7 +4548,7 @@
         const uniqueTextQueries = [...new Set(textQueries)];
         const uniqueBlacklist = [...new Set(blacklistWords)];
         const searchRadius = Math.max(radius, 50);
-        const fieldMask = PLACES_SEARCH_FIELDS;
+        const fieldMask = 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.googleMapsUri';
 
         const mapPlace = (p) => ({
           name: p.displayName?.text || '',
@@ -4668,6 +4668,15 @@
       const skipped = interests.filter(id => !isInterestValid(id));
       const skippedNames = skipped.map(id => allInterestOptions.find(o => o.id === id)).filter(Boolean).map(o => tLabel(o) || o?.id || id).join(', ');
       console.warn('[DYNAMIC] Skipped invalid interests:', skippedNames);
+    }
+
+    // Session cache: skip API call when same city+area+interest was fetched in this session (<30 min)
+    if (!window.BKK._placesCache) window.BKK._placesCache = {};
+    const _ck = `${selectedCityId}|${radiusOverride ? `r:${radiusOverride.lat.toFixed(4)},${radiusOverride.lng.toFixed(4)},${radiusOverride.radius}` : `a:${area}`}|${validInterests.join(',')}`;
+    const _hit = window.BKK._placesCache[_ck];
+    if (_hit && (Date.now() - _hit.ts < 30 * 60 * 1000)) {
+      console.log('[DYNAMIC] Cache hit:', _ck, '→', _hit.places.length, 'places');
+      return _hit.places;
     }
 
     try {
@@ -5261,6 +5270,7 @@
         },
       });
       
+      window.BKK._placesCache[_ck] = { places: ratingFiltered, ts: Date.now() };
       return ratingFiltered;
     } catch (error) {
       console.error('[DYNAMIC] Error fetching Google Places:', {
@@ -10154,7 +10164,7 @@
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-          'X-Goog-FieldMask': PLACES_SEARCH_FIELDS
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.businessStatus,places.currentOpeningHours'
         },
         body: JSON.stringify({ textQuery: searchQuery, maxResultCount: Math.min(window.BKK.systemParams?.pointSearchMaxGoogle || 10, 20), languageCode: 'en' })
       });
@@ -10215,7 +10225,7 @@
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-          'X-Goog-FieldMask': PLACES_SEARCH_FIELDS
+          'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.businessStatus,places.currentOpeningHours'
         },
         body: JSON.stringify({ textQuery: searchQuery, maxResultCount: Math.min(window.BKK.systemParams?.pointSearchMaxGoogle || 10, 20), languageCode: 'en' })
       });
