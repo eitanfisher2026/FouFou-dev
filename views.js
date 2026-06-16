@@ -1189,7 +1189,11 @@
                               generateRoute(radiusStop); setRouteChoiceMade(null); setWizardStep(3); window.scrollTo(0, 0);
                             },
                             (reason) => {
-                              const msg = reason === 'denied' ? t('toast.locationNoPermission') : _noGpsMsg;
+                              const msg = reason === 'denied'
+                                ? t('toast.locationNoPermission')
+                                : (reason === 'outside_city' && !isTrailAnywhere)
+                                  ? t('toast.outsideCity')
+                                  : _noGpsMsg;
                               showToast(msg, 'warning', 'sticky');
                             },
                             { skipCityCheck: isTrailAnywhere }
@@ -1198,6 +1202,14 @@
                           if (formData.searchMode === 'radius' && formData.radiusSource === 'gps' && !formData.currentLat) {
                             showToast(_noGpsMsg, 'warning', 'sticky');
                             return;
+                          }
+                          // City mode: even with "fresh" cached coords, re-validate they are within this city
+                          if (!isTrailAnywhere && formData.searchMode === 'radius' && formData.radiusSource === 'gps' && formData.currentLat) {
+                            const check = window.BKK.isGpsWithinCity(formData.currentLat, formData.currentLng);
+                            if (!check.withinCity) {
+                              showToast(t('toast.outsideCity'), 'warning', 'sticky');
+                              return;
+                            }
                           }
                           const radiusStop = (formData.searchMode === 'radius' && formData.currentLat)
                             ? buildRadiusStop(formData.currentLat, formData.currentLng, formData.radiusPlaceName || t('wizard.myLocation'), formData.radiusPlaceId || null)
