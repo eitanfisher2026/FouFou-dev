@@ -5597,17 +5597,24 @@
       window.removeEventListener('beforeunload', window.__beforeUnloadHandler);
     }
     const doReload = () => { window.location.reload(); };
-    // Keep SW active — its Network First strategy intercepts the reload and fetches
-    // fresh HTML from the server, bypassing the browser's HTTP cache (which GitHub Pages
-    // caches for ~10 min). Unregistering the SW first was the bug: without a SW, reload()
-    // served stale index.html from HTTP cache → old VERSION → update loop.
-    if ('caches' in window) {
-      caches.keys()
-        .then(names => Promise.all(names.map(name => caches.delete(name))))
-        .then(doReload)
-        .catch(doReload);
+    const clearAndReload = () => {
+      if ('caches' in window) {
+        caches.keys()
+          .then(names => Promise.all(names.map(name => caches.delete(name))))
+          .then(doReload)
+          .catch(doReload);
+      } else {
+        doReload();
+      }
+    };
+    // Unregister SW first — prevents old SW from re-activating and serving stale JS after reload
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations()
+        .then(registrations => Promise.all(registrations.map(r => r.unregister())))
+        .then(clearAndReload)
+        .catch(clearAndReload);
     } else {
-      doReload();
+      clearAndReload();
     }
   };
 
