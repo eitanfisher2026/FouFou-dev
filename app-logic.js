@@ -2038,6 +2038,10 @@
   // Lock/unlock a location
   const saveLocationLocked = (cityId, firebaseId, locked) => {
     if (!isFirebaseAvailable || !database) return;
+    // Without the live listener, this won't otherwise reflect locally
+    if (!useLiveLocations && cityId === selectedCityId) {
+      setCustomLocations(prev => prev.map(loc => loc.firebaseId === firebaseId ? { ...loc, locked } : loc));
+    }
     database.ref(`cities/${cityId}/locations/${firebaseId}/locked`).set(locked);
   };
 
@@ -2258,6 +2262,14 @@
   const [isPaused, setIsPaused] = useState(false);
   const [adminDefaultLang, setAdminDefaultLang] = useState(localStorage.getItem('foufou_admin_default_lang') || 'en');
   const [debugCacheToast, setDebugCacheToast] = useState(localStorage.getItem('foufou_debug_cache') === '1');
+  const [adminUseCache, setAdminUseCache] = useState(localStorage.getItem('foufou_admin_use_cache') === '1');
+  // True only when actually subscribed to the live locations listener. Editors/admins
+  // get this by default, but can opt into the same cached path as regular users via
+  // the "Use cache (admin)" toggle — useful while doing rapid city-switching (e.g.
+  // reviewing AI-generated batches) where the live listener's full 500KB-per-open cost
+  // adds up fast. Write paths use this to decide whether they need an optimistic local
+  // state update (no listener to refresh them) or can rely on the listener as before.
+  const useLiveLocations = isEditor && !adminUseCache;
 
   // Hint visit tracking
   const getHintVisits = (id) => parseInt(localStorage.getItem('foufou_hint_' + id) || '0');
@@ -2768,6 +2780,11 @@
             new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
           ]);
           synced++;
+          // Without the live listener, only the currently-displayed city's list needs
+          // a manual add — other cities' lists aren't loaded right now anyway.
+          if (!useLiveLocations && cityId === selectedCityId) {
+            setCustomLocations(prev => [...prev, { ...cleanLoc, firebaseId: ref.key, cityId }]);
+          }
           console.log('[SYNC] Synced pending location:', loc.name);
         } catch (e) {
           console.warn('[SYNC] Failed to sync location:', loc.name, e.message);
@@ -3536,8 +3553,8 @@
       const locationsRef = database.ref(`cities/${selectedCityId}/locations`);
       let onValue = null;
 
-      if (isEditor) {
-        // Editors/admins: live listener for real-time feedback while editing
+      if (useLiveLocations) {
+        // Editors/admins (unless they've opted into cache mode): live listener
         console.log('[DATA] Loading locations (live) for city:', selectedCityId);
         if (localStorage.getItem('foufou_debug_cache') === '1') showToast(`🔴 Live from Firebase (editor) — ${selectedCityId}`, 'info', 'sticky');
         let lastSnapshotTs = 0; // guard against double-fire within same 50ms window
@@ -3549,7 +3566,7 @@
           processLocationsSnapshot(snapshot.val());
         });
       } else {
-        // Regular users: tiny version check first, serve cache if unchanged
+        // Regular users, or admin in cache mode: tiny version check first, serve cache if unchanged
         console.log('[DATA] Loading locations (cached) for city:', selectedCityId);
         const cacheKey = `foufou_locations_cache_${selectedCityId}`;
         database.ref(`cityDataVersions/${selectedCityId}`).once('value')
@@ -3610,7 +3627,7 @@
       markLoaded('locations');
       return () => { cancelled = true; };
     }
-  }, [selectedCityId, isEditor]);
+  }, [selectedCityId, useLiveLocations]);
 
   // Load custom interests from Firebase
   const recentlyAddedRef = React.useRef(new Map()); // id → timestamp of recent local adds
@@ -8847,8 +8864,12 @@
       try {
         const ref = await database.ref(`cities/${selectedCityId}/locations`).push(enriched);
         saved = { ...enriched, firebaseId: ref.key };
-        // Don't do optimistic update here — Firebase listener will refresh the list
-        // (optimistic update + debounce caused duplicates to appear)
+        // Without the live listener (cache mode), nothing else will add this to
+        // customLocations — do it here. With the live listener, skip it: that path
+        // would double-add (listener fires too) — old bug this used to cause.
+        if (!useLiveLocations) {
+          setCustomLocations(prev => [...prev, { ...enriched, firebaseId: ref.key, cityId: selectedCityId }]);
+        }
         setRouteListKey(k => k + 1);
       } catch (error) {
         saveToPending(enriched);
@@ -9763,6 +9784,11 @@
       incrementCounters();
       database.ref(`cities/${selectedCityId}/locations`).push(locationToAdd)
         .then(async (ref) => {
+          // Without the live listener (cache mode), nothing else will add this to
+          // customLocations — do it here. With the live listener, skip it (would double-add).
+          if (!useLiveLocations) {
+            setCustomLocations(prev => [...prev, { ...locationToAdd, firebaseId: ref.key, cityId: selectedCityId }]);
+          }
           // Firebase push succeeded (may be cached offline - SDK will sync when online)
           try {
             await Promise.race([

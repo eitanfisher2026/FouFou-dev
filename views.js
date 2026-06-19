@@ -3369,6 +3369,31 @@
               </div>
             </div>
             
+            {/* Use cache (admin) — opt into the same cached loading regular users get,
+                instead of the always-fresh live listener. Useful when switching cities
+                a lot (e.g. reviewing AI-generated batches) where live's 500KB-per-open
+                cost adds up. Turn off to get instant live feedback while editing. */}
+            <div className="mb-3">
+              <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-xl p-3">
+                <h3 className="text-base font-bold text-gray-800 mb-1">⚡ Use cache (admin)</h3>
+                <p className="text-xs text-gray-600 mb-2">
+                  ON: same cached loading as regular users — switching cities repeatedly costs nothing once cached. OFF (default): always-live, real-time editing feedback.
+                </p>
+                <button
+                  onClick={() => {
+                    const next = !adminUseCache;
+                    if (next) localStorage.setItem('foufou_admin_use_cache', '1'); else localStorage.removeItem('foufou_admin_use_cache');
+                    setAdminUseCache(next);
+                  }}
+                  className={`w-full py-2 px-3 rounded-lg font-bold text-sm transition ${
+                    adminUseCache ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                  }`}
+                >
+                  {adminUseCache ? '✅ ON — using cache like regular users' : '⬜ OFF — live listener (default)'}
+                </button>
+              </div>
+            </div>
+
             {/* Cache debug toast — admin-only diagnostic for the city-locations cache, never shown to regular users */}
             <div className="mb-3">
               <div className="bg-gradient-to-r from-slate-50 to-gray-50 border-2 border-slate-300 rounded-xl p-3">
