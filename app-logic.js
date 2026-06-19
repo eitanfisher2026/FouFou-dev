@@ -3571,20 +3571,23 @@
         const cacheKey = `foufou_locations_cache_${selectedCityId}`;
         database.ref(`cityDataVersions/${selectedCityId}`).once('value')
           .then(vSnap => {
-            if (cancelled) return;
             const serverVersion = vSnap.val() || 0;
             let cached = null;
             try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch (e) {}
             if (cached && cached.version === serverVersion) {
               console.log('[CACHE] Serving cached locations for', selectedCityId);
+              if (cancelled) return;
               if (adminUseCache || localStorage.getItem('foufou_debug_cache') === '1') showToast(`📦 From cache — ${selectedCityId}`, 'info', 'sticky');
               processLocationsSnapshot(cached.data);
               return;
             }
             return locationsRef.once('value').then(snapshot => {
-              if (cancelled) return;
               const data = snapshot.val();
+              // Persist regardless of cancellation — if the user already switched to
+              // another city mid-fetch, we still want THIS city's result cached for
+              // next time. Only the now-stale UI update needs to be skipped.
               try { localStorage.setItem(cacheKey, JSON.stringify({ version: serverVersion, data })); } catch (e) { console.warn('[CACHE] Failed to store locations cache:', e); }
+              if (cancelled) return;
               if (adminUseCache || localStorage.getItem('foufou_debug_cache') === '1') showToast(`☁️ Fresh from Firebase — ${selectedCityId}`, 'info', 'sticky');
               processLocationsSnapshot(data);
             });
