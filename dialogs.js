@@ -497,12 +497,13 @@
                         onClick={async () => {
                           const result = await window.BKK.openCamera();
                           if (!result) return;
-                          const compressed = await window.BKK.compressImage(result.dataUrl);
-                          setNewLocation(prev => ({...prev, uploadedImage: compressed}));
+                          const tempId = newLocation.firebaseId || `new_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+                          const uploaded = await window.BKK.uploadImage(result.dataUrl, selectedCityId, tempId);
+                          setNewLocation(prev => ({...prev, uploadedImage: uploaded}));
                           // v3.23.34: removed auto-download of full-res photo to device (was unconditional and unwanted)
                           const gps = await window.BKK.extractGpsFromImage(result.file);
                           if (gps && (!newLocation.lat || !newLocation.lng)) {
-                            const updates = { uploadedImage: compressed, lat: gps.lat, lng: gps.lng };
+                            const updates = { uploadedImage: uploaded, lat: gps.lat, lng: gps.lng };
                             const detected = window.BKK.getAreasForCoordinates(gps.lat, gps.lng);
                             if (detected.length > 0) {
                               updates.areas = detected;
@@ -531,8 +532,9 @@
                             reader.onload = async () => {
                               // Gallery upload: DO NOT extract EXIF GPS.
                               // Android/iOS strip GPS from images when saved to gallery — always returns 0,0.
-                              const compressed = await window.BKK.compressImage(reader.result);
-                              setNewLocation(prev => ({...prev, uploadedImage: compressed}));
+                              const tempId = newLocation.firebaseId || `new_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+                              const uploaded = await window.BKK.uploadImage(reader.result, selectedCityId, tempId);
+                              setNewLocation(prev => ({...prev, uploadedImage: uploaded}));
                             };
                             reader.readAsDataURL(file);
                           }}
@@ -2449,10 +2451,10 @@
                             const file = e.target.files?.[0];
                             if (!file) return;
                             try {
-                              const compressed = await window.BKK.compressImage(file, 480);
-                              if (compressed) {
-                                const ok = await patchLocationField(loc, { uploadedImage: compressed });
-                                if (ok) { setModalImage(compressed); showToast('✅ תמונה נוספה', 'success'); }
+                              const uploaded = await window.BKK.uploadImage(file, loc.cityId || selectedCityId, loc.firebaseId, 480);
+                              if (uploaded) {
+                                const ok = await patchLocationField(loc, { uploadedImage: uploaded });
+                                if (ok) { setModalImage(uploaded); showToast('✅ תמונה נוספה', 'success'); }
                               }
                             } catch(err) { showToast('שגיאה בטעינת תמונה', 'error'); }
                             e.target.value = '';

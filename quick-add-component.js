@@ -224,8 +224,9 @@ const QuickAddPlaceDialog = ({
                   onClick={async () => {
                     const result = await window.BKK.openCamera();
                     if (!result) return;
-                    const compressed = await window.BKK.compressImage(result.dataUrl);
-                    setQaImage(compressed);
+                    const tempId = `new_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+                    const uploaded = await window.BKK.uploadImage(result.dataUrl, selectedCityId, tempId);
+                    setQaImage(uploaded);
                     // Extract GPS from EXIF and bubble up to parent
                     if (captureMode && place._onGpsFromExif) {
                       const gps = await window.BKK.extractGpsFromImage(result.file);
@@ -245,7 +246,10 @@ const QuickAddPlaceDialog = ({
                       if (!file) return;
                       // DO NOT extract EXIF GPS from gallery — Android/iOS strip it when saving to gallery
                       const reader = new FileReader();
-                      reader.onload = async () => { setQaImage(await window.BKK.compressImage(reader.result)); };
+                      reader.onload = async () => {
+                        const tempId = `new_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+                        setQaImage(await window.BKK.uploadImage(reader.result, selectedCityId, tempId));
+                      };
                       reader.readAsDataURL(file);
                     }} />
                 </label>

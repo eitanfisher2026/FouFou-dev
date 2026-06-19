@@ -498,9 +498,9 @@ window.BKK.compressImage = (input, maxSizeKB = 120) => {
  * Upload an image to Firebase Storage and return the download URL.
  * Falls back to base64 if Storage is not available.
  */
-window.BKK.uploadImage = async (file, cityId, locationId) => {
+window.BKK.uploadImage = async (file, cityId, locationId, maxSizeKB = 120) => {
   // Compress first
-  const compressed = await window.BKK.compressImage(file);
+  const compressed = await window.BKK.compressImage(file, maxSizeKB);
   
   // Try Firebase Storage
   if (typeof firebase !== 'undefined' && firebase.storage) {

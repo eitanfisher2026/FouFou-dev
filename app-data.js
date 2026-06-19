@@ -1,4 +1,4 @@
-// FouFou app-data.js v4.2.8
+// FouFou app-data.js v4.2.9
 // ============================================================================
 // FouFou — City Trail Generator - Internationalization (i18n)
 // Copyright © 2026 Eitan Fisher. All Rights Reserved.
@@ -2625,7 +2625,7 @@ window.BKK.mapConfig = {
   window.BKK.visitorName = vname || vid.slice(0, 10);
 })();
 
-window.BKK.VERSION = '4.2.8';
+window.BKK.VERSION = '4.2.9';
 window.BKK.stopLabel = function(i) {
   if (i < 26) return String.fromCharCode(65 + i);
   return String.fromCharCode(65 + Math.floor(i / 26) - 1) + String.fromCharCode(65 + (i % 26));
@@ -3396,8 +3396,8 @@ window.BKK.compressImage = (input, maxSizeKB = 120) => {
  * Upload an image to Firebase Storage and return the download URL.
  * Falls back to base64 if Storage is not available.
  */
-window.BKK.uploadImage = async (file, cityId, locationId) => {
-  const compressed = await window.BKK.compressImage(file);
+window.BKK.uploadImage = async (file, cityId, locationId, maxSizeKB = 120) => {
+  const compressed = await window.BKK.compressImage(file, maxSizeKB);
   
   if (typeof firebase !== 'undefined' && firebase.storage) {
     try {
