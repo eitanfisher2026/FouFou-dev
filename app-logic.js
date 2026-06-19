@@ -3586,9 +3586,18 @@
               // Persist regardless of cancellation — if the user already switched to
               // another city mid-fetch, we still want THIS city's result cached for
               // next time. Only the now-stale UI update needs to be skipped.
-              try { localStorage.setItem(cacheKey, JSON.stringify({ version: serverVersion, data })); } catch (e) { console.warn('[CACHE] Failed to store locations cache:', e); }
+              let cacheWriteError = null;
+              let serialized = null;
+              try {
+                serialized = JSON.stringify({ version: serverVersion, data });
+                localStorage.setItem(cacheKey, serialized);
+              } catch (e) { cacheWriteError = e; console.warn('[CACHE] Failed to store locations cache:', e); }
               if (cancelled) return;
-              if (adminUseCache || localStorage.getItem('foufou_debug_cache') === '1') showToast(`☁️ Fresh from Firebase — ${selectedCityId}`, 'info', 'sticky');
+              const sizeKB = serialized ? Math.round(serialized.length / 1024) : 0;
+              if (adminUseCache || localStorage.getItem('foufou_debug_cache') === '1') {
+                if (cacheWriteError) showToast(`⚠️ Cache WRITE FAILED for ${selectedCityId} (${sizeKB}KB): ${cacheWriteError.name} — ${cacheWriteError.message}`, 'warning', 'sticky');
+                else showToast(`☁️ Fresh from Firebase — ${selectedCityId} (${sizeKB}KB)`, 'info', 'sticky');
+              }
               processLocationsSnapshot(data);
             });
           })
