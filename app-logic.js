@@ -2684,22 +2684,6 @@
     }
   };
 
-  // One-time: handle ?clearCityCache=<cityId> — triggered remotely by the
-  // "Refresh my cache" button in foufou-build (it cannot touch this origin's
-  // localStorage directly, so it opens this URL instead).
-  useEffect(() => {
-    try {
-      const params = new URLSearchParams(location.search);
-      const clearCity = params.get('clearCityCache');
-      if (clearCity) {
-        localStorage.removeItem(`foufou_locations_cache_${clearCity}`);
-        showToast(`Cache cleared for ${clearCity}`, 'success', 4000);
-        const url = new URL(window.location.href);
-        url.searchParams.delete('clearCityCache');
-        window.history.replaceState({}, '', url.toString());
-      }
-    } catch (e) {}
-  }, []);
 
   // Geocode typed start point address to coordinates
 
