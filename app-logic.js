@@ -2257,6 +2257,7 @@
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [adminDefaultLang, setAdminDefaultLang] = useState(localStorage.getItem('foufou_admin_default_lang') || 'en');
+  const [debugCacheToast, setDebugCacheToast] = useState(localStorage.getItem('foufou_debug_cache') === '1');
 
   // Hint visit tracking
   const getHintVisits = (id) => parseInt(localStorage.getItem('foufou_hint_' + id) || '0');
@@ -2686,8 +2687,6 @@
   // One-time: handle ?clearCityCache=<cityId> — triggered remotely by the
   // "Refresh my cache" button in foufou-build (it cannot touch this origin's
   // localStorage directly, so it opens this URL instead).
-  // Also handles ?debugCache=1/0 — toggles the cache-status debug toast without
-  // needing devtools (useful on phones): visit the URL once, flag persists.
   useEffect(() => {
     try {
       const params = new URLSearchParams(location.search);
@@ -2698,14 +2697,6 @@
         const url = new URL(window.location.href);
         url.searchParams.delete('clearCityCache');
         window.history.replaceState({}, '', url.toString());
-      }
-      const debugCache = params.get('debugCache');
-      if (debugCache === '1') {
-        localStorage.setItem('foufou_debug_cache', '1');
-        showToast('🐛 Cache debug toasts: ON', 'info', 3000);
-      } else if (debugCache === '0') {
-        localStorage.removeItem('foufou_debug_cache');
-        showToast('Cache debug toasts: OFF', 'info', 2000);
       }
     } catch (e) {}
   }, []);

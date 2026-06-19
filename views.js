@@ -3369,6 +3369,28 @@
               </div>
             </div>
             
+            {/* Cache debug toast — admin-only diagnostic for the city-locations cache, never shown to regular users */}
+            <div className="mb-3">
+              <div className="bg-gradient-to-r from-slate-50 to-gray-50 border-2 border-slate-300 rounded-xl p-3">
+                <h3 className="text-base font-bold text-gray-800 mb-1">🐛 Cache debug toast</h3>
+                <p className="text-xs text-gray-600 mb-2">
+                  Shows a toast on every city load: live (editor), cache hit, or fresh fetch. Admin-only — regular users never see this.
+                </p>
+                <button
+                  onClick={() => {
+                    const next = !debugCacheToast;
+                    if (next) localStorage.setItem('foufou_debug_cache', '1'); else localStorage.removeItem('foufou_debug_cache');
+                    setDebugCacheToast(next);
+                  }}
+                  className={`w-full py-2 px-3 rounded-lg font-bold text-sm transition ${
+                    debugCacheToast ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                  }`}
+                >
+                  {debugCacheToast ? '✅ ON — tap to turn off' : '⬜ OFF — tap to turn on'}
+                </button>
+              </div>
+            </div>
+
             {/* v3.23.41: Refresh Google saved information — editor/admin only. Panel text is English-only by design. */}
             {isUnlocked && (() => {
               const REFRESH_INTERVAL_MS = 30 * 24 * 3600 * 1000;
