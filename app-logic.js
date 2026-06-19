@@ -3577,7 +3577,7 @@
             try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch (e) {}
             if (cached && cached.version === serverVersion) {
               console.log('[CACHE] Serving cached locations for', selectedCityId);
-              if (localStorage.getItem('foufou_debug_cache') === '1') showToast(`📦 From cache — ${selectedCityId}`, 'info', 'sticky');
+              if (adminUseCache || localStorage.getItem('foufou_debug_cache') === '1') showToast(`📦 From cache — ${selectedCityId}`, 'info', 'sticky');
               processLocationsSnapshot(cached.data);
               return;
             }
@@ -3585,7 +3585,7 @@
               if (cancelled) return;
               const data = snapshot.val();
               try { localStorage.setItem(cacheKey, JSON.stringify({ version: serverVersion, data })); } catch (e) { console.warn('[CACHE] Failed to store locations cache:', e); }
-              if (localStorage.getItem('foufou_debug_cache') === '1') showToast(`☁️ Fresh from Firebase — ${selectedCityId}`, 'info', 'sticky');
+              if (adminUseCache || localStorage.getItem('foufou_debug_cache') === '1') showToast(`☁️ Fresh from Firebase — ${selectedCityId}`, 'info', 'sticky');
               processLocationsSnapshot(data);
             });
           })

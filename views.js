@@ -3377,7 +3377,7 @@
               <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-xl p-3">
                 <h3 className="text-base font-bold text-gray-800 mb-1">⚡ Use cache (admin)</h3>
                 <p className="text-xs text-gray-600 mb-2">
-                  ON: same cached loading as regular users — switching cities repeatedly costs nothing once cached. OFF (default): always-live, real-time editing feedback.
+                  ON: same cached loading as regular users — switching cities repeatedly costs nothing once cached. OFF (default): always-live, real-time editing feedback. While ON, a sticky toast confirms cache/fresh on every city load — no need to also enable the debug toast below.
                 </p>
                 <button
                   onClick={() => {
