@@ -2683,7 +2683,22 @@
     }
   };
 
-
+  // One-time: handle ?clearCityCache=<cityId> — triggered remotely by the
+  // "Refresh my cache" button in foufou-build (it cannot touch this origin's
+  // localStorage directly, so it opens this URL instead).
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(location.search);
+      const clearCity = params.get('clearCityCache');
+      if (clearCity) {
+        localStorage.removeItem(`foufou_locations_cache_${clearCity}`);
+        showToast(`Cache cleared for ${clearCity}`, 'success', 4000);
+        const url = new URL(window.location.href);
+        url.searchParams.delete('clearCityCache');
+        window.history.replaceState({}, '', url.toString());
+      }
+    } catch (e) {}
+  }, []);
 
   // Geocode typed start point address to coordinates
 
@@ -3485,57 +3500,100 @@
   // Fullscreen map — init when opened, destroy when closed
   // MUST be at component level (not inside JSX) to comply with Rules of Hooks
   // Load custom locations from Firebase - PER CITY
+  // Editors/admins get a live listener (need real-time feedback while editing).
+  // Everyone else gets a cached one-time read, gated by a tiny version check —
+  // avoids re-downloading the full (~500KB) collection on every visit. The version
+  // is bumped manually via the "Publish" button in foufou-build (cityDataVersions/{cityId}).
   useEffect(() => {
     if (!selectedCityId) return;
     setLocationsLoading(true);
-    
-    if (isFirebaseAvailable && database) {
-      console.log('[DATA] Loading locations for city:', selectedCityId);
-      const locationsRef = database.ref(`cities/${selectedCityId}/locations`);
-      
-      let lastSnapshotTs = 0; // guard against double-fire within same 50ms window
-      const onValue = locationsRef.on('value', (snapshot) => {
-        // Deduplicate: Firebase sometimes fires twice rapidly — ignore if within 50ms
-        const now = Date.now();
-        if (now - lastSnapshotTs < 50) return;
-        lastSnapshotTs = now;
-        const data = snapshot.val();
-        if (data) {
-          const locationsArray = Object.keys(data).map(key => {
-            const loc = { ...data[key], firebaseId: key, cityId: selectedCityId };
-            // Ensure name is always a string — Firebase may have null/missing name
-            if (!loc.name || typeof loc.name !== 'string') loc.name = `(no name) ${key.slice(-4)}`;
-            // Sanitize: fix address if it's an object (import bug)
-            if (loc.address && typeof loc.address === 'object') {
-              if (loc.address.lat && !loc.lat) { loc.lat = loc.address.lat; loc.lng = loc.address.lng; }
-              delete loc.address;
-            }
-            // Sanitize: use placeId as googlePlaceId only if it looks like a real Google Place ID
-            if (loc.placeId && !loc.googlePlaceId && /^(ChIJ|EiI|GhIJ)/.test(loc.placeId)) loc.googlePlaceId = loc.placeId;
-            // Only clear stale outsideArea if coords now match an area. Never set it here.
-            if (loc.outsideArea && loc.lat && loc.lng && window.BKK.getAreasForCoordinates) {
-              const detected = window.BKK.getAreasForCoordinates(loc.lat, loc.lng);
-              if (detected.length > 0) loc.outsideArea = false;
-            }
-            return loc;
-          });
-          setCustomLocations(locationsArray);
-          console.log('[FIREBASE] Loaded', locationsArray.length, 'locations for', selectedCityId);
-          // Load review averages for all custom locations
-          const allNames = locationsArray.filter(l => l.status !== 'blacklist').map(l => l.name);
-          // Warn about locations with missing name (data integrity issue)
-          const nameless = locationsArray.filter(l => l.name?.startsWith('(no name)'));
-          if (nameless.length > 0) {
-            console.warn('[DATA] Locations with missing name:', nameless.map(l => l.firebaseId));
+    let cancelled = false;
+
+    const processLocationsSnapshot = (data) => {
+      if (cancelled) return;
+      if (data) {
+        const locationsArray = Object.keys(data).map(key => {
+          const loc = { ...data[key], firebaseId: key, cityId: selectedCityId };
+          // Ensure name is always a string — Firebase may have null/missing name
+          if (!loc.name || typeof loc.name !== 'string') loc.name = `(no name) ${key.slice(-4)}`;
+          // Sanitize: fix address if it's an object (import bug)
+          if (loc.address && typeof loc.address === 'object') {
+            if (loc.address.lat && !loc.lat) { loc.lat = loc.address.lat; loc.lng = loc.address.lng; }
+            delete loc.address;
           }
-          if (allNames.length > 0) loadReviewRatings(selectedCityId);
-        } else {
-          setCustomLocations([]);
+          // Sanitize: use placeId as googlePlaceId only if it looks like a real Google Place ID
+          if (loc.placeId && !loc.googlePlaceId && /^(ChIJ|EiI|GhIJ)/.test(loc.placeId)) loc.googlePlaceId = loc.placeId;
+          // Only clear stale outsideArea if coords now match an area. Never set it here.
+          if (loc.outsideArea && loc.lat && loc.lng && window.BKK.getAreasForCoordinates) {
+            const detected = window.BKK.getAreasForCoordinates(loc.lat, loc.lng);
+            if (detected.length > 0) loc.outsideArea = false;
+          }
+          return loc;
+        });
+        setCustomLocations(locationsArray);
+        console.log('[FIREBASE] Loaded', locationsArray.length, 'locations for', selectedCityId);
+        // Load review averages for all custom locations
+        const allNames = locationsArray.filter(l => l.status !== 'blacklist').map(l => l.name);
+        // Warn about locations with missing name (data integrity issue)
+        const nameless = locationsArray.filter(l => l.name?.startsWith('(no name)'));
+        if (nameless.length > 0) {
+          console.warn('[DATA] Locations with missing name:', nameless.map(l => l.firebaseId));
         }
-        setLocationsLoading(false);
-        markLoaded('locations');
-      });
-      
+        if (allNames.length > 0) loadReviewRatings(selectedCityId);
+      } else {
+        setCustomLocations([]);
+      }
+      setLocationsLoading(false);
+      markLoaded('locations');
+    };
+
+    if (isFirebaseAvailable && database) {
+      const locationsRef = database.ref(`cities/${selectedCityId}/locations`);
+      let onValue = null;
+
+      if (isEditor) {
+        // Editors/admins: live listener for real-time feedback while editing
+        console.log('[DATA] Loading locations (live) for city:', selectedCityId);
+        if (localStorage.getItem('foufou_debug_cache') === '1') showToast(`🔴 Live from Firebase (editor) — ${selectedCityId}`, 'info', 2500);
+        let lastSnapshotTs = 0; // guard against double-fire within same 50ms window
+        onValue = locationsRef.on('value', (snapshot) => {
+          // Deduplicate: Firebase sometimes fires twice rapidly — ignore if within 50ms
+          const now = Date.now();
+          if (now - lastSnapshotTs < 50) return;
+          lastSnapshotTs = now;
+          processLocationsSnapshot(snapshot.val());
+        });
+      } else {
+        // Regular users: tiny version check first, serve cache if unchanged
+        console.log('[DATA] Loading locations (cached) for city:', selectedCityId);
+        const cacheKey = `foufou_locations_cache_${selectedCityId}`;
+        database.ref(`cityDataVersions/${selectedCityId}`).once('value')
+          .then(vSnap => {
+            if (cancelled) return;
+            const serverVersion = vSnap.val() || 0;
+            let cached = null;
+            try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch (e) {}
+            if (cached && cached.version === serverVersion) {
+              console.log('[CACHE] Serving cached locations for', selectedCityId);
+              if (localStorage.getItem('foufou_debug_cache') === '1') showToast(`📦 From cache — ${selectedCityId}`, 'info', 2500);
+              processLocationsSnapshot(cached.data);
+              return;
+            }
+            return locationsRef.once('value').then(snapshot => {
+              if (cancelled) return;
+              const data = snapshot.val();
+              try { localStorage.setItem(cacheKey, JSON.stringify({ version: serverVersion, data })); } catch (e) { console.warn('[CACHE] Failed to store locations cache:', e); }
+              if (localStorage.getItem('foufou_debug_cache') === '1') showToast(`☁️ Fresh from Firebase — ${selectedCityId}`, 'info', 2500);
+              processLocationsSnapshot(data);
+            });
+          })
+          .catch(() => {
+            // Version check failed (offline, etc.) — fail open with a direct fetch
+            if (cancelled) return;
+            locationsRef.once('value').then(snapshot => { if (!cancelled) processLocationsSnapshot(snapshot.val()); });
+          });
+      }
+
       // Load city general data (icon/iconLeft/iconRight/name/color/hours) from Firebase
       database.ref(`cities/${selectedCityId}/general`).once('value').then(s => {
         const g = s.val();
@@ -3557,13 +3615,17 @@
         if (g.boundaryFactor != null) city.boundaryFactor = g.boundaryFactor;
       }).catch(() => {});
 
-      return () => locationsRef.off('value', onValue);
+      return () => {
+        cancelled = true;
+        if (onValue) locationsRef.off('value', onValue);
+      };
     } else {
       setCustomLocations([]);
       setLocationsLoading(false);
       markLoaded('locations');
+      return () => { cancelled = true; };
     }
-  }, [selectedCityId]);
+  }, [selectedCityId, isEditor]);
 
   // Load custom interests from Firebase
   const recentlyAddedRef = React.useRef(new Map()); // id → timestamp of recent local adds
