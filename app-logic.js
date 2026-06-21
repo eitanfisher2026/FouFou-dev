@@ -891,6 +891,16 @@
   const [filterImportBatch, setFilterImportBatch] = useState(false); // filter to show only last import
   const [filterNoInterest, setFilterNoInterest] = useState(false); // admin/editor: show places with no interest
   const [filterAddedBy, setFilterAddedBy] = useState(() => { try { return localStorage.getItem('foufou_filter_addedby') || ''; } catch(_) { return ''; } }); // admin/editor: filter by uid of creator
+
+  // filterAddedBy is a global localStorage value with no per-city scope. Left set after
+  // filtering one city's contributor list, it silently carries into every other city —
+  // including ones where that uid never added anything, hiding the entire list with no
+  // visible filter control (the admin dropdown itself hides when a city has only one
+  // contributor, so there's nothing on screen suggesting a filter is even active).
+  useEffect(() => {
+    setFilterAddedBy('');
+    try { localStorage.removeItem('foufou_filter_addedby'); } catch(_) {}
+  }, [selectedCityId]);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [placesGroupBy, setPlacesGroupBy] = useState('interest'); // 'interest' or 'area'
   const [placesSortBy, setPlacesSortBy] = useState(() => {
