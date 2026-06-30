@@ -827,11 +827,12 @@
                     } else {
                       setFormData(prev => ({...prev, searchMode: 'radius', radiusSource: 'gps', radiusMeters: prev.radiusMeters || 500, currentLat: null, currentLng: null, radiusPlaceName: ''}));
                       window.BKK.logEvent?.('radius_mode_selected', { source: 'gps' });
-                      // Start GPS silently in background — ready by the time user hits "Find Places"
+                      setGpsRefreshStatus('loading');
                       if (navigator.geolocation) {
                         window.BKK.getValidatedGps(
-                          (pos) => { setFormData(prev => ({...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, gpsTimestamp: Date.now(), radiusPlaceName: t('wizard.myLocation')})); },
-                          () => {} // silent — error handled at search time
+                          (pos) => { setFormData(prev => ({...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, gpsTimestamp: Date.now(), radiusPlaceName: t('wizard.myLocation')})); setGpsRefreshStatus('ok'); },
+                          () => { setGpsRefreshStatus(null); },
+                          { skipCityCheck: isTrailAnywhere }
                         );
                       }
                     }
@@ -1088,14 +1089,13 @@
                                   (pos) => {
                                     setFormData(prev => ({...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, gpsTimestamp: Date.now(), radiusPlaceName: currentLang === 'he' ? 'המיקום שלי' : 'My location'}));
                                     setGpsRefreshStatus('ok');
-                                    setTimeout(() => setGpsRefreshStatus(null), 3000);
                                   },
                                   (err) => { setGpsRefreshStatus('error'); setTimeout(() => setGpsRefreshStatus(null), 3000); },
                                   { skipCityCheck: true }
                                 );
                               }}
-                              style={{ padding: '8px 20px', borderRadius: '20px', border: '1.5px solid #0369a1', background: gpsRefreshStatus === 'ok' ? '#dcfce7' : gpsRefreshStatus === 'error' ? '#fef2f2' : 'white', color: gpsRefreshStatus === 'ok' ? '#16a34a' : gpsRefreshStatus === 'error' ? '#dc2626' : '#0369a1', fontSize: '13px', fontWeight: '600', cursor: gpsRefreshStatus === 'loading' ? 'default' : 'pointer' }}>
-                              {gpsRefreshStatus === 'loading' ? (currentLang === 'he' ? '⏳ מאתר...' : '⏳ Detecting...') : gpsRefreshStatus === 'ok' ? (currentLang === 'he' ? '✓ מיקום עודכן' : '✓ Location updated') : gpsRefreshStatus === 'error' ? (currentLang === 'he' ? '✕ לא ניתן לאתר' : '✕ Could not detect') : (currentLang === 'he' ? '📍 עדכן את המיקום שלי' : '📍 Update my location')}
+                              style={(() => { const gpsOk = gpsRefreshStatus === 'ok' || (!!formData.currentLat && Date.now() - (formData.gpsTimestamp || 0) <= 300000); return { padding: '8px 20px', borderRadius: '20px', border: '1.5px solid #0369a1', background: gpsRefreshStatus === 'loading' ? 'white' : gpsRefreshStatus === 'error' ? '#fef2f2' : gpsOk ? '#dcfce7' : 'white', color: gpsRefreshStatus === 'loading' ? '#0369a1' : gpsRefreshStatus === 'error' ? '#dc2626' : gpsOk ? '#16a34a' : '#0369a1', fontSize: '13px', fontWeight: '600', cursor: gpsRefreshStatus === 'loading' ? 'default' : 'pointer' }; })()}>
+                              {(() => { const gpsOk = gpsRefreshStatus === 'ok' || (!!formData.currentLat && Date.now() - (formData.gpsTimestamp || 0) <= 300000); return gpsRefreshStatus === 'loading' ? (currentLang === 'he' ? '⏳ מאתר...' : '⏳ Detecting...') : gpsRefreshStatus === 'error' ? (currentLang === 'he' ? '✕ לא ניתן לאתר' : '✕ Could not detect') : gpsOk ? (currentLang === 'he' ? '✓ מיקום עודכן' : '✓ Location updated') : (currentLang === 'he' ? '📍 עדכן את המיקום שלי' : '📍 Update my location'); })()}
                             </button>
                             {formData.currentLat && gpsRefreshStatus !== 'loading' && (
                               <div style={{ fontSize: '11px', color: '#64748b', marginTop: '6px' }}>
@@ -1171,14 +1171,17 @@
                         const gpsStale = formData.radiusSource === 'gps' &&
                           (!formData.currentLat || (Date.now() - (formData.gpsTimestamp || 0) > 5 * 60 * 1000));
                         if (formData.searchMode === 'radius' && gpsStale && navigator.geolocation) {
+                          setGpsRefreshStatus('loading');
                           window.BKK.getValidatedGps(
                             (pos) => {
                               const lat = pos.coords.latitude, lng = pos.coords.longitude;
                               setFormData(prev => ({...prev, currentLat: lat, currentLng: lng, gpsTimestamp: Date.now(), radiusPlaceName: t('wizard.myLocation')}));
+                              setGpsRefreshStatus('ok');
                               const radiusStop = buildRadiusStop(lat, lng, t('wizard.myLocation'), null);
                               generateRoute(radiusStop); setRouteChoiceMade(null); setWizardStep(3); window.scrollTo(0, 0);
                             },
-                            (reason) => { showToast(reason === 'outside_city' ? t('toast.outsideCity') : reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'), 'warning', 'sticky'); }
+                            (reason) => { setGpsRefreshStatus('error'); setTimeout(() => setGpsRefreshStatus(null), 3000); showToast(reason === 'outside_city' ? t('toast.outsideCity') : reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'), 'warning', 'sticky'); },
+                            { skipCityCheck: isTrailAnywhere }
                           );
                         } else {
                           const radiusStop = (formData.searchMode === 'radius' && formData.currentLat)
