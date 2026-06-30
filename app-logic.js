@@ -5671,6 +5671,9 @@
       const localVersion = window.BKK.VERSION;
       
       if (serverVersion && serverVersion !== localVersion) {
+        // Suppress loop caused by HTTP/CDN cache lag after user already clicked Update
+        const cooldownUntil = parseInt(localStorage.getItem('foufou_update_cooldown_until') || '0');
+        if (Date.now() < cooldownUntil) return false;
         console.log(`[UPDATE] New version available: ${serverVersion} (current: ${localVersion})`);
         setUpdateAvailable(true);
         if (!silent) {
@@ -5678,6 +5681,7 @@
         }
         return true;
       } else {
+        localStorage.removeItem('foufou_update_cooldown_until');
         if (!silent) showToast(t('toast.appUpToDate'), 'success');
         return false;
       }
@@ -5692,6 +5696,7 @@
     if (window.__beforeUnloadHandler) {
       window.removeEventListener('beforeunload', window.__beforeUnloadHandler);
     }
+    localStorage.setItem('foufou_update_cooldown_until', String(Date.now() + 10 * 60 * 1000));
     const doReload = () => { window.location.reload(); };
     const clearAndReload = () => {
       if ('caches' in window) {
