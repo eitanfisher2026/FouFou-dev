@@ -379,7 +379,6 @@
     try { localStorage.setItem('foufou_mode', val ? 'anywhere' : 'cities'); } catch(e) {}
     if (val) setFormData(prev => ({ ...prev, searchMode: 'radius', radiusSource: 'gps', area: null }));
   };
-
   const [formData, setFormData] = useState(loadPreferences());
   const [route, setRoute] = useState(null);
   const [routeListKey, setRouteListKey] = useState(0); // incremented to force re-render of route stop list after favorites change
@@ -891,16 +890,6 @@
   const [filterImportBatch, setFilterImportBatch] = useState(false); // filter to show only last import
   const [filterNoInterest, setFilterNoInterest] = useState(false); // admin/editor: show places with no interest
   const [filterAddedBy, setFilterAddedBy] = useState(() => { try { return localStorage.getItem('foufou_filter_addedby') || ''; } catch(_) { return ''; } }); // admin/editor: filter by uid of creator
-
-  // filterAddedBy is a global localStorage value with no per-city scope. Left set after
-  // filtering one city's contributor list, it silently carries into every other city —
-  // including ones where that uid never added anything, hiding the entire list with no
-  // visible filter control (the admin dropdown itself hides when a city has only one
-  // contributor, so there's nothing on screen suggesting a filter is even active).
-  useEffect(() => {
-    setFilterAddedBy('');
-    try { localStorage.removeItem('foufou_filter_addedby'); } catch(_) {}
-  }, [selectedCityId]);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [placesGroupBy, setPlacesGroupBy] = useState('interest'); // 'interest' or 'area'
   const [placesSortBy, setPlacesSortBy] = useState(() => {
@@ -2048,10 +2037,6 @@
   // Lock/unlock a location
   const saveLocationLocked = (cityId, firebaseId, locked) => {
     if (!isFirebaseAvailable || !database) return;
-    // Without the live listener, this won't otherwise reflect locally
-    if (!useLiveLocations && cityId === selectedCityId) {
-      setCustomLocations(prev => prev.map(loc => loc.firebaseId === firebaseId ? { ...loc, locked } : loc));
-    }
     database.ref(`cities/${cityId}/locations/${firebaseId}/locked`).set(locked);
   };
 
@@ -2271,15 +2256,6 @@
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [adminDefaultLang, setAdminDefaultLang] = useState(localStorage.getItem('foufou_admin_default_lang') || 'en');
-  const [debugCacheToast, setDebugCacheToast] = useState(localStorage.getItem('foufou_debug_cache') === '1');
-  const [adminUseCache, setAdminUseCache] = useState(localStorage.getItem('foufou_admin_use_cache') === '1');
-  // True only when actually subscribed to the live locations listener. Editors/admins
-  // get this by default, but can opt into the same cached path as regular users via
-  // the "Use cache (admin)" toggle — useful while doing rapid city-switching (e.g.
-  // reviewing AI-generated batches) where the live listener's full 500KB-per-open cost
-  // adds up fast. Write paths use this to decide whether they need an optimistic local
-  // state update (no listener to refresh them) or can rely on the listener as before.
-  const useLiveLocations = isEditor && !adminUseCache;
 
   // Hint visit tracking
   const getHintVisits = (id) => parseInt(localStorage.getItem('foufou_hint_' + id) || '0');
@@ -2707,6 +2683,7 @@
   };
 
 
+
   // Geocode typed start point address to coordinates
 
 
@@ -2790,11 +2767,6 @@
             new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
           ]);
           synced++;
-          // Without the live listener, only the currently-displayed city's list needs
-          // a manual add — other cities' lists aren't loaded right now anyway.
-          if (!useLiveLocations && cityId === selectedCityId) {
-            setCustomLocations(prev => [...prev, { ...cleanLoc, firebaseId: ref.key, cityId }]);
-          }
           console.log('[SYNC] Synced pending location:', loc.name);
         } catch (e) {
           console.warn('[SYNC] Failed to sync location:', loc.name, e.message);
@@ -3512,112 +3484,57 @@
   // Fullscreen map — init when opened, destroy when closed
   // MUST be at component level (not inside JSX) to comply with Rules of Hooks
   // Load custom locations from Firebase - PER CITY
-  // Editors/admins get a live listener (need real-time feedback while editing).
-  // Everyone else gets a cached one-time read, gated by a tiny version check —
-  // avoids re-downloading the full (~500KB) collection on every visit. The version
-  // is bumped manually via the "Publish" button in foufou-build (cityDataVersions/{cityId}).
   useEffect(() => {
     if (!selectedCityId) return;
     setLocationsLoading(true);
-    let cancelled = false;
-
-    const processLocationsSnapshot = (data) => {
-      if (cancelled) return;
-      if (data) {
-        const locationsArray = Object.keys(data).map(key => {
-          const loc = { ...data[key], firebaseId: key, cityId: selectedCityId };
-          // Ensure name is always a string — Firebase may have null/missing name
-          if (!loc.name || typeof loc.name !== 'string') loc.name = `(no name) ${key.slice(-4)}`;
-          // Sanitize: fix address if it's an object (import bug)
-          if (loc.address && typeof loc.address === 'object') {
-            if (loc.address.lat && !loc.lat) { loc.lat = loc.address.lat; loc.lng = loc.address.lng; }
-            delete loc.address;
-          }
-          // Sanitize: use placeId as googlePlaceId only if it looks like a real Google Place ID
-          if (loc.placeId && !loc.googlePlaceId && /^(ChIJ|EiI|GhIJ)/.test(loc.placeId)) loc.googlePlaceId = loc.placeId;
-          // Only clear stale outsideArea if coords now match an area. Never set it here.
-          if (loc.outsideArea && loc.lat && loc.lng && window.BKK.getAreasForCoordinates) {
-            const detected = window.BKK.getAreasForCoordinates(loc.lat, loc.lng);
-            if (detected.length > 0) loc.outsideArea = false;
-          }
-          return loc;
-        });
-        setCustomLocations(locationsArray);
-        console.log('[FIREBASE] Loaded', locationsArray.length, 'locations for', selectedCityId);
-        // Load review averages for all custom locations
-        const allNames = locationsArray.filter(l => l.status !== 'blacklist').map(l => l.name);
-        // Warn about locations with missing name (data integrity issue)
-        const nameless = locationsArray.filter(l => l.name?.startsWith('(no name)'));
-        if (nameless.length > 0) {
-          console.warn('[DATA] Locations with missing name:', nameless.map(l => l.firebaseId));
-        }
-        if (allNames.length > 0) loadReviewRatings(selectedCityId);
-      } else {
-        setCustomLocations([]);
-      }
-      setLocationsLoading(false);
-      markLoaded('locations');
-    };
-
+    
     if (isFirebaseAvailable && database) {
+      console.log('[DATA] Loading locations for city:', selectedCityId);
       const locationsRef = database.ref(`cities/${selectedCityId}/locations`);
-      let onValue = null;
-
-      if (useLiveLocations) {
-        // Editors/admins (unless they've opted into cache mode): live listener
-        console.log('[DATA] Loading locations (live) for city:', selectedCityId);
-        if (localStorage.getItem('foufou_debug_cache') === '1') showToast(`🔴 Live from Firebase (editor) — ${selectedCityId}`, 'info', 'sticky');
-        let lastSnapshotTs = 0; // guard against double-fire within same 50ms window
-        onValue = locationsRef.on('value', (snapshot) => {
-          // Deduplicate: Firebase sometimes fires twice rapidly — ignore if within 50ms
-          const now = Date.now();
-          if (now - lastSnapshotTs < 50) return;
-          lastSnapshotTs = now;
-          processLocationsSnapshot(snapshot.val());
-        });
-      } else {
-        // Regular users, or admin in cache mode: tiny version check first, serve cache if unchanged
-        console.log('[DATA] Loading locations (cached) for city:', selectedCityId);
-        const cacheKey = `foufou_locations_cache_${selectedCityId}`;
-        database.ref(`cityDataVersions/${selectedCityId}`).once('value')
-          .then(vSnap => {
-            const serverVersion = vSnap.val() || 0;
-            let cached = null;
-            try { cached = JSON.parse(localStorage.getItem(cacheKey) || 'null'); } catch (e) {}
-            if (cached && cached.version === serverVersion) {
-              console.log('[CACHE] Serving cached locations for', selectedCityId);
-              if (cancelled) return;
-              if (adminUseCache || localStorage.getItem('foufou_debug_cache') === '1') showToast(`📦 From cache — ${selectedCityId}`, 'info', 'sticky');
-              processLocationsSnapshot(cached.data);
-              return;
+      
+      let lastSnapshotTs = 0; // guard against double-fire within same 50ms window
+      const onValue = locationsRef.on('value', (snapshot) => {
+        // Deduplicate: Firebase sometimes fires twice rapidly — ignore if within 50ms
+        const now = Date.now();
+        if (now - lastSnapshotTs < 50) return;
+        lastSnapshotTs = now;
+        const data = snapshot.val();
+        if (data) {
+          const locationsArray = Object.keys(data).map(key => {
+            const loc = { ...data[key], firebaseId: key, cityId: selectedCityId };
+            // Ensure name is always a string — Firebase may have null/missing name
+            if (!loc.name || typeof loc.name !== 'string') loc.name = `(no name) ${key.slice(-4)}`;
+            // Sanitize: fix address if it's an object (import bug)
+            if (loc.address && typeof loc.address === 'object') {
+              if (loc.address.lat && !loc.lat) { loc.lat = loc.address.lat; loc.lng = loc.address.lng; }
+              delete loc.address;
             }
-            return locationsRef.once('value').then(snapshot => {
-              const data = snapshot.val();
-              // Persist regardless of cancellation — if the user already switched to
-              // another city mid-fetch, we still want THIS city's result cached for
-              // next time. Only the now-stale UI update needs to be skipped.
-              let cacheWriteError = null;
-              let serialized = null;
-              try {
-                serialized = JSON.stringify({ version: serverVersion, data });
-                localStorage.setItem(cacheKey, serialized);
-              } catch (e) { cacheWriteError = e; console.warn('[CACHE] Failed to store locations cache:', e); }
-              if (cancelled) return;
-              const sizeKB = serialized ? Math.round(serialized.length / 1024) : 0;
-              if (adminUseCache || localStorage.getItem('foufou_debug_cache') === '1') {
-                if (cacheWriteError) showToast(`⚠️ Cache WRITE FAILED for ${selectedCityId} (${sizeKB}KB): ${cacheWriteError.name} — ${cacheWriteError.message}`, 'warning', 'sticky');
-                else showToast(`☁️ Fresh from Firebase — ${selectedCityId} (${sizeKB}KB)`, 'info', 'sticky');
-              }
-              processLocationsSnapshot(data);
-            });
-          })
-          .catch(() => {
-            // Version check failed (offline, etc.) — fail open with a direct fetch
-            if (cancelled) return;
-            locationsRef.once('value').then(snapshot => { if (!cancelled) processLocationsSnapshot(snapshot.val()); });
+            // Sanitize: use placeId as googlePlaceId only if it looks like a real Google Place ID
+            if (loc.placeId && !loc.googlePlaceId && /^(ChIJ|EiI|GhIJ)/.test(loc.placeId)) loc.googlePlaceId = loc.placeId;
+            // Only clear stale outsideArea if coords now match an area. Never set it here.
+            if (loc.outsideArea && loc.lat && loc.lng && window.BKK.getAreasForCoordinates) {
+              const detected = window.BKK.getAreasForCoordinates(loc.lat, loc.lng);
+              if (detected.length > 0) loc.outsideArea = false;
+            }
+            return loc;
           });
-      }
-
+          setCustomLocations(locationsArray);
+          console.log('[FIREBASE] Loaded', locationsArray.length, 'locations for', selectedCityId);
+          // Load review averages for all custom locations
+          const allNames = locationsArray.filter(l => l.status !== 'blacklist').map(l => l.name);
+          // Warn about locations with missing name (data integrity issue)
+          const nameless = locationsArray.filter(l => l.name?.startsWith('(no name)'));
+          if (nameless.length > 0) {
+            console.warn('[DATA] Locations with missing name:', nameless.map(l => l.firebaseId));
+          }
+          if (allNames.length > 0) loadReviewRatings(selectedCityId);
+        } else {
+          setCustomLocations([]);
+        }
+        setLocationsLoading(false);
+        markLoaded('locations');
+      });
+      
       // Load city general data (icon/iconLeft/iconRight/name/color/hours) from Firebase
       database.ref(`cities/${selectedCityId}/general`).once('value').then(s => {
         const g = s.val();
@@ -3639,17 +3556,13 @@
         if (g.boundaryFactor != null) city.boundaryFactor = g.boundaryFactor;
       }).catch(() => {});
 
-      return () => {
-        cancelled = true;
-        if (onValue) locationsRef.off('value', onValue);
-      };
+      return () => locationsRef.off('value', onValue);
     } else {
       setCustomLocations([]);
       setLocationsLoading(false);
       markLoaded('locations');
-      return () => { cancelled = true; };
     }
-  }, [selectedCityId, useLiveLocations]);
+  }, [selectedCityId]);
 
   // Load custom interests from Firebase
   const recentlyAddedRef = React.useRef(new Map()); // id → timestamp of recent local adds
@@ -4544,7 +4457,7 @@
   // happened with Turtle House (Nearby Search path missed businessStatus
   // in its field mask, so Google never returned the field, so the filter
   // had nothing to act on).
-  const PLACES_SEARCH_FIELDS = 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType,places.businessStatus,places.currentOpeningHours';
+  const PLACES_SEARCH_FIELDS = 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.types,places.primaryType,places.primaryTypeDisplayName,places.businessStatus,places.currentOpeningHours,places.googleMapsUri';
   const passesBusinessFilter = (place) => {
     const sp = window.BKK.systemParams || {};
     const bStatus = place.businessStatus || 'OPERATIONAL';
@@ -4634,7 +4547,7 @@
         const uniqueTextQueries = [...new Set(textQueries)];
         const uniqueBlacklist = [...new Set(blacklistWords)];
         const searchRadius = Math.max(radius, 50);
-        const fieldMask = 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.types,places.googleMapsUri';
+        const fieldMask = PLACES_SEARCH_FIELDS;
 
         const mapPlace = (p) => ({
           name: p.displayName?.text || '',
@@ -4754,15 +4667,6 @@
       const skipped = interests.filter(id => !isInterestValid(id));
       const skippedNames = skipped.map(id => allInterestOptions.find(o => o.id === id)).filter(Boolean).map(o => tLabel(o) || o?.id || id).join(', ');
       console.warn('[DYNAMIC] Skipped invalid interests:', skippedNames);
-    }
-
-    // Session cache: skip API call when same city+area+interest was fetched in this session (<30 min)
-    if (!window.BKK._placesCache) window.BKK._placesCache = {};
-    const _ck = `${selectedCityId}|${radiusOverride ? `r:${radiusOverride.lat.toFixed(4)},${radiusOverride.lng.toFixed(4)},${radiusOverride.radius}` : `a:${area}`}|${validInterests.join(',')}`;
-    const _hit = window.BKK._placesCache[_ck];
-    if (_hit && (Date.now() - _hit.ts < 30 * 60 * 1000)) {
-      console.log('[DYNAMIC] Cache hit:', _ck, '→', _hit.places.length, 'places');
-      return _hit.places;
     }
 
     try {
@@ -5356,7 +5260,6 @@
         },
       });
       
-      window.BKK._placesCache[_ck] = { places: ratingFiltered, ts: Date.now() };
       return ratingFiltered;
     } catch (error) {
       console.error('[DYNAMIC] Error fetching Google Places:', {
@@ -5671,9 +5574,6 @@
       const localVersion = window.BKK.VERSION;
       
       if (serverVersion && serverVersion !== localVersion) {
-        // Suppress loop caused by HTTP/CDN cache lag after user already clicked Update
-        const cooldownUntil = parseInt(localStorage.getItem('foufou_update_cooldown_until') || '0');
-        if (Date.now() < cooldownUntil) return false;
         console.log(`[UPDATE] New version available: ${serverVersion} (current: ${localVersion})`);
         setUpdateAvailable(true);
         if (!silent) {
@@ -5681,7 +5581,6 @@
         }
         return true;
       } else {
-        localStorage.removeItem('foufou_update_cooldown_until');
         if (!silent) showToast(t('toast.appUpToDate'), 'success');
         return false;
       }
@@ -5696,7 +5595,6 @@
     if (window.__beforeUnloadHandler) {
       window.removeEventListener('beforeunload', window.__beforeUnloadHandler);
     }
-    localStorage.setItem('foufou_update_cooldown_until', String(Date.now() + 10 * 60 * 1000));
     const doReload = () => { window.location.reload(); };
     const clearAndReload = () => {
       if ('caches' in window) {
@@ -8891,12 +8789,8 @@
       try {
         const ref = await database.ref(`cities/${selectedCityId}/locations`).push(enriched);
         saved = { ...enriched, firebaseId: ref.key };
-        // Without the live listener (cache mode), nothing else will add this to
-        // customLocations — do it here. With the live listener, skip it: that path
-        // would double-add (listener fires too) — old bug this used to cause.
-        if (!useLiveLocations) {
-          setCustomLocations(prev => [...prev, { ...enriched, firebaseId: ref.key, cityId: selectedCityId }]);
-        }
+        // Don't do optimistic update here — Firebase listener will refresh the list
+        // (optimistic update + debounce caused duplicates to appear)
         setRouteListKey(k => k + 1);
       } catch (error) {
         saveToPending(enriched);
@@ -9811,11 +9705,6 @@
       incrementCounters();
       database.ref(`cities/${selectedCityId}/locations`).push(locationToAdd)
         .then(async (ref) => {
-          // Without the live listener (cache mode), nothing else will add this to
-          // customLocations — do it here. With the live listener, skip it (would double-add).
-          if (!useLiveLocations) {
-            setCustomLocations(prev => [...prev, { ...locationToAdd, firebaseId: ref.key, cityId: selectedCityId }]);
-          }
           // Firebase push succeeded (may be cached offline - SDK will sync when online)
           try {
             await Promise.race([
@@ -10264,7 +10153,7 @@
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.businessStatus,places.currentOpeningHours'
+          'X-Goog-FieldMask': PLACES_SEARCH_FIELDS
         },
         body: JSON.stringify({ textQuery: searchQuery, maxResultCount: Math.min(window.BKK.systemParams?.pointSearchMaxGoogle || 10, 20), languageCode: 'en' })
       });
@@ -10325,7 +10214,7 @@
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': GOOGLE_PLACES_API_KEY,
-          'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.formattedAddress,places.rating,places.userRatingCount,places.businessStatus,places.currentOpeningHours'
+          'X-Goog-FieldMask': PLACES_SEARCH_FIELDS
         },
         body: JSON.stringify({ textQuery: searchQuery, maxResultCount: Math.min(window.BKK.systemParams?.pointSearchMaxGoogle || 10, 20), languageCode: 'en' })
       });

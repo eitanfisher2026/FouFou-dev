@@ -45,16 +45,10 @@
 
   const renderIcon = (icon, size = '14px') => {
     if (!icon) return null;
-    if (icon.startsWith('data:') || icon.startsWith('http') || icon.startsWith('interest-icons/')) {
-      const src = icon.startsWith('interest-icons/') ? `${icon}?v=${window.BKK.VERSION}` : icon;
-      return <img src={src} alt="" style={{ width: size, height: size, objectFit: 'contain', display: 'inline', verticalAlign: 'middle' }} />;
-    }
-    const cp = [...icon][0]?.codePointAt(0);
-    if (cp && cp > 127) {
-      const src = `https://twemoji.maxcdn.com/v/latest/72x72/${cp.toString(16)}.png`;
-      return <img src={src} alt="" style={{ width: size, height: size, objectFit: 'contain', display: 'inline', verticalAlign: 'middle' }} />;
-    }
-    return icon;
+    const isImg = typeof icon === 'string' && (icon.startsWith('data:') || icon.startsWith('http') || icon.startsWith('interest-icons/'));
+    if (!isImg) return icon;
+    const src = icon.startsWith('interest-icons/') ? `${icon}?v=${window.BKK.VERSION}` : icon;
+    return <img src={src} alt="" style={{ width: size, height: size, objectFit: 'contain', display: 'inline', verticalAlign: 'middle' }} />;
   };
 
   // Shared import file parser — used from settings and favorites screen
@@ -833,12 +827,11 @@
                     } else {
                       setFormData(prev => ({...prev, searchMode: 'radius', radiusSource: 'gps', radiusMeters: prev.radiusMeters || 500, currentLat: null, currentLng: null, radiusPlaceName: ''}));
                       window.BKK.logEvent?.('radius_mode_selected', { source: 'gps' });
-                      setGpsRefreshStatus('loading');
+                      // Start GPS silently in background — ready by the time user hits "Find Places"
                       if (navigator.geolocation) {
                         window.BKK.getValidatedGps(
-                          (pos) => { setFormData(prev => ({...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, gpsTimestamp: Date.now(), radiusPlaceName: t('wizard.myLocation')})); setGpsRefreshStatus('ok'); },
-                          () => { setGpsRefreshStatus(null); },
-                          { skipCityCheck: isTrailAnywhere }
+                          (pos) => { setFormData(prev => ({...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, gpsTimestamp: Date.now(), radiusPlaceName: t('wizard.myLocation')})); },
+                          () => {} // silent — error handled at search time
                         );
                       }
                     }
@@ -1095,13 +1088,14 @@
                                   (pos) => {
                                     setFormData(prev => ({...prev, currentLat: pos.coords.latitude, currentLng: pos.coords.longitude, gpsTimestamp: Date.now(), radiusPlaceName: currentLang === 'he' ? 'המיקום שלי' : 'My location'}));
                                     setGpsRefreshStatus('ok');
+                                    setTimeout(() => setGpsRefreshStatus(null), 3000);
                                   },
                                   (err) => { setGpsRefreshStatus('error'); setTimeout(() => setGpsRefreshStatus(null), 3000); },
                                   { skipCityCheck: true }
                                 );
                               }}
-                              style={(() => { const gpsOk = gpsRefreshStatus === 'ok' || (!!formData.currentLat && Date.now() - (formData.gpsTimestamp || 0) <= 300000); return { padding: '8px 20px', borderRadius: '20px', border: '1.5px solid #0369a1', background: gpsRefreshStatus === 'loading' ? 'white' : gpsRefreshStatus === 'error' ? '#fef2f2' : gpsOk ? '#dcfce7' : 'white', color: gpsRefreshStatus === 'loading' ? '#0369a1' : gpsRefreshStatus === 'error' ? '#dc2626' : gpsOk ? '#16a34a' : '#0369a1', fontSize: '13px', fontWeight: '600', cursor: gpsRefreshStatus === 'loading' ? 'default' : 'pointer' }; })()}>
-                              {(() => { const gpsOk = gpsRefreshStatus === 'ok' || (!!formData.currentLat && Date.now() - (formData.gpsTimestamp || 0) <= 300000); return gpsRefreshStatus === 'loading' ? (currentLang === 'he' ? '⏳ מאתר...' : '⏳ Detecting...') : gpsRefreshStatus === 'error' ? (currentLang === 'he' ? '✕ לא ניתן לאתר' : '✕ Could not detect') : gpsOk ? (currentLang === 'he' ? '✓ מיקום עודכן' : '✓ Location updated') : (currentLang === 'he' ? '📍 עדכן את המיקום שלי' : '📍 Update my location'); })()}
+                              style={{ padding: '8px 20px', borderRadius: '20px', border: '1.5px solid #0369a1', background: gpsRefreshStatus === 'ok' ? '#dcfce7' : gpsRefreshStatus === 'error' ? '#fef2f2' : 'white', color: gpsRefreshStatus === 'ok' ? '#16a34a' : gpsRefreshStatus === 'error' ? '#dc2626' : '#0369a1', fontSize: '13px', fontWeight: '600', cursor: gpsRefreshStatus === 'loading' ? 'default' : 'pointer' }}>
+                              {gpsRefreshStatus === 'loading' ? (currentLang === 'he' ? '⏳ מאתר...' : '⏳ Detecting...') : gpsRefreshStatus === 'ok' ? (currentLang === 'he' ? '✓ מיקום עודכן' : '✓ Location updated') : gpsRefreshStatus === 'error' ? (currentLang === 'he' ? '✕ לא ניתן לאתר' : '✕ Could not detect') : (currentLang === 'he' ? '📍 עדכן את המיקום שלי' : '📍 Update my location')}
                             </button>
                             {formData.currentLat && gpsRefreshStatus !== 'loading' && (
                               <div style={{ fontSize: '11px', color: '#64748b', marginTop: '6px' }}>
@@ -1176,44 +1170,17 @@
                         // GPS mode: fetch fresh coords if missing or older than 5 minutes
                         const gpsStale = formData.radiusSource === 'gps' &&
                           (!formData.currentLat || (Date.now() - (formData.gpsTimestamp || 0) > 5 * 60 * 1000));
-                        const _updateBtn = currentLang === 'he' ? 'עדכן את המיקום שלי' : 'Update my location';
-                        const _noGpsMsg = currentLang === 'he'
-                          ? `לא ניתן לאתר מיקום — אנא לחץ על "${_updateBtn}" לפני החיפוש`
-                          : `Location not found — please tap "${_updateBtn}" before searching`;
                         if (formData.searchMode === 'radius' && gpsStale && navigator.geolocation) {
-                          setGpsRefreshStatus('loading');
                           window.BKK.getValidatedGps(
                             (pos) => {
                               const lat = pos.coords.latitude, lng = pos.coords.longitude;
                               setFormData(prev => ({...prev, currentLat: lat, currentLng: lng, gpsTimestamp: Date.now(), radiusPlaceName: t('wizard.myLocation')}));
-                              setGpsRefreshStatus('ok');
                               const radiusStop = buildRadiusStop(lat, lng, t('wizard.myLocation'), null);
                               generateRoute(radiusStop); setRouteChoiceMade(null); setWizardStep(3); window.scrollTo(0, 0);
                             },
-                            (reason) => {
-                              setGpsRefreshStatus('error'); setTimeout(() => setGpsRefreshStatus(null), 3000);
-                              const msg = reason === 'denied'
-                                ? t('toast.locationNoPermission')
-                                : (reason === 'outside_city' && !isTrailAnywhere)
-                                  ? t('toast.outsideCity')
-                                  : _noGpsMsg;
-                              showToast(msg, 'warning', 'sticky');
-                            },
-                            { skipCityCheck: isTrailAnywhere }
+                            (reason) => { showToast(reason === 'outside_city' ? t('toast.outsideCity') : reason === 'denied' ? t('toast.locationNoPermission') : t('toast.noGpsSignal'), 'warning', 'sticky'); }
                           );
                         } else {
-                          if (formData.searchMode === 'radius' && formData.radiusSource === 'gps' && !formData.currentLat) {
-                            showToast(_noGpsMsg, 'warning', 'sticky');
-                            return;
-                          }
-                          // City mode: even with "fresh" cached coords, re-validate they are within this city
-                          if (!isTrailAnywhere && formData.searchMode === 'radius' && formData.radiusSource === 'gps' && formData.currentLat) {
-                            const check = window.BKK.isGpsWithinCity(formData.currentLat, formData.currentLng);
-                            if (!check.withinCity) {
-                              showToast(t('toast.outsideCity'), 'warning', 'sticky');
-                              return;
-                            }
-                          }
                           const radiusStop = (formData.searchMode === 'radius' && formData.currentLat)
                             ? buildRadiusStop(formData.currentLat, formData.currentLng, formData.radiusPlaceName || t('wizard.myLocation'), formData.radiusPlaceId || null)
                             : null;
@@ -1389,7 +1356,7 @@
                               }}
                             >
                               {isDraft && <span style={{ position: 'absolute', top: '2px', right: '4px', fontSize: '8px' }}>🟡</span>}
-                              <div style={{ marginBottom: '4px' }}>{renderIcon(option.icon, '52px') || <span style={{ fontSize: '28px', lineHeight: 1 }}>{option.icon}</span>}</div>
+                              <div style={{ marginBottom: '4px' }}>{(() => { const lp = window.BKK.interestIconPaths?.[option.id]; return lp ? <img src={lp} alt="" style={{ width: '52px', height: '52px', objectFit: 'contain', display: 'inline' }} /> : renderIcon(option.icon, '52px') || <span style={{ fontSize: '28px', lineHeight: 1 }}>{option.icon}</span>; })()}</div>
                               <div style={{ fontWeight: '700', fontSize: '11px', color: isSelected ? '#1e40af' : '#374151', wordBreak: 'break-word' }}>{tLabel(option)}</div>
                             </button>
                           );
@@ -3372,53 +3339,6 @@
               </div>
             </div>
             
-            {/* Use cache (admin) — opt into the same cached loading regular users get,
-                instead of the always-fresh live listener. Useful when switching cities
-                a lot (e.g. reviewing AI-generated batches) where live's 500KB-per-open
-                cost adds up. Turn off to get instant live feedback while editing. */}
-            <div className="mb-3">
-              <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-300 rounded-xl p-3">
-                <h3 className="text-base font-bold text-gray-800 mb-1">⚡ Use cache (admin)</h3>
-                <p className="text-xs text-gray-600 mb-2">
-                  ON: same cached loading as regular users — switching cities repeatedly costs nothing once cached. OFF (default): always-live, real-time editing feedback. While ON, a sticky toast confirms cache/fresh on every city load — no need to also enable the debug toast below.
-                </p>
-                <button
-                  onClick={() => {
-                    const next = !adminUseCache;
-                    if (next) localStorage.setItem('foufou_admin_use_cache', '1'); else localStorage.removeItem('foufou_admin_use_cache');
-                    setAdminUseCache(next);
-                  }}
-                  className={`w-full py-2 px-3 rounded-lg font-bold text-sm transition ${
-                    adminUseCache ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                  }`}
-                >
-                  {adminUseCache ? '✅ ON — using cache like regular users' : '⬜ OFF — live listener (default)'}
-                </button>
-              </div>
-            </div>
-
-            {/* Cache debug toast — admin-only diagnostic for the city-locations cache, never shown to regular users */}
-            <div className="mb-3">
-              <div className="bg-gradient-to-r from-slate-50 to-gray-50 border-2 border-slate-300 rounded-xl p-3">
-                <h3 className="text-base font-bold text-gray-800 mb-1">🐛 Cache debug toast</h3>
-                <p className="text-xs text-gray-600 mb-2">
-                  Shows a toast on every city load: live (editor), cache hit, or fresh fetch. Admin-only — regular users never see this.
-                </p>
-                <button
-                  onClick={() => {
-                    const next = !debugCacheToast;
-                    if (next) localStorage.setItem('foufou_debug_cache', '1'); else localStorage.removeItem('foufou_debug_cache');
-                    setDebugCacheToast(next);
-                  }}
-                  className={`w-full py-2 px-3 rounded-lg font-bold text-sm transition ${
-                    debugCacheToast ? 'bg-emerald-500 text-white hover:bg-emerald-600' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                  }`}
-                >
-                  {debugCacheToast ? '✅ ON — tap to turn off' : '⬜ OFF — tap to turn on'}
-                </button>
-              </div>
-            </div>
-
             {/* v3.23.41: Refresh Google saved information — editor/admin only. Panel text is English-only by design. */}
             {isUnlocked && (() => {
               const REFRESH_INTERVAL_MS = 30 * 24 * 3600 * 1000;
@@ -3628,7 +3548,7 @@
             </div>
             )}
             
-<div className="mb-4">
+            <div className="mb-4">
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-400 rounded-xl p-3">
                 <h3 className="text-base font-bold text-gray-800 mb-1">{t("general.importExport")}</h3>
                 <p className="text-xs text-gray-600 mb-2">
@@ -3764,7 +3684,7 @@
             {/* ===== INTERESTS TAB ===== */}
             {settingsTab === 'interests' && (() => {
                             const renderInterestSettingsRow = (i, allCities, getAStatus, openFn) => {
-                const iconEl = renderIcon(i.icon || '📍', '20px');
+                const icon = renderIcon(i.icon || '📍', '20px');
                 const isDraft = getAStatus(i) === 'draft';
                 const isHidden = getAStatus(i) === 'hidden';
                 const visibleCities = allCities.filter(city => !(cityHiddenInterests[city.id] || new Set()).has(i.id));
@@ -3772,7 +3692,7 @@
                 const cityLabel = allVisible ? '🌍' : `🏙️ ${visibleCities.length}/${allCities.length}`;
                 return (
                   <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', borderRadius: '8px', border: '1px solid', borderColor: isHidden ? '#fca5a5' : isDraft ? '#fde68a' : '#e5e7eb', background: isHidden ? '#fef2f2' : isDraft ? '#fffbeb' : 'white', direction: window.BKK.i18n.isRTL() ? 'rtl' : 'ltr', marginBottom: '3px' }}>
-                    <span style={{ flexShrink: 0 }}>{iconEl}</span>
+                    <span style={{ flexShrink: 0 }}>{renderIcon(icon, '20px')}</span>
                     <span style={{ flex: 1, fontSize: '13px', fontWeight: '600', color: isHidden ? '#ef4444' : 'inherit' }}>{tLabel(i) || i.label}</span>
                     {interestConfig[i.id]?.noGoogleSearch && <span style={{ fontSize: '9px', background: '#f3f4f6', color: '#6b7280', padding: '1px 4px', borderRadius: '3px', flexShrink: 0 }}>{t('interests.internalBadge')}</span>}
                     {isDraft && <span style={{ fontSize: '9px', background: '#fef3c7', color: '#92400e', padding: '1px 4px', borderRadius: '3px' }}>{t('places.draft')}</span>}
@@ -3792,7 +3712,7 @@
                   </div>
                 );
               };
-              const allCities = Object.values(window.BKK.cityRegistry || {}).filter(r => r && r.id);
+              const allCities = Object.values(window.BKK.cities || {});
               // Collect interests from ALL cities + customInterests — no city filter
               const seenIds = new Set();
               const allCityInterestIds = allCities.flatMap(c => (c.interests || []).map(i => i.id));
@@ -4666,7 +4586,7 @@
                                   }}
                                   style={{ padding: '8px 4px', borderRadius: '10px', border: isOn ? `2px solid ${color}` : '1.5px solid #e5e7eb', background: isOn ? color + '18' : 'white', cursor: 'pointer', textAlign: 'center', opacity: isOn ? 1 : 0.45 }}>
                                   <div style={{ fontSize: '16px', marginBottom: '2px', lineHeight: 1 }}>
-                                    {renderIcon(iconRaw, '20px')}
+                                    {(() => { const lp = window.BKK.interestIconPaths?.[int.id]; return lp ? <img src={lp} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'inline' }} /> : renderIcon(iconRaw, '20px'); })()}
                                   </div>
                                   <div style={{ fontWeight: '700', fontSize: '9px', color: isOn ? color : '#374151', wordBreak: 'break-word', lineHeight: 1.2 }}>{tLabel(int)}</div>
                                 </button>
@@ -5260,7 +5180,7 @@
                 <div style={{ padding: '20px 20px 0 20px', flexShrink: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
-                      <span style={{ marginLeft: '6px' }}>{renderIcon(i.icon || '📍', '16px')}</span>
+                      <span style={{ marginLeft: '6px' }}>{i.icon?.startsWith?.('data:') ? '' : (i.icon || '📍')}</span>
                       {tLabel(i) || i.label}
                     </div>
                     <button onClick={() => setCityVisibilityInterest(null)}

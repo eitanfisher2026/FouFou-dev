@@ -459,7 +459,7 @@
                         }`}
                         title={tLabel(option)}
                       >
-                        <span className="text-2xl block" style={{ lineHeight: 1.2 }}>{(() => { const ic = option.icon; if (!ic) return '📍'; if (ic.startsWith('http') || ic.startsWith('data:')) return <img src={ic} alt="" style={{ width: '28px', height: '28px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />; const cp = [...ic][0]?.codePointAt(0); if (cp && cp > 127) return <img src={`https://twemoji.maxcdn.com/v/latest/72x72/${cp.toString(16)}.png`} alt="" style={{ width: '28px', height: '28px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />; return ic; })()}</span>
+                        <span className="text-2xl block" style={{ lineHeight: 1.2 }}>{option.icon?.startsWith?.('data:') ? <img src={option.icon} alt="" className="w-7 h-7 object-contain mx-auto" /> : option.icon}</span>
                         <span className="text-[8px] block truncate leading-tight mt-0.5">{tLabel(option)}</span>
                       </button>
                     ))}
@@ -497,13 +497,12 @@
                         onClick={async () => {
                           const result = await window.BKK.openCamera();
                           if (!result) return;
-                          const tempId = newLocation.firebaseId || `new_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
-                          const uploaded = await window.BKK.uploadImage(result.dataUrl, selectedCityId, tempId);
-                          setNewLocation(prev => ({...prev, uploadedImage: uploaded}));
+                          const compressed = await window.BKK.compressImage(result.dataUrl);
+                          setNewLocation(prev => ({...prev, uploadedImage: compressed}));
                           // v3.23.34: removed auto-download of full-res photo to device (was unconditional and unwanted)
                           const gps = await window.BKK.extractGpsFromImage(result.file);
                           if (gps && (!newLocation.lat || !newLocation.lng)) {
-                            const updates = { uploadedImage: uploaded, lat: gps.lat, lng: gps.lng };
+                            const updates = { uploadedImage: compressed, lat: gps.lat, lng: gps.lng };
                             const detected = window.BKK.getAreasForCoordinates(gps.lat, gps.lng);
                             if (detected.length > 0) {
                               updates.areas = detected;
@@ -532,9 +531,8 @@
                             reader.onload = async () => {
                               // Gallery upload: DO NOT extract EXIF GPS.
                               // Android/iOS strip GPS from images when saved to gallery — always returns 0,0.
-                              const tempId = newLocation.firebaseId || `new_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
-                              const uploaded = await window.BKK.uploadImage(reader.result, selectedCityId, tempId);
-                              setNewLocation(prev => ({...prev, uploadedImage: uploaded}));
+                              const compressed = await window.BKK.compressImage(reader.result);
+                              setNewLocation(prev => ({...prev, uploadedImage: compressed}));
                             };
                             reader.readAsDataURL(file);
                           }}
@@ -1009,28 +1007,52 @@
                   </div>
                   <div style={{ overflow: 'hidden' }}>
                     <label className="block text-xs font-bold mb-1">{t("general.icon")}</label>
-                    {(() => {
-                      const iconVal = newInterest.icon;
-                      if (iconVal && (iconVal.startsWith('http') || iconVal.startsWith('data:'))) {
-                        return <img src={iconVal} alt="icon" style={{ width: '48px', height: '48px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />;
-                      }
-                      const cp = iconVal ? [...iconVal][0]?.codePointAt(0) : null;
-                      if (cp && cp > 127) {
-                        return <img src={`https://twemoji.maxcdn.com/v/latest/72x72/${cp.toString(16)}.png`} alt="icon" style={{ width: '48px', height: '48px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />;
-                      }
-                      return (
+                    {newInterest.icon && newInterest.icon.startsWith('data:') ? (
+                      <div className="relative">
+                        <img src={newInterest.icon} alt="icon" className="w-full h-10 object-contain rounded-lg border-2 border-gray-300 bg-white" />
+                        <button
+                          onClick={() => setNewInterest({...newInterest, icon: '📍'})}
+                          className="absolute -top-1 -right-1 bg-gray-600 text-white rounded-full w-3.5 h-3.5 text-[8px] font-bold flex items-center justify-center leading-none"
+                        >✕</button>
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={newInterest.icon}
+                        onChange={(e) => {
+                          const firstEmoji = [...e.target.value][0] || '';
+                          setNewInterest({...newInterest, icon: firstEmoji});
+                        }}
+                        placeholder="📍"
+                        className="w-full p-2 text-xl border-2 border-gray-300 rounded-lg text-center"
+                        
+                      />
+                    )}
+                    {isEditor && (
+                      <label className="block w-full mt-1 p-1 border border-dashed border-gray-300 rounded text-center cursor-pointer hover:bg-gray-50 text-[9px] text-gray-500">
+                        📁 File
                         <input
-                          type="text"
-                          value={iconVal}
-                          onChange={(e) => {
-                            const firstEmoji = [...e.target.value][0] || '';
-                            setNewInterest({...newInterest, icon: firstEmoji});
+                          type="file"
+                          accept="image/*"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const compressed = await window.BKK.compressIcon(file, 128, 40);
+                              if (compressed) {
+                                setNewInterest({...newInterest, icon: compressed});
+                              }
+                            }
                           }}
-                          placeholder="📍"
-                          className="w-full p-2 text-xl border-2 border-gray-300 rounded-lg text-center"
+                          className="hidden"
                         />
-                      );
-                    })()}
+                      </label>
+                    )}
+                    {isEditor && (
+                      <button
+                        onClick={() => setIconPickerConfig({ description: newInterest.label || '', callback: (emoji) => setNewInterest(prev => ({...prev, icon: emoji})), suggestions: [], loading: false })}
+                        className="block w-full mt-1 p-1 border border-dashed border-orange-300 rounded text-center cursor-pointer hover:bg-orange-50 text-[9px] text-orange-600 font-bold"
+                      >✨ {t('emoji.suggest')}</button>
+                    )}
                   </div>
                 </div>
                 {/* Color override for map markers + delete — admin/editor only */}
@@ -1483,16 +1505,9 @@
                     </div>
                   );
                 })()}
-                {/* ID + Creator info footer */}
-                {editingCustomInterest && isUnlocked && (
+                {/* Creator info footer (v3.23.8) — shown when addedBy is present */}
+                {editingCustomInterest && isUnlocked && editingCustomInterest.addedBy && (
                   <div style={{ padding: '6px 14px', fontSize: '10px', color: '#9ca3af', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontFamily: 'monospace', color: '#6b7280' }}>🔑 {editingCustomInterest.id}</span>
-                      <button
-                        onClick={() => { navigator.clipboard.writeText(editingCustomInterest.id); showToast('✅ ID copied', 'success'); }}
-                        style={{ fontSize: '9px', padding: '1px 6px', borderRadius: '4px', border: '1px solid #d1d5db', background: '#f9fafb', cursor: 'pointer', color: '#6b7280', flexShrink: 0 }}
-                      >Copy</button>
-                    </div>
                     {editingCustomInterest.addedByName && (
                       <div>👤 {t('interests.addedBy')} {editingCustomInterest.addedByName}</div>
                     )}
@@ -2451,10 +2466,10 @@
                             const file = e.target.files?.[0];
                             if (!file) return;
                             try {
-                              const uploaded = await window.BKK.uploadImage(file, loc.cityId || selectedCityId, loc.firebaseId, 480);
-                              if (uploaded) {
-                                const ok = await patchLocationField(loc, { uploadedImage: uploaded });
-                                if (ok) { setModalImage(uploaded); showToast('✅ תמונה נוספה', 'success'); }
+                              const compressed = await window.BKK.compressImage(file, 480);
+                              if (compressed) {
+                                const ok = await patchLocationField(loc, { uploadedImage: compressed });
+                                if (ok) { setModalImage(compressed); showToast('✅ תמונה נוספה', 'success'); }
                               }
                             } catch(err) { showToast('שגיאה בטעינת תמונה', 'error'); }
                             e.target.value = '';

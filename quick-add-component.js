@@ -224,9 +224,8 @@ const QuickAddPlaceDialog = ({
                   onClick={async () => {
                     const result = await window.BKK.openCamera();
                     if (!result) return;
-                    const tempId = `new_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
-                    const uploaded = await window.BKK.uploadImage(result.dataUrl, selectedCityId, tempId);
-                    setQaImage(uploaded);
+                    const compressed = await window.BKK.compressImage(result.dataUrl);
+                    setQaImage(compressed);
                     // Extract GPS from EXIF and bubble up to parent
                     if (captureMode && place._onGpsFromExif) {
                       const gps = await window.BKK.extractGpsFromImage(result.file);
@@ -246,10 +245,7 @@ const QuickAddPlaceDialog = ({
                       if (!file) return;
                       // DO NOT extract EXIF GPS from gallery — Android/iOS strip it when saving to gallery
                       const reader = new FileReader();
-                      reader.onload = async () => {
-                        const tempId = `new_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
-                        setQaImage(await window.BKK.uploadImage(reader.result, selectedCityId, tempId));
-                      };
+                      reader.onload = async () => { setQaImage(await window.BKK.compressImage(reader.result)); };
                       reader.readAsDataURL(file);
                     }} />
                 </label>
@@ -269,7 +265,7 @@ const QuickAddPlaceDialog = ({
                       onClick={() => handleInterestToggle(option.id)}
                       className={`p-1.5 rounded-lg text-[10px] font-bold transition-all ${sel ? "bg-green-500 text-white shadow-md" : "bg-white border border-gray-300"}`}>
                       <span className="text-lg block">
-                        {(() => { const ic = option.icon; if (!ic) return '📍'; if (ic.startsWith('http') || ic.startsWith('data:')) return <img src={ic} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />; const cp = [...ic][0]?.codePointAt(0); if (cp && cp > 127) return <img src={`https://twemoji.maxcdn.com/v/latest/72x72/${cp.toString(16)}.png`} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />; return ic; })()}
+                        {option.icon?.startsWith?.("data:") ? <img src={option.icon} alt="" className="w-5 h-5 object-contain mx-auto" /> : option.icon}
                       </span>
                       <span className="text-[7px] block truncate leading-tight mt-0.5">{tLabel(option)}</span>
                     </button>
@@ -285,7 +281,7 @@ const QuickAddPlaceDialog = ({
                       onClick={() => handleInterestToggle(option.id)}
                       className={`p-1.5 rounded-lg text-[10px] font-bold transition-all ${sel ? "bg-purple-500 text-white shadow-md" : "bg-white border border-gray-300"}`}>
                       <span className="text-lg block">
-                        {(() => { const ic = option.icon; if (!ic) return '📍'; if (ic.startsWith('http') || ic.startsWith('data:')) return <img src={ic} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />; const cp = [...ic][0]?.codePointAt(0); if (cp && cp > 127) return <img src={`https://twemoji.maxcdn.com/v/latest/72x72/${cp.toString(16)}.png`} alt="" style={{ width: '20px', height: '20px', objectFit: 'contain', display: 'block', margin: '0 auto' }} />; return ic; })()}
+                        {option.icon?.startsWith?.("data:") ? <img src={option.icon} alt="" className="w-5 h-5 object-contain mx-auto" /> : option.icon}
                       </span>
                       <span className="text-[7px] block truncate leading-tight mt-0.5">{tLabel(option)}</span>
                     </button>

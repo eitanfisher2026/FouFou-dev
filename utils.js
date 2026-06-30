@@ -6,6 +6,44 @@
 
 window.BKK = window.BKK || {};
 
+// Twemoji CDN icons for built-in interests (bypasses Firebase + local file cache)
+const _tw = 'https://twemoji.maxcdn.com/v/latest/72x72/';
+window.BKK.interestIconPaths = {
+  'i_all_restaurants':          _tw+'1f37d.png',
+  'i_architecture_and_museums': _tw+'1f3db.png',
+  'i_asian_food':               _tw+'1f35c.png',
+  'i_brunch_coffee':            _tw+'1f950.png',
+  'i_cat_dog_coffee':           _tw+'1f431.png',
+  'i_churches':                 _tw+'26ea.png',
+  'i_coffee':                   _tw+'2615.png',
+  'i_crafts':                   _tw+'1f9f5.png',
+  'i_day_markets':              _tw+'1f9fa.png',
+  'i_day_street':               _tw+'1f6e3.png',
+  'i_entertainment':            _tw+'1f3ad.png',
+  'i_fountain_and_statues':     _tw+'26f2.png',
+  'i_galleries':                _tw+'1f5bc.png',
+  'i_kids':                     _tw+'1f3a1.png',
+  'i_mediterranean_food':       _tw+'1f959.png',
+  'i_mosque':                   _tw+'1f54c.png',
+  'i_nature':                   _tw+'1f33f.png',
+  'i_nightlife':                _tw+'1faa9.png',
+  'i_night_markets':            _tw+'1f3ee.png',
+  'i_night_street':             _tw+'1f303.png',
+  'i_parks_and_gardens':        _tw+'1f333.png',
+  'i_places_with_water':        _tw+'1f3d6.png',
+  'i_shopping_malls':           _tw+'1f3ea.png',
+  'i_specialty_stores':         _tw+'1f6cd.png',
+  'i_street_art':               _tw+'1f3a8.png',
+  'i_street_food_day':          _tw+'1f362.png',
+  'i_street_food_night':        _tw+'1f371.png',
+  'i_sweets':                   _tw+'1f9c1.png',
+  'i_synagogue':                _tw+'1f54d.png',
+  'i_temples':                  _tw+'1f6d5.png',
+  'i_tourist_attraction':       _tw+'1f4f8.png',
+  'i_vegetarian_food':          _tw+'1f957.png',
+  'i_vintage':                  _tw+'1f570.png',
+  'i_wine_rooftop_bar':         _tw+'1f377.png',
+};
 
 // ============================================================================
 // GEOLOCATION & COORDINATES
@@ -498,9 +536,9 @@ window.BKK.compressImage = (input, maxSizeKB = 120) => {
  * Upload an image to Firebase Storage and return the download URL.
  * Falls back to base64 if Storage is not available.
  */
-window.BKK.uploadImage = async (file, cityId, locationId, maxSizeKB = 120) => {
+window.BKK.uploadImage = async (file, cityId, locationId) => {
   // Compress first
-  const compressed = await window.BKK.compressImage(file, maxSizeKB);
+  const compressed = await window.BKK.compressImage(file);
   
   // Try Firebase Storage
   if (typeof firebase !== 'undefined' && firebase.storage) {
