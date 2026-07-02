@@ -4530,5 +4530,41 @@
         );
       })()}
 
+      {/* iOS Install Guide */}
+      {showInstallGuide && (() => {
+        const isHe = currentLang === 'he';
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+            onClick={() => setShowInstallGuide(false)}>
+            <div style={{ background: 'white', borderRadius: '20px 20px 0 0', padding: '24px 20px 36px', width: '100%', maxWidth: '480px' }}
+              onClick={e => e.stopPropagation()}>
+              <div style={{ width: '36px', height: '4px', background: '#e5e7eb', borderRadius: '2px', margin: '0 auto 20px' }} />
+              <h3 style={{ textAlign: 'center', fontSize: '18px', fontWeight: '700', margin: '0 0 6px', color: '#111827' }}>
+                {isHe ? 'הוסף למסך הבית 📲' : 'Add to Home Screen 📲'}
+              </h3>
+              <p style={{ textAlign: 'center', fontSize: '13px', color: '#9ca3af', margin: '0 0 20px' }}>
+                {isHe ? 'בצע את הצעדים הבאים בספארי' : 'Follow these steps in Safari'}
+              </p>
+              {[
+                { n: 1, he: 'לחץ על כפתור השיתוף', en: 'Tap the Share button', sub_he: 'הסמל ↑ בתחתית המסך', sub_en: 'The ↑ icon at the bottom of the screen' },
+                { n: 2, he: 'גלול ובחר', en: 'Scroll and tap', sub_he: '"הוסף למסך הבית"', sub_en: '"Add to Home Screen"' },
+                { n: 3, he: 'לחץ "הוסף"', en: 'Tap "Add"', sub_he: 'האפליקציה תופיע במסך הבית', sub_en: 'The app will appear on your home screen' },
+              ].map(step => (
+                <div key={step.n} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f9fafb', borderRadius: '14px', padding: '12px 14px', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '22px', width: '28px', textAlign: 'center', flexShrink: 0, fontWeight: '700', color: '#be123c' }}>{step.n}</span>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>{isHe ? step.he : step.en}</div>
+                    <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '2px' }}>{isHe ? step.sub_he : step.sub_en}</div>
+                  </div>
+                </div>
+              ))}
+              <button onClick={() => setShowInstallGuide(false)}
+                style={{ width: '100%', marginTop: '8px', padding: '14px', borderRadius: '14px', background: '#be123c', color: 'white', border: 'none', fontSize: '15px', fontWeight: '700', cursor: 'pointer' }}>
+                {isHe ? 'הבנתי' : 'Got it'}
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
 

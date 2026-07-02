@@ -591,6 +591,33 @@
   const pendingRatingRefreshRef = React.useRef(false);
   const [showRouteMenu, setShowRouteMenu] = useState(false); // Hamburger menu in route results
   const [showHeaderMenu, setShowHeaderMenu] = useState(false); // Main hamburger menu in header
+  const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const _isInstalled = window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone;
+  const [canInstall, setCanInstall] = useState(!_isInstalled && (!!window.__installPrompt || _isIOS));
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
+
+  React.useEffect(() => {
+    const onReady = () => setCanInstall(true);
+    const onDone  = () => setCanInstall(false);
+    window.addEventListener('pwa_install_ready', onReady);
+    window.addEventListener('pwa_installed', onDone);
+    return () => {
+      window.removeEventListener('pwa_install_ready', onReady);
+      window.removeEventListener('pwa_installed', onDone);
+    };
+  }, []);
+
+  const installApp = () => {
+    if (window.__installPrompt) {
+      window.__installPrompt.prompt();
+      window.__installPrompt.userChoice.then(r => {
+        if (r.outcome === 'accepted') { setCanInstall(false); window.__installPrompt = null; }
+      });
+    } else {
+      setShowInstallGuide(true);
+      setShowHeaderMenu(false);
+    }
+  };
   const [routeChoiceMade, setRouteChoiceMade] = useState(null); // null | 'manual' — controls wizard step 3 split
   
   // Auto-compute route whenever route exists with stops but isn't optimized
