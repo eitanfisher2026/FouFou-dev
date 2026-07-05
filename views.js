@@ -3263,6 +3263,15 @@
                             }}
                             style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "6px", border: "none", cursor: "pointer", background: isActive ? "#dcfce7" : "#fee2e2", color: isActive ? "#16a34a" : "#ef4444", fontWeight: "bold" }}
                           >{isActive ? `▶️ ${t("general.active")}` : `⏸️ ${t("general.inactive")}`}</button>
+                          <button
+                            onClick={() => {
+                              if (!database) { showToast('No database connection', 'error'); return; }
+                              database.ref('cityDataVersions/' + reg.id).set(Date.now())
+                                .then(() => showToast('📤 ' + (reg.nameEn || reg.name) + ' — published', 'success'))
+                                .catch(err => showToast('Publish failed: ' + err.message, 'error'));
+                            }}
+                            style={{ fontSize: "10px", padding: "2px 8px", borderRadius: "6px", border: "none", cursor: "pointer", background: "#e0e7ff", color: "#4338ca", fontWeight: "bold", flexShrink: 0 }}
+                          >📤</button>
                         </div>
                       );
                     })}
